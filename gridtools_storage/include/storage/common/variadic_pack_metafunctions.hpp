@@ -39,6 +39,7 @@
 
 #include <boost/utility.hpp>
 #include <boost/mpl/and.hpp>
+#include <boost/type_traits.hpp>
 
 #include "definitions.hpp"
 #include "error.hpp"
