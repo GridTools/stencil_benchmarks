@@ -2661,3 +2661,1752 @@
 		}
 	}
 ]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 1,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 16,
+		"y" : 16,
+		"z" : 5,
+		"float" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : -nan,
+				"copyi1" : -nan,
+				"sumi1" : -nan,
+				"sumj1" : -nan,
+				"sumk1" : -nan,
+				"avgi" : -nan,
+				"avgj" : -nan,
+				"avgk" : -nan,
+				"lap" : -nan
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 6.839754,
+				"copyi1" : 5.755821,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 12.887556,
+				"copyi1" : 11.119947,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 8.761828,
+				"copyi1" : 7.286232,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 13.116019,
+				"copyi1" : 12.036137,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 8.81769,
+				"copyi1" : 7.289887,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 13.014433,
+				"copyi1" : 12.18373,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 8.863013,
+				"copyi1" : 7.962472,
+				"sumi1" : 3.946501,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 12.754814,
+				"copyi1" : 12.03261,
+				"sumi1" : 3.399503,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 7.619186,
+				"copyi1" : 7.040484,
+				"sumi1" : 1.934177,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 12.413417,
+				"copyi1" : 12.182984,
+				"sumi1" : 3.074113,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 8.275286,
+				"copyi1" : 7.577402,
+				"sumi1" : 3.719023,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 9.318349,
+				"copyi1" : 9.660931,
+				"sumi1" : 3.064804,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 128,
+		"y" : 128,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 8.476817,
+				"copyi1" : 7.557293,
+				"sumi1" : 4.890176,
+				"sumj1" : 5.369015,
+				"sumk1" : 5.24953,
+				"avgi" : 3.696201,
+				"avgj" : 3.318826,
+				"avgk" : 3.861787,
+				"lap" : 2.298724
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 12.338659,
+				"copyi1" : 11.787919,
+				"sumi1" : 6.548142,
+				"sumj1" : 6.928391,
+				"sumk1" : 7.635126,
+				"avgi" : 5.802927,
+				"avgj" : 5.802367,
+				"avgk" : 7.094896,
+				"lap" : 4.21656
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 4.377472,
+				"copyi1" : 4.113837,
+				"sumi1" : 3.071868,
+				"sumj1" : 3.417412,
+				"sumk1" : 3.131928,
+				"avgi" : 2.529503,
+				"avgj" : 2.339057,
+				"avgk" : 2.501376,
+				"lap" : 1.768002
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 4.832537,
+				"copyi1" : 4.887113,
+				"sumi1" : 3.865307,
+				"sumj1" : 4.158793,
+				"sumk1" : 4.004598,
+				"avgi" : 3.576995,
+				"avgj" : 3.640071,
+				"avgk" : 3.763161,
+				"lap" : 2.952371
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 2.593792,
+				"copyi1" : 2.264617,
+				"sumi1" : 0.77445,
+				"sumj1" : 2.335881,
+				"sumk1" : 2.175363,
+				"avgi" : 0.757463,
+				"avgj" : 0.764045,
+				"avgk" : 2.041826,
+				"lap" : 0.702038
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 3.566447,
+				"copyi1" : 3.290056,
+				"sumi1" : 1.177595,
+				"sumj1" : 3.234082,
+				"sumk1" : 3.165056,
+				"avgi" : 1.175159,
+				"avgj" : 1.178735,
+				"avgk" : 3.029161,
+				"lap" : 1.175662
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 6.94443,
+				"copyi1" : 6.067328,
+				"sumi1" : 4.912142,
+				"sumj1" : 4.436111,
+				"sumk1" : 3.439442,
+				"avgi" : 2.756068,
+				"avgj" : 3.79517,
+				"avgk" : 2.929913,
+				"lap" : 2.147766
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 9.156605,
+				"copyi1" : 8.880243,
+				"sumi1" : 8.254287,
+				"sumj1" : 7.637808,
+				"sumk1" : 5.846907,
+				"avgi" : 5.470419,
+				"avgj" : 7.294084,
+				"avgk" : 5.55342,
+				"lap" : 4.493499
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 2.207801,
+				"copyi1" : 6.531562,
+				"sumi1" : 5.977442,
+				"sumj1" : 5.56907,
+				"sumk1" : 3.535311,
+				"avgi" : 3.603553,
+				"avgj" : 4.420193,
+				"avgk" : 3.245955,
+				"lap" : 2.397776
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 3.8619,
+				"copyi1" : 8.524626,
+				"sumi1" : 8.566845,
+				"sumj1" : 7.942281,
+				"sumk1" : 5.812928,
+				"avgi" : 6.479273,
+				"avgj" : 7.319301,
+				"avgk" : 5.561755,
+				"lap" : 4.556326
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 17.172391,
+				"copyi1" : 6.783237,
+				"sumi1" : 5.96748,
+				"sumj1" : 5.585808,
+				"sumk1" : 3.810177,
+				"avgi" : 3.610868,
+				"avgj" : 4.157131,
+				"avgk" : 3.346361,
+				"lap" : 2.412204
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 30.333144,
+				"copyi1" : 8.943701,
+				"sumi1" : 8.528301,
+				"sumj1" : 7.901755,
+				"sumk1" : 5.804984,
+				"avgi" : 6.509511,
+				"avgj" : 7.149589,
+				"avgk" : 5.387396,
+				"lap" : 4.57236
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 19.271102,
+				"copyi1" : 6.77525,
+				"sumi1" : 5.904932,
+				"sumj1" : 5.531919,
+				"sumk1" : 3.558347,
+				"avgi" : 3.56898,
+				"avgj" : 4.396774,
+				"avgk" : 3.287219,
+				"lap" : 2.376603
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 28.231353,
+				"copyi1" : 8.900798,
+				"sumi1" : 8.556411,
+				"sumj1" : 8.028746,
+				"sumk1" : 5.802112,
+				"avgi" : 6.573024,
+				"avgj" : 7.218907,
+				"avgk" : 5.612187,
+				"lap" : 4.613046
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 10.80763,
+				"copyi1" : 10.552819,
+				"sumi1" : 7.488351,
+				"sumj1" : 7.051464,
+				"sumk1" : 7.345937,
+				"avgi" : 7.636368,
+				"avgj" : 7.535443,
+				"avgk" : 7.352504,
+				"lap" : 5.399404
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 17.829281,
+				"copyi1" : 17.174441,
+				"sumi1" : 14.00319,
+				"sumj1" : 13.615214,
+				"sumk1" : 14.226405,
+				"avgi" : 14.181207,
+				"avgj" : 14.559241,
+				"avgk" : 13.900274,
+				"lap" : 10.825226
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 9.139795,
+				"copyi1" : 9.299947,
+				"sumi1" : 6.796658,
+				"sumj1" : 6.405423,
+				"sumk1" : 6.567125,
+				"avgi" : 6.762573,
+				"avgj" : 6.732066,
+				"avgk" : 6.768786,
+				"lap" : 4.656862
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 20.904276,
+				"copyi1" : 19.043086,
+				"sumi1" : 14.709753,
+				"sumj1" : 14.312604,
+				"sumk1" : 14.115049,
+				"avgi" : 14.582882,
+				"avgj" : 14.636736,
+				"avgk" : 14.371162,
+				"lap" : 11.114606
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 10.868289,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 16.554071,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 13.839144,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 16.181625,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 10.963006,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 17.592191,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.851447,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 19.644202,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.870898,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 20.304012,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.394518,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 19.066776,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.321311,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 18.316477,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 12.404501,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 17.542141,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.438002,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 19.630804,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.693159,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 17.512693,
+				"copyi1" : inf,
+				"sumi1" : inf,
+				"sumj1" : inf,
+				"sumk1" : inf,
+				"avgi" : inf,
+				"avgj" : inf,
+				"avgk" : inf,
+				"lap" : inf
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 12.239004,
+				"copyi1" : 12.04953,
+				"sumi1" : 11.852801,
+				"sumj1" : 11.605324,
+				"sumk1" : 11.571954,
+				"avgi" : 10.821411,
+				"avgj" : 11.502077,
+				"avgk" : 11.107188,
+				"lap" : 9.220894
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 20.065905,
+				"copyi1" : 20.132057,
+				"sumi1" : 19.268646,
+				"sumj1" : 20.124978,
+				"sumk1" : 19.990688,
+				"avgi" : 18.17441,
+				"avgj" : 19.664117,
+				"avgk" : 18.935232,
+				"lap" : 17.085878
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 7.798683,
+				"copyi1" : 6.148287,
+				"sumi1" : 5.877107,
+				"sumj1" : 5.417368,
+				"sumk1" : 5.81327,
+				"avgi" : 4.640889,
+				"avgj" : 4.319106,
+				"avgk" : 4.217479,
+				"lap" : 2.389384
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 10.117127,
+				"copyi1" : 9.312452,
+				"sumi1" : 8.89602,
+				"sumj1" : 8.706152,
+				"sumk1" : 9.691644,
+				"avgi" : 7.991224,
+				"avgj" : 7.840408,
+				"avgk" : 7.907474,
+				"lap" : 4.682017
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.567235,
+				"copyi1" : 11.283688,
+				"sumi1" : 11.10398,
+				"sumj1" : 10.75364,
+				"sumk1" : 10.926856,
+				"avgi" : 10.492927,
+				"avgj" : 10.789,
+				"avgk" : 10.16015,
+				"lap" : 8.855556
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 19.044171,
+				"copyi1" : 17.986428,
+				"sumi1" : 18.674591,
+				"sumj1" : 17.721298,
+				"sumk1" : 18.510593,
+				"avgi" : 17.167411,
+				"avgj" : 17.996819,
+				"avgk" : 17.806495,
+				"lap" : 15.681344
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 11.367082,
+				"copyi1" : 10.743321,
+				"sumi1" : 7.52648,
+				"sumj1" : 7.163343,
+				"sumk1" : 7.49944,
+				"avgi" : 7.701564,
+				"avgj" : 7.677452,
+				"avgk" : 7.399714,
+				"lap" : 5.489256
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 17.843542,
+				"copyi1" : 17.79653,
+				"sumi1" : 13.957956,
+				"sumj1" : 13.808762,
+				"sumk1" : 14.364756,
+				"avgi" : 14.22403,
+				"avgj" : 14.502321,
+				"avgk" : 14.152908,
+				"lap" : 10.848907
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 3.79483,
+				"copyi1" : 3.777254,
+				"sumi1" : 3.340515,
+				"sumj1" : 3.384281,
+				"sumk1" : 3.335382,
+				"avgi" : 3.384472,
+				"avgj" : 3.366959,
+				"avgk" : 3.32821,
+				"lap" : 2.859669
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 5.498002,
+				"copyi1" : 5.581653,
+				"sumi1" : 4.894557,
+				"sumj1" : 4.787576,
+				"sumk1" : 4.793409,
+				"avgi" : 4.947077,
+				"avgj" : 4.849411,
+				"avgk" : 4.669447,
+				"lap" : 4.073777
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 9.681239,
+				"copyi1" : 9.555016,
+				"sumi1" : 6.997156,
+				"sumj1" : 7.083404,
+				"sumk1" : 7.250091,
+				"avgi" : 7.300741,
+				"avgj" : 7.630279,
+				"avgk" : 7.196539,
+				"lap" : 5.177487
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 16.368286,
+				"copyi1" : 15.106134,
+				"sumi1" : 11.99028,
+				"sumj1" : 12.38843,
+				"sumk1" : 12.069344,
+				"avgi" : 11.876965,
+				"avgj" : 12.54562,
+				"avgk" : 11.268833,
+				"lap" : 9.284039
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 2.214398,
+				"copyi1" : 2.033657,
+				"sumi1" : 1.008196,
+				"sumj1" : 1.091891,
+				"sumk1" : 1.120479,
+				"avgi" : 1.113792,
+				"avgj" : 1.241094,
+				"avgk" : 1.115248,
+				"lap" : 0.637348
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 2.532697,
+				"copyi1" : 2.133945,
+				"sumi1" : 1.415136,
+				"sumj1" : 1.554674,
+				"sumk1" : 1.515159,
+				"avgi" : 1.358654,
+				"avgj" : 1.54543,
+				"avgk" : 1.359283,
+				"lap" : 0.972186
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 2.241106,
+				"copyi1" : 3.067492,
+				"sumi1" : 1.392718,
+				"sumj1" : 1.438446,
+				"sumk1" : 1.390877,
+				"avgi" : 1.559638,
+				"avgj" : 1.390995,
+				"avgk" : 1.289897,
+				"lap" : 0.719837
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 2.995646,
+				"copyi1" : 5.955237,
+				"sumi1" : 2.806507,
+				"sumj1" : 2.930485,
+				"sumk1" : 2.806422,
+				"avgi" : 2.916418,
+				"avgj" : 2.794256,
+				"avgk" : 2.612969,
+				"lap" : 1.450945
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 10.02143,
+				"copyi1" : 11.569243,
+				"sumi1" : 5.253718,
+				"sumj1" : 5.261064,
+				"sumk1" : 5.248048,
+				"avgi" : 5.89397,
+				"avgj" : 5.240227,
+				"avgk" : 4.830571,
+				"lap" : 2.700055
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 10.339691,
+				"copyi1" : 21.592746,
+				"sumi1" : 10.376533,
+				"sumj1" : 10.603272,
+				"sumk1" : 10.372585,
+				"avgi" : 11.447746,
+				"avgj" : 10.361551,
+				"avgk" : 9.693127,
+				"lap" : 5.365784
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 18.782856,
+				"copyi1" : 22.269112,
+				"sumi1" : 10.048755,
+				"sumj1" : 10.0166,
+				"sumk1" : 10.09415,
+				"avgi" : 11.331114,
+				"avgj" : 10.072927,
+				"avgk" : 9.270559,
+				"lap" : 5.207905
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 20.821332,
+				"copyi1" : 39.626996,
+				"sumi1" : 20.100641,
+				"sumj1" : 20.074933,
+				"sumk1" : 20.023512,
+				"avgi" : 21.080053,
+				"avgj" : 20.050144,
+				"avgk" : 18.639421,
+				"lap" : 10.402118
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 37.355361,
+				"copyi1" : 44.47478,
+				"sumi1" : 19.828213,
+				"sumj1" : 19.872895,
+				"sumk1" : 20.218429,
+				"avgi" : 22.720473,
+				"avgj" : 20.19911,
+				"avgk" : 18.541045,
+				"lap" : 10.430336
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 35.385402,
+				"copyi1" : 51.873961,
+				"sumi1" : 39.600031,
+				"sumj1" : 39.645903,
+				"sumk1" : 36.950902,
+				"avgi" : 42.109431,
+				"avgj" : 39.472023,
+				"avgk" : 33.684819,
+				"lap" : 20.72909
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 9.833623,
+				"copyi1" : 10.294735,
+				"sumi1" : 7.748139,
+				"sumj1" : 7.805151,
+				"sumk1" : 7.791255,
+				"avgi" : 8.1925,
+				"avgj" : 7.750889,
+				"avgk" : 7.434472,
+				"lap" : 5.417352
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 16.386455,
+				"copyi1" : 18.717416,
+				"sumi1" : 14.74631,
+				"sumj1" : 15.145126,
+				"sumk1" : 14.220292,
+				"avgi" : 15.694823,
+				"avgj" : 15.130409,
+				"avgk" : 13.678531,
+				"lap" : 10.772726
+			}
+		}
+	}
+]
+[
+	{
+		"x" : 256,
+		"y" : 256,
+		"z" : 80,
+		"float" : {
+			"stencils" : {
+				"copy" : 38.333588,
+				"copyi1" : 43.896441,
+				"sumi1" : 19.719742,
+				"sumj1" : 19.671772,
+				"sumk1" : 19.982291,
+				"avgi" : 22.41262,
+				"avgj" : 19.966595,
+				"avgk" : 18.32793,
+				"lap" : 10.297914
+			}
+		},
+		"double" : {
+			"stencils" : {
+				"copy" : 36.395406,
+				"copyi1" : 49.457678,
+				"sumi1" : 39.219197,
+				"sumj1" : 39.353893,
+				"sumk1" : 35.766361,
+				"avgi" : 42.03354,
+				"avgj" : 38.991968,
+				"avgk" : 33.403137,
+				"lap" : 20.552939
+			}
+		}
+	}
+]
