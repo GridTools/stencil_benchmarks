@@ -6,15 +6,16 @@
 #include "defs.h"
 
 constexpr int h = 2;
+constexpr int align = 32;
 typedef gridtools::storage_traits<gridtools::enumtype::Host> storage_tr;
-typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map<2,1,0>, gridtools::halo<h,h,h>, gridtools::alignment<32> > storage_info_t;
+typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map< LAYOUT >, gridtools::halo<h,h,h>, gridtools::alignment< ALIGN > > storage_info_t;
 
 template<typename T>
 void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
-        for(int i=h; i<isize+h; ++i) {
-            for(int j=h; j<jsize+h; ++j) {
+        for(int j=h; j<jsize+h; ++j) {
+            for(int i=h; i<isize+h; ++i) {
                 b[si.index(i,j,k)] = a[si.index(i,j,k)];
             }
         }
@@ -134,8 +135,8 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
     std::cout << "Zero pos: " << si.index(0,0,0) << std::endl;
     std::cout << "Zero pos+halo: " << si.index(h,h,h) << std::endl;
 
-    T* a = new T[si.size()];
-    T* b = new T[si.size()];
+    T* a = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
+    T* b = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
 
     for(unsigned int i=0; i < isize+2*h; ++i) {
         for(unsigned int j=0; j < jsize+2*h; ++j) {

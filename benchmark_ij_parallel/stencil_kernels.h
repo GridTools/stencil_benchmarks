@@ -7,7 +7,7 @@
 
 constexpr int h = 2;
 typedef gridtools::storage_traits<gridtools::enumtype::Host> storage_tr;
-typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map<0,1,2>, gridtools::halo<h,h,h>, gridtools::alignment<32> > storage_info_t;
+typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map< LAYOUT >, gridtools::halo< h,h,h >, gridtools::alignment< ALIGN > > storage_info_t;
 
 template<typename T>
 void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
@@ -17,8 +17,8 @@ void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -39,8 +39,8 @@ void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, con
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -61,8 +61,8 @@ void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -83,8 +83,8 @@ void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -105,8 +105,8 @@ void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -127,8 +127,8 @@ void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -149,8 +149,8 @@ void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -171,8 +171,8 @@ void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -194,8 +194,8 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
-            int start_index_i = bi*8;
-            int start_index_j = bj*8;
+            int start_index_i = bi*BLOCKSIZEX;
+            int start_index_j = bj*BLOCKSIZEY;
             const int idx = si.index(start_index_i+h,start_index_j+h,h)-si.get_initial_offset();
             for(int i=0; i<BLOCKSIZEX; ++i) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
@@ -224,8 +224,8 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
     std::cout << "Zero pos: " << si.index(0,0,0) << std::endl;
     std::cout << "Zero pos+halo: " << si.index(h,h,h) << std::endl;
 
-    T* a = new T[si.size()];
-    T* b = new T[si.size()];
+    T* a = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
+    T* b = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
 
     for(unsigned int i=0; i < isize+2*h; ++i) {
         for(unsigned int j=0; j < jsize+2*h; ++j) {

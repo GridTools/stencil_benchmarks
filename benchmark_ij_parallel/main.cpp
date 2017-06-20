@@ -53,8 +53,8 @@ int main(int argc, char** argv) {
     printf("  ksize: %d\n",ksize);
 
     const size_t tot_size = isize*jsize*ksize;
-    const size_t tsteps=150;
-    const size_t warmup_step=50;
+    const size_t tsteps=100;
+    const size_t warmup_step=10;
  
     printf("======================== FLOAT =======================\n");
     std::vector<double> timings(num_bench_st);
