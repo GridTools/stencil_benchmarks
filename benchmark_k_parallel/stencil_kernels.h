@@ -1,4 +1,5 @@
 #include <omp.h>
+#include <boost/align/is_aligned.hpp>
 
 #ifdef FLAT_MODE
 #include <hbwmalloc.h>
@@ -139,14 +140,27 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
     std::cout << "Zero pos+halo: " << si.index(h,h,h) << std::endl;
 
 #ifdef CACHE_MODE
-    T* a = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
-    T* b = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
+    T* a = (T*)aligned_alloc(ALIGN*sizeof(T), si.size()*sizeof(T));
+    T* b = (T*)aligned_alloc(ALIGN*sizeof(T), si.size()*sizeof(T));
 #elif FLAT_MODE
     T* a = (T*) hbw_malloc(si.size()*sizeof(T));
     T* b = (T*) hbw_malloc(si.size()*sizeof(T));
 #else
     static_assert(false, "Please define either FLAT_MODE or CACHE_MODE.");
 #endif
+
+    //check if aligned to ALIGN*sizeof(T) bytes
+    bool is_align = boost::alignment::is_aligned(a+si.index(h,h,h), ALIGN*sizeof(T));
+    is_align &= boost::alignment::is_aligned(b+si.index(h,h,h), ALIGN*sizeof(T));
+    std::cout << "Alignment checks:\n";
+    std::cout << "\t" << a << " --> " << boost::alignment::is_aligned(a, ALIGN*sizeof(T)) << std::endl;
+    std::cout << "\t" << a+si.index(h,h,h) << " --> " << boost::alignment::is_aligned(a+si.index(h,h,h), ALIGN*sizeof(T)) << std::endl;
+    std::cout << "\t" << b << " --> " << boost::alignment::is_aligned(b, ALIGN*sizeof(T)) << std::endl;
+    std::cout << "\t" << b+si.index(h,h,h) << " --> " << boost::alignment::is_aligned(b+si.index(h,h,h), ALIGN*sizeof(T)) << std::endl;
+    if (!is_align) {
+        std::cout << "first data point is not aligned...\n";
+        abort();
+    }
 
     for(unsigned int i=0; i < isize+2*h; ++i) {
         for(unsigned int j=0; j < jsize+2*h; ++j) {
@@ -354,6 +368,14 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
             }
         }
     }
+
+#ifdef CACHE_MODE
+    free(a);
+    free(b);
+#elif FLAT_MODE
+    hbw_free(a);
+    hbw_free(b);
+#endif
 
 }
 
