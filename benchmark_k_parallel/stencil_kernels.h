@@ -1,14 +1,17 @@
 #include <omp.h>
 
+#ifdef FLAT_MODE
+#include <hbwmalloc.h>
+#endif
+
 #include <storage/storage-facility.hpp>
 
 #include "tools.h"
 #include "defs.h"
 
 constexpr int h = 2;
-constexpr int align = 32;
 typedef gridtools::storage_traits<gridtools::enumtype::Host> storage_tr;
-typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map< LAYOUT >, gridtools::halo<h,h,h>, gridtools::alignment< ALIGN > > storage_info_t;
+typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map< LAYOUT >, gridtools::halo< h,h,h >, gridtools::alignment< ALIGN > > storage_info_t;
 
 template<typename T>
 void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
@@ -135,8 +138,15 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
     std::cout << "Zero pos: " << si.index(0,0,0) << std::endl;
     std::cout << "Zero pos+halo: " << si.index(h,h,h) << std::endl;
 
+#ifdef CACHE_MODE
     T* a = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
     T* b = (T*)aligned_alloc(ALIGN, si.size()*sizeof(T));
+#elif FLAT_MODE
+    T* a = (T*) hbw_malloc(si.size()*sizeof(T));
+    T* b = (T*) hbw_malloc(si.size()*sizeof(T));
+#else
+    static_assert(false, "Please define either FLAT_MODE or CACHE_MODE.");
+#endif
 
     for(unsigned int i=0; i < isize+2*h; ++i) {
         for(unsigned int j=0; j < jsize+2*h; ++j) {
