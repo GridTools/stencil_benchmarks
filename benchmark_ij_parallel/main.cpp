@@ -2,6 +2,7 @@
 #include <vector>
 #include <chrono>
 #include <fstream>
+#include <sstream>
 
 #include "defs.h"
 #include "libjson.h"
@@ -22,29 +23,35 @@ int main(int argc, char** argv) {
     unsigned int jsize=256;
     unsigned int ksize=80;
 
+    bool write_out = false;
     for (int i = 1; i < argc; i++)
     {
-        if (!std::string("--isize").compare(argv[i])) {
+        std::string arg(argv[i]);
+        std::cout << arg << std::endl;
+        if (arg.find("--isize") != std::string::npos) {
             if (++i >= argc || !parse_uint(argv[i], &isize))
             {
                 std::cerr << "Wrong parsing" << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
-        if (!std::string("--jsize").compare(argv[i])) {
+        if (arg.find("--jsize") != std::string::npos) {
             if (++i >= argc || !parse_uint(argv[i], &jsize))
             {
                 std::cerr << "Wrong parsing" << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
-        if (!std::string("--ksize").compare(argv[i])) {
+        if (arg.find("--ksize") != std::string::npos) {
             if (++i >= argc || !parse_uint(argv[i], &ksize))
             {
                 std::cerr << "Wrong parsing" << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
+        if (arg.find("--write") != std::string::npos) {
+            write_out = true;
+        }        
     }
 
     printf("Configuration :\n");
@@ -60,7 +67,20 @@ int main(int argc, char** argv) {
     std::vector<double> timings(num_bench_st);
     std::fill(timings.begin(),timings.end(), 0);
 
-    std::ofstream fs("./perf_results.json", std::ios_base::app);
+    std::string s;
+#ifdef CACHE_MODE
+    s = "cache_mode";
+#elif FLAT_MODE
+    s = "flat_mode";
+#endif
+
+    std::stringstream ss, layout;
+    layout << storage_info_t::layout_t::template at<0>() << "-" << storage_info_t::layout_t::template at<1>() << "-" << storage_info_t::layout_t::template at<2>();
+    ss  << "./res_benchmark_ij_m" << s 
+        << "_a" << ALIGN << "_l" 
+        << layout.str() << "_t" 
+        << omp_get_max_threads() << "_bsx" << BLOCKSIZEX << "_bsy" << BLOCKSIZEY << ".json";
+       
     JSONNode globalNode;
     globalNode.cast(JSON_ARRAY);
     globalNode.set_name("metrics");
@@ -71,6 +91,17 @@ int main(int argc, char** argv) {
     dsize.push_back(JSONNode("x", isize));
     dsize.push_back(JSONNode("y", jsize));
     dsize.push_back(JSONNode("z", ksize));
+    dsize.push_back(JSONNode("halo", h));
+    dsize.push_back(JSONNode("alignment", ALIGN));
+    dsize.push_back(JSONNode("layout", layout.str()));
+    dsize.push_back(JSONNode("threads", omp_get_max_threads()));
+    dsize.push_back(JSONNode("bsx", BLOCKSIZEX));
+    dsize.push_back(JSONNode("bsy", BLOCKSIZEY));
+#ifdef CACHE_MODE
+    dsize.push_back(JSONNode("mode", "cache_mode"));
+#elif FLAT_MODE
+    dsize.push_back(JSONNode("mode", "flat_mode"));
+#endif
 
     launch<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
 
@@ -145,7 +176,8 @@ int main(int argc, char** argv) {
 
     globalNode.push_back(dsize);
 
-    fs << globalNode.write_formatted() << std::endl;
-
-
+    if(write_out) {
+        std::ofstream fs(ss.str(), std::ios_base::app);
+        fs << globalNode.write_formatted() << std::endl;
+    }
 }

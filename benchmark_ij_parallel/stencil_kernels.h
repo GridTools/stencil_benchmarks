@@ -216,11 +216,15 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
 
 
 template<typename T>
-void launch( std::vector<double>& timings, const unsigned int isize, const unsigned int jsize, const unsigned ksize, const unsigned tsteps, const unsigned warmup_step ) {
-
+void launch( std::vector<double>& timings, const unsigned int is, const unsigned int js, const unsigned ks, const unsigned tsteps, const unsigned warmup_step ) {
+    int isize = is;//-2*h;
+    int jsize = js;//-2*h;
+    int ksize = ks;//-2*h;
+    
     const storage_info_t si(isize, jsize, ksize);
 
     std::cout << "Size: " << isize << " " << jsize << " " << ksize << std::endl;
+    std::cout << "Storage size (including halo+padding): " << si.template dim<0>() << " " << si.template dim<1>() << " " << si.template dim<2>() << std::endl;
     std::cout << "Halo: " << h << std::endl;
     std::cout << "Alignment: " << storage_info_t::alignment_t::value << std::endl;
     std::cout << "Initial offset: " << si.get_initial_offset() << std::endl;

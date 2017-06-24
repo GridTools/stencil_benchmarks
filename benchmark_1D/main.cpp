@@ -102,7 +102,6 @@ int main(int argc, char** argv) {
 #elif FLAT_MODE
     dsize.push_back(JSONNode("mode", "flat_mode"));
 #endif
-    
 
     launch<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
 
