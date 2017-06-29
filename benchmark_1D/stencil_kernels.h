@@ -343,10 +343,10 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
             for(int i=h; i < isize; ++i) {
                 for(int j=h; j < jsize; ++j) {
                     for(int k=h; k < ksize; ++k) {
-                        if( b[si.index(i,j,k)] != a[si.index(i,j,k)] + a[si.index(i+1,j,k)] +
-                               a[si.index(i-1,j,k)] + a[si.index(i,j+1,k)] + a[si.index(i,j-1,k)] ) {
-                            auto res = a[si.index(i,j,k)] + a[si.index(i+1,j,k)] +
-                                a[si.index(i-1,j,k)] + a[si.index(i,j+1,k)] + a[si.index(i,j-1,k)];
+                        if( b[si.index(i,j,k)] != a[si.index(i,j,k)] + a[si.index(i-1,j,k)] +
+                               a[si.index(i+1,j,k)] + a[si.index(i,j-1,k)] + a[si.index(i,j+1,k)] ) {
+                            auto res =a[si.index(i,j,k)] + a[si.index(i-1,j,k)] +
+                               a[si.index(i+1,j,k)] + a[si.index(i,j-1,k)] + a[si.index(i,j+1,k)];
                             printf("Error in (%d,%d,%d) : %f %f\n", (int)i,(int)j,(int)k,b[si.index(i,j,k)], res);
                         }
                     }
