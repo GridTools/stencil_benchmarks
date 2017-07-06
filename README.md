@@ -1,2 +1,2 @@
-# knl_stencils
-repository for benchmarking stencils on KNL
+# stencil_benchmarks
+collection of basic stencil benchmarks to profile multiple computing architectures
