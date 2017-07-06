@@ -28,15 +28,15 @@ void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -73,15 +73,15 @@ void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, con
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
-                        b[index] = a[index+istride];
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
+                        b[index] = a[index+1];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -118,15 +118,15 @@ void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
-                        b[index] = a[index] + a[index+istride];
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
+                        b[index] = a[index] + a[index+1];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -157,21 +157,22 @@ void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
     const int jstride = si.template stride<1>();
     const int kstride = si.template stride<2>();
 
+
     #pragma omp parallel for collapse(2)
     for (int bi = 0; bi < NBI; ++bi) {
         for (int bj = 0; bj < NBJ; ++bj) {
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
-                        b[index] = a[index-istride] + a[index+istride];
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
+                        b[index] = a[index-1] + a[index+1];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -208,15 +209,15 @@ void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index] + a[index+jstride];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -252,15 +253,15 @@ void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index-jstride] + a[index+jstride];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -296,15 +297,15 @@ void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
-                        b[index] = a[index] + a[index+1];
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
+                        b[index] = a[index] + a[index+kstride];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -340,15 +341,15 @@ void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
-                        b[index] = a[index-1] + a[index+1];
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
+                        b[index] = a[index-kstride] + a[index+kstride];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -385,15 +386,15 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
             int start_index_i = bi*BLOCKSIZEX;
             int start_index_j = bj*BLOCKSIZEY;
             int index = si.index(start_index_i+h,start_index_j+h,h);
-            for(int i=0; i<BLOCKSIZEX; ++i) {
+            for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
-                    for(int k=0; k < ksize; ++k) {
-                        b[index] = a[index] + a[index+istride] + a[index-istride] + a[index+jstride] + a[index-jstride];
+                    for(int i=0; i<BLOCKSIZEX; ++i) {
+                        b[index] = a[index] + a[index-1] + a[index+1] + a[index-jstride] + a[index+jstride];
                         ++index;
                     }
-                    index+=(jstride-kstride*ksize);
+                    index+=(jstride-BLOCKSIZEX);
                 }
-                index+=(istride-jstride*BLOCKSIZEY);
+                index+=(kstride-jstride*BLOCKSIZEY);
             }
         }
     }
@@ -418,10 +419,10 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
 
 
 template<typename T>
-void launch( std::vector<double>& timings, const unsigned int is, const unsigned int js, const unsigned ks, const unsigned tsteps, const unsigned warmup_step ) {
-    int isize = is;//-2*h;
-    int jsize = js;//-2*h;
-    int ksize = ks;//-2*h;
+void launch( timing& times, const unsigned int is, const unsigned int js, const unsigned ks, const unsigned tsteps, const unsigned warmup_step ) {
+    int isize = is;
+    int jsize = js;
+    int ksize = ks;
     
     const storage_info_t si(isize, jsize, ksize);
 
@@ -466,18 +467,23 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         }
     }
 
+    int begin = si.index(h,h,h);
+    int end = si.index(isize+h,jsize+h,ksize+h);
+
     std::chrono::high_resolution_clock::time_point t1,t2;
+    cache_flusher c(64, isize*1.5);
 
     for(unsigned int t=0; t < tsteps; t++) {
 
         //----------------------------------------//
         //----------------  COPY  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         copy(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[copy_st] += std::chrono::duration<double>(t2-t1).count();
+            times.insert("copy", std::chrono::duration<double>(t2-t1).count());
         if(!t) {
             for(unsigned int i=h; i < isize+h; ++i) {
                 for(unsigned int j=h; j < jsize+h; ++j) {
@@ -489,15 +495,16 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
                 }
             }
         }
-    
+
         //----------------------------------------//
         //---------------- COPYi1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         copyi1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[copyi1_st] += std::chrono::duration<double>(t2-t1).count();
+            times.insert("copyi1", std::chrono::duration<double>(t2-t1).count());
         if(!t) {
             for(int i=h; i < isize; ++i) {
                 for(int j=h; j < jsize; ++j) {
@@ -513,11 +520,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  SUMi1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         sumi1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumi1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumi1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -534,11 +542,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  SUMj1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         sumj1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumj1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumj1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -555,11 +564,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  SUMk1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         sumk1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumk1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumk1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -577,11 +587,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  AVGi  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         avgi(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgi_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgi", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -598,11 +609,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  AVGj  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         avgj(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgj_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgj", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -620,11 +632,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  AVGk  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         avgk(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgk_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgk", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -638,25 +651,25 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
                 }
             }
         }
- 
- 
+  
         //----------------------------------------//
         //----------------  LAP   ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         lap(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[lap_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("lap", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
                 for(int j=h; j < jsize; ++j) {
                     for(int k=h; k < ksize; ++k) {
-                        if( b[si.index(i,j,k)] != a[si.index(i,j,k)] + a[si.index(i+1,j,k)] +
-                               a[si.index(i-1,j,k)] + a[si.index(i,j+1,k)] + a[si.index(i,j-1,k)] ) {
-                            auto res = a[si.index(i,j,k)] + a[si.index(i+1,j,k)] +
-                                a[si.index(i-1,j,k)] + a[si.index(i,j+1,k)] + a[si.index(i,j-1,k)];
+                        if( b[si.index(i,j,k)] != a[si.index(i,j,k)] + a[si.index(i-1,j,k)] +
+                               a[si.index(i+1,j,k)] + a[si.index(i,j-1,k)] + a[si.index(i,j+1,k)] ) {
+                            auto res =a[si.index(i,j,k)] + a[si.index(i-1,j,k)] +
+                               a[si.index(i+1,j,k)] + a[si.index(i,j-1,k)] + a[si.index(i,j+1,k)];
                             printf("Error in (%d,%d,%d) : %f %f\n", (int)i,(int)j,(int)k,b[si.index(i,j,k)], res);
                         }
                     }
@@ -674,4 +687,3 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
 #endif
 
 }
-

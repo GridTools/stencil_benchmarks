@@ -4,18 +4,10 @@
 #include <fstream>
 #include <sstream>
 
+#include "tools.h"
 #include "defs.h"
 #include "libjson.h"
-//#include "libjson/_internal/Source/JSONNode.h"
-
 #include "stencil_kernels.h"
-
-int parse_uint(const char *str, unsigned int *output)
-{
-  char *next;
-  *output = strtoul(str, &next, 10);
-  return !strlen(next);
-}
 
 int main(int argc, char** argv) {
 
@@ -23,6 +15,7 @@ int main(int argc, char** argv) {
     unsigned int jsize=256;
     unsigned int ksize=80;
 
+    // Read flags
     bool write_out = false;
     for (int i = 1; i < argc; i++)
     {
@@ -54,18 +47,18 @@ int main(int argc, char** argv) {
         }        
     }
 
+    const size_t tot_size = isize*jsize*ksize;
+    const size_t tsteps=22;
+    const size_t warmup_step=1;
+
     printf("Configuration :\n");
     printf("  isize: %d\n",isize);
     printf("  jsize: %d\n",jsize);
     printf("  ksize: %d\n",ksize);
-
-    const size_t tot_size = isize*jsize*ksize;
-    const size_t tsteps=100;
-    const size_t warmup_step=10;
- 
+    printf("  touched elements: %d\n", tot_size);
+      
     printf("======================== FLOAT =======================\n");
-    std::vector<double> timings(num_bench_st);
-    std::fill(timings.begin(),timings.end(), 0);
+    timing times;
 
     std::string s;
 #ifdef CACHE_MODE
@@ -80,7 +73,7 @@ int main(int argc, char** argv) {
         << "_a" << ALIGN << "_l" 
         << layout.str() << "_t" 
         << omp_get_max_threads() << "_bsx" << BLOCKSIZEX << "_bsy" << BLOCKSIZEY << ".json";
-       
+        
     JSONNode globalNode;
     globalNode.cast(JSON_ARRAY);
     globalNode.set_name("metrics");
@@ -103,73 +96,97 @@ int main(int argc, char** argv) {
     dsize.push_back(JSONNode("mode", "flat_mode"));
 #endif
 
-    launch<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
+    auto get_float_bw = [&](std::string const& s) -> double {
+        auto size = tot_size*2*sizeof(float);
+        auto mean = times.mean(s);
+        return size/mean/(1024.*1024.*1024.);
+    };
+
+    auto get_double_bw = [&](std::string const& s) -> double {
+        auto size = tot_size*2*sizeof(double);
+        auto mean = times.mean(s);
+        return size/mean/(1024.*1024.*1024.);
+    };
+
+    auto push_stencil_info = [&](JSONNode& par, std::string const& name, double bw) {
+            JSONNode stenc;
+            stenc.set_name(name);
+            stenc.push_back(JSONNode("bw", bw));
+            stenc.push_back(JSONNode("runs", times.size(name)));
+            stenc.push_back(JSONNode("rms", times.rms(name)));
+            stenc.push_back(JSONNode("sum", times.sum(name)));
+            stenc.push_back(JSONNode("median", times.median(name)));
+            stenc.push_back(JSONNode("mean", times.mean(name)));
+            stenc.push_back(JSONNode("min", times.min(name)));            
+            stenc.push_back(JSONNode("max", times.max(name)));            
+            par.push_back(stenc);
+    };
+
+    launch<float>(times, isize, jsize, ksize, tsteps, warmup_step);
 
     JSONNode precf;
     precf.set_name("float");
 
     printf("-------------    NO TEXTURE   -------------\n");
-    printf("copy : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copy_st]);
-    printf("copyi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copyi1_st]);
-    printf("sumi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumi1_st]);
-    printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
-    printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
-    printf("avgi : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgi_st]);
-    printf("avgj : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgj_st]);
-    printf("avgk : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgk_st]);
-    printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
+    printf("copy : %f GB/s, time : %f \n", get_float_bw("copy"),      times.sum("copy"));
+    printf("copyi1 : %f GB/s, time : %f \n", get_float_bw("copyi1"),  times.sum("copyi1"));
+    printf("sumi1 : %f GB/s, time : %f \n", get_float_bw("sumi1"),    times.sum("sumi1"));
+    printf("sumj1 : %f GB/s, time : %f \n", get_float_bw("sumj1"),    times.sum("sumj1"));
+    printf("sumk1 : %f GB/s, time : %f \n", get_float_bw("sumk1"),    times.sum("sumk1"));
+    printf("avgi : %f GB/s, time : %f \n", get_float_bw("avgi"),      times.sum("avgi"));
+    printf("avgj : %f GB/s, time : %f \n", get_float_bw("avgj"),      times.sum("avgj"));
+    printf("avgk : %f GB/s, time : %f \n", get_float_bw("avgk"),      times.sum("avgk"));
+    printf("lap : %f GB/s, time : %f \n", get_float_bw("lap"),        times.sum("lap"));
 
     {
       JSONNode stencils;
       stencils.set_name("stencils");
-      stencils.push_back(JSONNode("copy", tot_size*2*sizeof(float)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("copyi1", tot_size*2*sizeof(float)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("avgi", tot_size*2*sizeof(float)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("avgj", tot_size*2*sizeof(float)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("avgk", tot_size*2*sizeof(float)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("lap", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      push_stencil_info(stencils, "copy", get_float_bw("copy"));
+      push_stencil_info(stencils, "copyi1", get_float_bw("copyi1"));
+      push_stencil_info(stencils, "sumi1", get_float_bw("sumi1"));
+      push_stencil_info(stencils, "sumj1", get_float_bw("sumj1"));
+      push_stencil_info(stencils, "sumk1", get_float_bw("sumk1"));
+      push_stencil_info(stencils, "avgi", get_float_bw("avgi"));
+      push_stencil_info(stencils, "avgj", get_float_bw("avgj"));
+      push_stencil_info(stencils, "avgk", get_float_bw("avgk"));
+      push_stencil_info(stencils, "lap", get_float_bw("lap"));
       precf.push_back(stencils);
-
     }
 
     dsize.push_back(precf);
 
     printf("======================== DOUBLE =======================\n");
 
-    std::fill(timings.begin(),timings.end(), 0);
-    launch<double>(timings, isize, jsize, ksize, tsteps, warmup_step);
+    times.clear();
+    launch<double>(times, isize, jsize, ksize, tsteps, warmup_step);
 
     JSONNode precd;
     precd.set_name("double");
 
     printf("-------------    NO TEXTURE   -------------\n");
-    printf("copy : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copy_st]);
-    printf("copyi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copyi1_st]);
-    printf("sumi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumi1_st]);
-    printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
-    printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
-    printf("avgi : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgi_st]);
-    printf("avgj : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgj_st]);
-    printf("avgk : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgk_st]);
-    printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
+    printf("copy : %f GB/s, time : %f \n", get_double_bw("copy"),      times.sum("copy"));
+    printf("copyi1 : %f GB/s, time : %f \n", get_double_bw("copyi1"),  times.sum("copyi1"));
+    printf("sumi1 : %f GB/s, time : %f \n", get_double_bw("sumi1"),    times.sum("sumi1"));
+    printf("sumj1 : %f GB/s, time : %f \n", get_double_bw("sumj1"),    times.sum("sumj1"));
+    printf("sumk1 : %f GB/s, time : %f \n", get_double_bw("sumk1"),    times.sum("sumk1"));
+    printf("avgi : %f GB/s, time : %f \n", get_double_bw("avgi"),      times.sum("avgi"));
+    printf("avgj : %f GB/s, time : %f \n", get_double_bw("avgj"),      times.sum("avgj"));
+    printf("avgk : %f GB/s, time : %f \n", get_double_bw("avgk"),      times.sum("avgk"));
+    printf("lap : %f GB/s, time : %f \n", get_double_bw("lap"),        times.sum("lap"));
 
     {
       JSONNode stencils;
       stencils.set_name("stencils");
-      stencils.push_back(JSONNode("copy", tot_size*2*sizeof(double)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("copyi1", tot_size*2*sizeof(double)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("avgi", tot_size*2*sizeof(double)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("avgj", tot_size*2*sizeof(double)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("avgk", tot_size*2*sizeof(double)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
-      stencils.push_back(JSONNode("lap", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      push_stencil_info(stencils, "copy", get_double_bw("copy"));
+      push_stencil_info(stencils, "copyi1", get_double_bw("copyi1"));
+      push_stencil_info(stencils, "sumi1", get_double_bw("sumi1"));
+      push_stencil_info(stencils, "sumj1", get_double_bw("sumj1"));
+      push_stencil_info(stencils, "sumk1", get_double_bw("sumk1"));
+      push_stencil_info(stencils, "avgi", get_double_bw("avgi"));
+      push_stencil_info(stencils, "avgj", get_double_bw("avgj"));
+      push_stencil_info(stencils, "avgk", get_double_bw("avgk"));
+      push_stencil_info(stencils, "lap", get_double_bw("lap"));
       precd.push_back(stencils);
-
     }
 
     dsize.push_back(precd);

@@ -16,7 +16,9 @@ typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map< LAYOU
 
 template<typename T>
 void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
+    const int kstride = si.template stride<2>();
     const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
 
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -42,14 +44,16 @@ void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 
 template<typename T>
 void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
+    const int kstride = si.template stride<2>();
     const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
         int index = si.index(h,h,k);
         for(int j=h; j<jsize+h; ++j) {
             for(int i=h; i<isize+h; ++i) {
-                b[index] = a[index+1];
+                b[index] = a[index+istride];
                 ++index;
             }
             index+=(jstride-isize);
@@ -68,7 +72,9 @@ void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, con
 
 template<typename T>
 void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
+    const int kstride = si.template stride<2>();
     const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -94,7 +100,9 @@ void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
 
 template<typename T>
 void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
+    const int kstride = si.template stride<2>();
     const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -120,7 +128,9 @@ void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 
 template<typename T>
 void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
+    const int kstride = si.template stride<2>();
     const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -146,7 +156,9 @@ void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
 
 template<typename T>
 void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
+    const int kstride = si.template stride<2>();
     const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -172,8 +184,10 @@ void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 
 template<typename T>
 void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
-    const int jstride = si.template stride<1>();
     const int kstride = si.template stride<2>();
+    const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
+
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -199,8 +213,10 @@ void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
 
 template<typename T>
 void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
-    const int jstride = si.template stride<1>();
     const int kstride = si.template stride<2>();
+    const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
+
     
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
@@ -227,9 +243,10 @@ void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 
 template<typename T>
 void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int ksize, const unsigned int isize, const unsigned int jsize) {
-    const int jstride = si.template stride<1>();
     const int kstride = si.template stride<2>();
-    
+    const int jstride = si.template stride<1>();
+    const int istride = si.template stride<0>();
+
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
         int index = si.index(h,h,k);

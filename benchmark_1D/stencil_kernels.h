@@ -15,7 +15,7 @@ typedef gridtools::storage_traits<gridtools::enumtype::Host> storage_tr;
 typedef storage_tr::custom_layout_storage_info_t<0, gridtools::layout_map< LAYOUT >, gridtools::halo< h,h,h >, gridtools::alignment< ALIGN > > storage_info_t;
 
 template<typename T>
-void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void copy( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     #pragma omp parallel for
     for (int i = begin; i < end; ++i) {
         b[i] = a[i];
@@ -23,7 +23,7 @@ void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 }
 
 template<typename T>
-void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void copyi1( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int istride = si.template stride<0>();
 
     #pragma omp parallel for
@@ -33,7 +33,7 @@ void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, con
 }
 
 template<typename T>
-void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void sumi1( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int istride = si.template stride<0>();
 
     #pragma omp parallel for
@@ -43,7 +43,7 @@ void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
 }
 
 template<typename T>
-void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void avgi( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int istride = si.template stride<0>();
 
     #pragma omp parallel for
@@ -53,7 +53,7 @@ void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 }
 
 template<typename T>
-void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void sumj1( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int jstride = si.template stride<1>();
 
     #pragma omp parallel for
@@ -63,7 +63,7 @@ void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
 }
 
 template<typename T>
-void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void avgj( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int jstride = si.template stride<1>();
 
     #pragma omp parallel for
@@ -73,7 +73,7 @@ void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 }
 
 template<typename T>
-void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void sumk1( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int kstride = si.template stride<2>();
 
     #pragma omp parallel for
@@ -83,7 +83,7 @@ void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
 }
 
 template<typename T>
-void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void avgk( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int kstride = si.template stride<2>();
 
     #pragma omp parallel for
@@ -94,7 +94,7 @@ void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
 
 
 template<typename T>
-void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
+void lap( T const* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int begin, const unsigned int end) {
     const int istride = si.template stride<0>();
     const int jstride = si.template stride<1>();
 
@@ -106,7 +106,7 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
 
 
 template<typename T>
-void launch( std::vector<double>& timings, const unsigned int is, const unsigned int js, const unsigned ks, const unsigned tsteps, const unsigned warmup_step ) {
+void launch( timing& times, const unsigned int is, const unsigned int js, const unsigned ks, const unsigned tsteps, const unsigned warmup_step ) {
     int isize = is-2*h;
     int jsize = js-2*h;
     int ksize = ks-2*h;
@@ -158,17 +158,19 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
     int end = si.index(isize+h,jsize+h,ksize+h);
 
     std::chrono::high_resolution_clock::time_point t1,t2;
+    cache_flusher c(64, isize*1.5);
 
     for(unsigned int t=0; t < tsteps; t++) {
 
         //----------------------------------------//
         //----------------  COPY  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         copy(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[copy_st] += std::chrono::duration<double>(t2-t1).count();
+            times.insert("copy", std::chrono::duration<double>(t2-t1).count());
         if(!t) {
             for(unsigned int i=h; i < isize+h; ++i) {
                 for(unsigned int j=h; j < jsize+h; ++j) {
@@ -184,11 +186,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //---------------- COPYi1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         copyi1(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[copyi1_st] += std::chrono::duration<double>(t2-t1).count();
+            times.insert("copyi1", std::chrono::duration<double>(t2-t1).count());
         if(!t) {
             for(int i=h; i < isize; ++i) {
                 for(int j=h; j < jsize; ++j) {
@@ -204,11 +207,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  SUMi1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         sumi1(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumi1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumi1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -225,11 +229,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  SUMj1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         sumj1(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumj1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumj1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -246,11 +251,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  SUMk1 ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         sumk1(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumk1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumk1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -268,11 +274,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  AVGi  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         avgi(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgi_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgi", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -289,11 +296,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  AVGj  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         avgj(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgj_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgj", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -311,11 +319,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  AVGk  ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         avgk(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgk_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgk", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -333,11 +342,12 @@ void launch( std::vector<double>& timings, const unsigned int is, const unsigned
         //----------------------------------------//
         //----------------  LAP   ----------------//
         //----------------------------------------//
+        c.flush();
         t1 = std::chrono::high_resolution_clock::now();
         lap(a, b, si, begin, end);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[lap_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("lap", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
