@@ -21,7 +21,7 @@ def subprocess_cmd(command):
 def compile(ex, mo, al, la):
     # compile with execution, mode, blocksize, alignment, layout
     output_name = ex.lower()+"_"+mo.lower()+"_al"+str(al)+"_la"+la.replace(",","-")
-    cmd = "CC ./"+ex+"/main.cpp --std=c++11 -DNDEBUG -D"+mo+" -DLAYOUT="+la+" -DALIGN="+str(al)+" -I/users/stefanm/boost_1_62_0/include -I./gridtools_storage/include -I./benchmark_ij_parallel/libjson -DJSON_ISO_STRICT -L./benchmark_ij_parallel/libjson -ljson  -lmemkind -O3 -fopenmp -o "+dire+"/"+output_name
+    cmd = "CC ./"+ex+"/main.cpp --std=c++11 -DNDEBUG -D"+mo+" -DLAYOUT="+la+" -DALIGN="+str(al)+" -I/users/stefanm/boost_1_62_0/include -I./gridtools_storage/include -I./libjson -DJSON_ISO_STRICT -L./libjson -ljson  -lmemkind -O3 -fopenmp -o "+dire+"/"+output_name
     subprocess_cmd(cmd)
     #print cmd
     print "compiled: "+output_name

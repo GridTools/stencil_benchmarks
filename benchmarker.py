@@ -26,7 +26,7 @@ def compile(ex, mo, bsx, bsy, al):
         if int(bsx) <= int(isi) and int(bsy) <= int(jsi):
             # compile with execution, mode, blocksize, alignment, layout
             output_name = ex.lower()+"_"+mo.lower()+"_bsx"+str(bsx)+"_bsy"+str(bsy)+"_al"+str(al) #"_la"+la.replace(",","-")
-            cmd = "CC ./"+ex+"/main.cpp --std=c++11 -DNDEBUG -D"+mo+" -DBLOCKSIZEX="+str(bsx)+" -DBLOCKSIZEY="+str(bsy)+" -DALIGN="+str(al)+" -I/users/stefanm/boost_1_62_0/include -I./gridtools_storage/include -I./benchmark_ij_parallel/libjson -DJSON_ISO_STRICT -L./benchmark_ij_parallel/libjson -ljson  -lmemkind -O3 -fopenmp -o "+dire+"/"+output_name
+            cmd = "CC ./"+ex+"/main.cpp --std=c++11 -DNDEBUG -D"+mo+" -DBLOCKSIZEX="+str(bsx)+" -DBLOCKSIZEY="+str(bsy)+" -DALIGN="+str(al)+" -I/users/stefanm/boost_1_62_0/include -I./gridtools_storage/include -I./libjson -DJSON_ISO_STRICT -L./libjson -ljson  -lmemkind -O3 -fopenmp -o "+dire+"/"+output_name
             subprocess_cmd(cmd)
             print "compiled: "+output_name
         else:
