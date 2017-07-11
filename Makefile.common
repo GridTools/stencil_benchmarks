@@ -1,0 +1,5 @@
+include $(PWD)/Makefile.user
+
+define compile
+CC $< -std=c++11 -fopenmp -DNDEBUG -DJSON_ISO_STRICT $(USERFLAGS) -I$(PWD)/gridtools_storage/include -I$(PWD)/libjson -L$(PWD)/libjson -ljson -lmemkind -o $@
+endef
