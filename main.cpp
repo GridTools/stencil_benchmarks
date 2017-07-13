@@ -5,7 +5,6 @@
 #include <sstream>
 
 #include "tools.h"
-#include "defs.h"
 #include "libjson.h"
 #include STENCIL_KERNELS_H
 

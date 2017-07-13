@@ -8,7 +8,6 @@
 #include <storage/storage-facility.hpp>
 
 #include "tools.h"
-#include "defs.h"
 
 constexpr int h = 2;
 typedef gridtools::storage_traits<gridtools::enumtype::Host> storage_tr;
