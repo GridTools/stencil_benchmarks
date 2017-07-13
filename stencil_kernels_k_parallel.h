@@ -272,7 +272,7 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
 
 
 template<typename T>
-void launch( std::vector<double>& timings, const unsigned int isize, const unsigned int jsize, const unsigned ksize, const unsigned tsteps, const unsigned warmup_step ) {
+void launch( timing& times, const unsigned int isize, const unsigned int jsize, const unsigned ksize, const unsigned tsteps, const unsigned warmup_step ) {
 
     const storage_info_t si(isize, jsize, ksize);
 
@@ -327,7 +327,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         copy(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[copy_st] += std::chrono::duration<double>(t2-t1).count();
+            times.insert("copy", std::chrono::duration<double>(t2-t1).count());
         if(!t) {
             for(unsigned int i=h; i < isize; ++i) {
                 for(unsigned int j=h; j < jsize; ++j) {
@@ -347,7 +347,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         copyi1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[copyi1_st] += std::chrono::duration<double>(t2-t1).count();
+            times.insert("copyi1", std::chrono::duration<double>(t2-t1).count());
         if(!t) {
             for(int i=h; i < isize; ++i) {
                 for(int j=h; j < jsize; ++j) {
@@ -367,7 +367,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         sumi1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumi1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumi1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -388,7 +388,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         sumj1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumj1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumj1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -409,7 +409,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         sumk1(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[sumk1_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("sumk1", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -431,7 +431,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         avgi(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgi_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgi", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -452,7 +452,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         avgj(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgj_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgj", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -474,7 +474,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         avgk(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[avgk_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("avgk", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {
@@ -497,7 +497,7 @@ void launch( std::vector<double>& timings, const unsigned int isize, const unsig
         lap(a, b, si, ksize, isize, jsize);
         t2 = std::chrono::high_resolution_clock::now();
         if(t > warmup_step)
-            timings[lap_st] += std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+            times.insert("lap", std::chrono::duration<double>(t2-t1).count());
 
         if(!t) {
             for(int i=h; i < isize; ++i) {

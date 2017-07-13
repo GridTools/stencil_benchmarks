@@ -1,27 +1,20 @@
-.PHONY: benchmark_1D
-.PHONY: benchmark_ij_parallel_i_first
-.PHONY: benchmark_ij_parallel_k_first
-.PHONY: benchmark_k_parallel
+include Makefile.user
+include Makefile.config
+
+STENCIL_KERNELS_FILE=stencil_kernels_$(STENCIL).h
+STENCIL_KERNELS_FLAG=-DSTENCIL_KERNELS_H=\"$(STENCIL_KERNELS_FILE)\"
+BLOCKSIZEX_FLAG=-DBLOCKSIZEX=$(BLOCKSIZEX)
+BLOCKSIZEY_FLAG=-DBLOCKSIZEY=$(BLOCKSIZEY)
+ALIGN_FLAG=-ALIGN=$(ALIGN)
+LAYOUT_FLAG=-DLAYOUT=$(LAYOUT)
+
+CONFIG_FLAGS=$(STENCIL_KERNELS_FLAG) $(BLOCKSIZEX_FLAG) $(BLOCKSIZEY_FLAG) $(ALIGN_FLAG) $(LAYOUT_FLAG)
+
+stencil_bench: main.cpp tools.h defs.h $(STENCIL_KERNELS_FILE)
+	CC $(CONFIG_FLAGS) -std=c++11 -O3 -qopenmp -DNDEBUG -DJSON_ISO_STRICT $(USERFLAGS) -Igridtools_storage/include -Ilibjson -Llibjson $< -ljson -lmemkind -o $@
+
 .PHONY: clean
 
-
-all: benchmark_1D benchmark_ij_parallel_i_first benchmark_ij_parallel_k_first benchmark_k_parallel
-
-benchmark_1D:
-	$(MAKE) -C benchmark_1D
-
-benchmark_ij_parallel_i_first:
-	$(MAKE) -C benchmark_ij_parallel/i_first
-
-benchmark_ij_parallel_k_first:
-	$(MAKE) -C benchmark_ij_parallel/k_first
-
-benchmark_k_parallel:
-	$(MAKE) -C benchmark_k_parallel
-
 clean:
-	$(MAKE) -C benchmark_1D clean
-	$(MAKE) -C benchmark_ij_parallel/i_first clean
-	$(MAKE) -C benchmark_ij_parallel/k_first clean
-	$(MAKE) -C benchmark_k_parallel clean
+	rm -f stencil_bench
 

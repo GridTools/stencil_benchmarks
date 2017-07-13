@@ -7,7 +7,7 @@
 #include "tools.h"
 #include "defs.h"
 #include "libjson.h"
-#include "stencil_kernels.h"
+#include STENCIL_KERNELS_H
 
 int main(int argc, char** argv) {
 
