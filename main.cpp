@@ -87,8 +87,12 @@ int main(int argc, char** argv) {
     dsize.push_back(JSONNode("alignment", ALIGN));
     dsize.push_back(JSONNode("layout", layout.str()));
     dsize.push_back(JSONNode("threads", omp_get_max_threads()));
+#ifdef BLOCKSIZEX
     dsize.push_back(JSONNode("bsx", BLOCKSIZEX));
+#endif
+#ifdef BLOCKSIZEY
     dsize.push_back(JSONNode("bsy", BLOCKSIZEY));
+#endif
 #ifdef CACHE_MODE
     dsize.push_back(JSONNode("mode", "cache_mode"));
 #elif FLAT_MODE
