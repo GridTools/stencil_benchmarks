@@ -1,3 +1,6 @@
+#ifdef FLAT_MODE
+#include <hbwmalloc.h>
+#endif
 #include <stdlib.h>
 #include <omp.h>
 #include <map>
@@ -20,16 +23,25 @@ struct cache_flusher {
 
     cache_flusher(int megabyte, float init) : 
         bigger_than_cachesize((megabyte*1024*1024)/sizeof(float)), 
-        p(new float[bigger_than_cachesize]), m_init(init) { 
+#ifdef CACHE_MODE
+        p(new float[bigger_than_cachesize]),
+#elif defined FLAT_MODE
+        p(static_cast<float*>(hbw_malloc(bigger_than_cachesize * sizeof(float)))),
+#endif
+        m_init(init) {
         std::cout << "created cache_flusher with " << bigger_than_cachesize << " elements" << std::endl;
-        std::cout << "total size: " << megabyte << std::endl;
+        std::cout << "total size: " << megabyte << " MB" << std::endl;
     }
 
     ~cache_flusher() {
-        delete [] p;
+#ifdef CACHE_MODE
+      delete [] p;
+#elif defined FLAT_MODE
+      hbw_free(p);
+#endif
     }
 
-    void flush() {
+    __attribute__((noinline)) void flush() {
         #pragma omp parallel for
         for(int i = 0; i < bigger_than_cachesize; i++) {
             p[i] = m_init;
