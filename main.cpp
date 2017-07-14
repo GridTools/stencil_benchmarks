@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
     globalNode.push_back(dsize);
 
     if(write_out) {
-        std::ofstream fs(out_name, std::ios_base::app);
+        std::ofstream fs(out_name);
         fs << globalNode.write_formatted() << std::endl;
     }
 }
