@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -59,7 +60,7 @@ int main(int argc, char** argv) {
     printf("  ksize: %d\n",ksize);
     printf("  touched elements: %d\n", tot_size);
       
-    printf("======================== FLOAT =======================\n");
+    std::cout << "======================== FLOAT =======================" << std::endl;
     timing times;
 
     std::string s;
@@ -100,45 +101,40 @@ int main(int argc, char** argv) {
 
     auto get_float_bw = [&](std::string const& s) -> double {
         auto size = tot_size*2*sizeof(float);
-        auto mean = times.mean(s);
-        return size/mean/(1024.*1024.*1024.);
+        auto time = times.min(s);
+        return size/time/(1024.*1024.*1024.);
     };
 
     auto get_double_bw = [&](std::string const& s) -> double {
         auto size = tot_size*2*sizeof(double);
-        auto mean = times.mean(s);
-        return size/mean/(1024.*1024.*1024.);
+        auto time = times.min(s);
+        return size/time/(1024.*1024.*1024.);
     };
 
     auto push_stencil_info = [&](JSONNode& par, std::string const& name, double bw) {
-            JSONNode stenc;
-            stenc.set_name(name);
-            stenc.push_back(JSONNode("bw", bw));
-            stenc.push_back(JSONNode("runs", times.size(name)));
-            stenc.push_back(JSONNode("rms", times.rms(name)));
-            stenc.push_back(JSONNode("sum", times.sum(name)));
-            stenc.push_back(JSONNode("median", times.median(name)));
-            stenc.push_back(JSONNode("mean", times.mean(name)));
-            stenc.push_back(JSONNode("min", times.min(name)));            
-            stenc.push_back(JSONNode("max", times.max(name)));            
-            par.push_back(stenc);
+          JSONNode stenc;
+          stenc.set_name(name);
+          stenc.push_back(JSONNode("bw", bw));
+          stenc.push_back(JSONNode("runs", times.size(name)));
+          stenc.push_back(JSONNode("rms", times.rms(name)));
+          stenc.push_back(JSONNode("sum", times.sum(name)));
+          stenc.push_back(JSONNode("median", times.median(name)));
+          stenc.push_back(JSONNode("mean", times.mean(name)));
+          stenc.push_back(JSONNode("min", times.min(name)));
+          stenc.push_back(JSONNode("max", times.max(name)));
+          par.push_back(stenc);
+
+          std::cout << std::setw(6) << name << ": "
+                    << std::setw(7) << bw << " GB/s (max), time: "
+                    << std::setw(12) << times.mean(name) << "s (avg), "
+                    << std::setw(12) << times.min(name) << "s (min), "
+                    << std::setw(12) << times.max(name) << "s (max)" << std::endl;
     };
 
     launch<float>(times, isize, jsize, ksize, tsteps, warmup_step);
 
     JSONNode precf;
     precf.set_name("float");
-
-    printf("-------------    NO TEXTURE   -------------\n");
-    printf("copy : %f GB/s, time : %f \n", get_float_bw("copy"),      times.sum("copy"));
-    printf("copyi1 : %f GB/s, time : %f \n", get_float_bw("copyi1"),  times.sum("copyi1"));
-    printf("sumi1 : %f GB/s, time : %f \n", get_float_bw("sumi1"),    times.sum("sumi1"));
-    printf("sumj1 : %f GB/s, time : %f \n", get_float_bw("sumj1"),    times.sum("sumj1"));
-    printf("sumk1 : %f GB/s, time : %f \n", get_float_bw("sumk1"),    times.sum("sumk1"));
-    printf("avgi : %f GB/s, time : %f \n", get_float_bw("avgi"),      times.sum("avgi"));
-    printf("avgj : %f GB/s, time : %f \n", get_float_bw("avgj"),      times.sum("avgj"));
-    printf("avgk : %f GB/s, time : %f \n", get_float_bw("avgk"),      times.sum("avgk"));
-    printf("lap : %f GB/s, time : %f \n", get_float_bw("lap"),        times.sum("lap"));
 
     {
       JSONNode stencils;
@@ -157,24 +153,13 @@ int main(int argc, char** argv) {
 
     dsize.push_back(precf);
 
-    printf("======================== DOUBLE =======================\n");
+    std::cout << "======================== DOUBLE =======================" << std::endl;
 
     times.clear();
     launch<double>(times, isize, jsize, ksize, tsteps, warmup_step);
 
     JSONNode precd;
     precd.set_name("double");
-
-    printf("-------------    NO TEXTURE   -------------\n");
-    printf("copy : %f GB/s, time : %f \n", get_double_bw("copy"),      times.sum("copy"));
-    printf("copyi1 : %f GB/s, time : %f \n", get_double_bw("copyi1"),  times.sum("copyi1"));
-    printf("sumi1 : %f GB/s, time : %f \n", get_double_bw("sumi1"),    times.sum("sumi1"));
-    printf("sumj1 : %f GB/s, time : %f \n", get_double_bw("sumj1"),    times.sum("sumj1"));
-    printf("sumk1 : %f GB/s, time : %f \n", get_double_bw("sumk1"),    times.sum("sumk1"));
-    printf("avgi : %f GB/s, time : %f \n", get_double_bw("avgi"),      times.sum("avgi"));
-    printf("avgj : %f GB/s, time : %f \n", get_double_bw("avgj"),      times.sum("avgj"));
-    printf("avgk : %f GB/s, time : %f \n", get_double_bw("avgk"),      times.sum("avgk"));
-    printf("lap : %f GB/s, time : %f \n", get_double_bw("lap"),        times.sum("lap"));
 
     {
       JSONNode stencils;
