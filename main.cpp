@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
 
     // Read flags
     bool write_out = false;
+    std::string out_name;
     for (int i = 1; i < argc; i++)
     {
         std::string arg(argv[i]);
@@ -43,7 +44,11 @@ int main(int argc, char** argv) {
             }
         }
         if (arg.find("--write") != std::string::npos) {
-            write_out = true;
+          if (++i >= argc) {
+            std::cerr << "Wrong parsing" << std::endl;
+          }
+          write_out = true;
+          out_name = argv[i];
         }        
     }
 
@@ -63,19 +68,10 @@ int main(int argc, char** argv) {
     std::cout << "======================== FLOAT =======================" << std::endl;
     timing times;
 
-    std::string s;
-#ifdef CACHE_MODE
-    s = "cache_mode";
-#elif FLAT_MODE
-    s = "flat_mode";
-#endif
-
-    std::stringstream ss, layout;
-    layout << storage_info_t::layout_t::template at<0>() << "-" << storage_info_t::layout_t::template at<1>() << "-" << storage_info_t::layout_t::template at<2>();
-    ss  << "./res_benchmark_1D_m" << s 
-        << "_a" << ALIGN << "_l" 
-        << layout.str() << "_t" 
-        << omp_get_max_threads() << "_bsx" << BLOCKSIZEX << "_bsy" << BLOCKSIZEY << ".json";
+    std::stringstream layout;
+    layout << storage_info_t::layout_t::template at<0>() << "-"
+           << storage_info_t::layout_t::template at<1>() << "-"
+           << storage_info_t::layout_t::template at<2>();
         
     JSONNode globalNode;
     globalNode.cast(JSON_ARRAY);
@@ -181,7 +177,7 @@ int main(int argc, char** argv) {
     globalNode.push_back(dsize);
 
     if(write_out) {
-        std::ofstream fs(ss.str(), std::ios_base::app);
+        std::ofstream fs(out_name, std::ios_base::app);
         fs << globalNode.write_formatted() << std::endl;
     }
 }
