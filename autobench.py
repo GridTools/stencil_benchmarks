@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
@@ -15,7 +16,8 @@ from benchvars import *
 
 
 def suffix(options):
-    return '_'.join(o.short_str() for o in options)
+    so = sorted(options, key=lambda o: o.name)
+    return '_'.join(o.short_str() for o in so)
 
 
 def binary_name(options):
@@ -34,8 +36,8 @@ def sbatch_name(options):
     return 'sbatch_' + suffix(options) + '.sh'
 
 
-def plot_name(options):
-    return 'plot_' + suffix(options) + '.svg'
+def plot_name(options, prec):
+    return 'plot_' + suffix(options) + '_' + prec + '.svg'
 
 
 def compile_binaries(vos, outdir):
@@ -45,7 +47,11 @@ def compile_binaries(vos, outdir):
         with open('Makefile.config', 'w') as mf:
             mf.write('\n'.join(str(o) for o in options))
         subprocess.call(['make', 'clean'], stdout=subprocess.PIPE)
-        subprocess.check_call(['make'], stdout=subprocess.PIPE)
+        try:
+            subprocess.check_call(['make'], stdout=subprocess.PIPE)
+        except subprocess.CalledProcessError:
+            print('FATAL ERROR: compilation failed')
+            sys.exit(1)
         shutil.move('stencil_bench', outname)
 
 
@@ -72,18 +78,32 @@ def create_sbatch(vos, outdir):
                     bf.write('\nsrun ./{} {}\n'.format(bname, rtstr))
 
 
-def commit_sbatch(vos, outdir, wait):
+def commit_sbatch(vos, outdir, wait, maxrun):
     jobids = []
-    for ctoptions in vos.generate(VarType.compiletime):
-        for rtoptions in vos.generate(VarType.runtime):
-            for envoptions in vos.generate(VarType.environment):
-                options = ctoptions + rtoptions + envoptions
-                sbname = sbatch_name(options)
-                sbpath = os.path.join(outdir, sbname)
-                if os.path.isfile(sbpath):
-                    print('Commiting {}'.format(sbname))
+    for options in vos.generate():
+        sbname = sbatch_name(options)
+        sbpath = os.path.join(outdir, sbname)
+        if os.path.isfile(sbpath):
+            print('Commiting {}'.format(sbname))
+            while True:
+                try:
                     sbatch_output = subprocess.check_output(['sbatch', sbname], cwd=outdir)
-                    jobids.append(sbatch_output.split()[-1])
+                    break
+                except subprocess.CalledProcessError:
+                    print('Submitting job failed, retry...')
+                    time.sleep(1)
+            jobids.append(sbatch_output.split()[-1])
+            time.sleep(1)
+
+            if maxrun > 0:
+                waittime = 10
+                while True:
+                    nrunning = subprocess.check_output(['squeue']).count('\n') - 1
+                    if nrunning < maxrun:
+                        break
+                    time.sleep(waittime)
+                    waittime = min(2 * waittime, 300)
+
     if wait:
         print('Waiting for jobs to finish...')
         with open(os.path.join(outdir, 'wait.sh'), 'w') as wf:
@@ -93,7 +113,13 @@ def commit_sbatch(vos, outdir, wait):
             wf.write('#SBATCH --output={}\n'.format('wait.out'))
             wf.write('#SBATCH --wait\n')
             wf.write('srun echo "finished!"\n')
-        subprocess.check_call(['sbatch', 'wait.sh'], cwd=outdir, stdout=subprocess.PIPE)
+        while True:
+            try:
+                subprocess.check_call(['sbatch', 'wait.sh'], cwd=outdir, stdout=subprocess.PIPE)
+                break
+            except subprocess.CalledProcessError:
+                    print('Submitting job failed, retry...')
+                    time.sleep(1)
 
 
 def plot_results(vos, outdir):
@@ -109,7 +135,11 @@ def plot_results(vos, outdir):
                 rname = os.path.join(outdir, result_name(options))
                 try:
                     with open(rname, 'r') as f:
-                        jf = json.load(f)[0]
+                        try:
+                            jf = json.load(f)[0]
+                        except ValueError:
+                            print('Could not load JSON data from file {}!'.format(rname))
+                            continue
                         size = jf['x']
                         threads = jf['threads']
                         float_stencils = jf['float']['stencils']
@@ -121,21 +151,21 @@ def plot_results(vos, outdir):
                 except IOError:
                     print('Expected file {} not found!'.format(rname))
 
-        assert len(float_data.keys()) == 4
-        fig, axs = plt.subplots(2, 2, figsize=(30, 20))
-        fig.suptitle(' '.join(str(o) for o in ctoptions))
+        for prec, data in [('single', float_data), ('double', double_data)]:
+            fig, axs = plt.subplots(2, 2, figsize=(30, 20))
+            fig.suptitle('- '.join(str(o) for o in ctoptions) + '; ' + prec.upper() + ' PREC.')
 
-        for ax, threads in zip(axs.flat, sorted(float_data.keys())):
-            for stencil in sorted(float_data[threads].keys()):
-                ax.set_title('{} Threads'.format(threads))
-                x, y = zip(*float_data[threads][stencil])
-                ax.semilogx(x, y, basex=2, lw=2, ls='--', label=stencil)
-                ax.set_xlim([0, 1024])
-                ax.set_ylim([0, 500])
-                ax.grid(True)
-            ax.legend(ncol=3, loc='upper left')
+            for ax, threads in zip(axs.flat, sorted(float_data.keys())):
+                for stencil in sorted(float_data[threads].keys()):
+                    ax.set_title('{} Threads'.format(threads))
+                    x, y = zip(*data[threads][stencil])
+                    ax.semilogx(x, y, basex=2, lw=2, ls='--', label=stencil)
+                    ax.set_xlim([0, 1024])
+                    ax.set_ylim([0, 500])
+                    ax.grid(True)
+                ax.legend(ncol=3, loc='upper left')
 
-        fig.savefig(os.path.join(outdir, plot_name(ctoptions)))
+            fig.savefig(os.path.join(outdir, plot_name(ctoptions, prec[0])))
 
 
 vos = None
@@ -160,7 +190,7 @@ def cli(stencil, align, layout, mcdram, blocksize, threads, size, directory):
     vos.add_ct('LAYOUT', layout, 
                fmt=lambda v: 'LAYOUT={},{},{}'.format(*v),
                sfmt=lambda v: 'l{}{}{}'.format(*v))
-    vos.add_ct('MCDRAM', mcdram)
+    vos.add_ct('MCDRAM', [m.upper() for m in mcdram])
     blocksize = [(x, y) for x, y in itertools.product(blocksize, blocksize) if x >= 8 or y >= 8]
     if blocksize:
         vos.add_ct('BLOCKSIZE', blocksize,
@@ -190,8 +220,9 @@ def sbatch():
 
 @cli.command()
 @click.option('--wait/--no-wait', '-w', default=False)
-def commit(wait):
-    commit_sbatch(vos, outdir, wait)
+@click.option('--maxrun', '-m', default=100)
+def commit(wait, maxrun):
+    commit_sbatch(vos, outdir, wait, maxrun)
 
 
 @cli.command()
@@ -200,12 +231,13 @@ def plot():
 
 
 @cli.command()
-def all():
+@click.option('--maxrun', '-m', default=100)
+def all(maxrun):
     print(vos)
     print('Working directory: {}'.format(outdir))
     compile_binaries(vos, outdir)
     create_sbatch(vos, outdir)
-    commit_sbatch(vos, outdir, True)
+    commit_sbatch(vos, outdir, True, maxrun)
     plot_results(vos, outdir)
 
 
