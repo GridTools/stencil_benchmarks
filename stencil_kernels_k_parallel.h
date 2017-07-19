@@ -2,27 +2,20 @@
 template<typename T>
 void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const unsigned int isize, const unsigned int jsize, const unsigned int ksize) {
     const int istride = si.template stride<0>();
+    const int jstride = si.template stride<1>();
+    const int kstride = si.template stride<2>();
 
     #pragma omp parallel for
     for(int k=h; k<ksize+h; ++k) {
-        int index = si.index(h,h,k);
+        int index = si.index(h, h, k);
         for(int j=h; j<jsize+h; ++j) {
             for(int i=h; i<isize+h; ++i) {
                 b[index] = a[index];
-                ++index;
+                index += istride;
             }
-            index+=(jstride-isize);
+            index += jstride - isize * istride;
         }
     }
-/*
-    #pragma omp parallel for
-    for(int k=h; k<ksize+h; ++k) {
-        for(int j=h; j<jsize+h; ++j) {
-            for(int i=h; i<isize+h; ++i) {
-                b[si.index(i,j,k)] = a[si.index(i,j,k)];
-            }
-        }
-    }*/
 }
 
 template<typename T>
@@ -172,20 +165,10 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
         int index = si.index(h,h,k);
         for(int j=h; j<jsize+h; ++j) {
             for(int i=h; i<isize+h; ++i) {
-                b[index] = a[index] + a[index+1] + a[index-1] + a[index+jstride] + a[index-jstride];
-                ++index;
+                b[index] = a[index] + a[index+istride] + a[index-istride] + a[index+jstride] + a[index-jstride];
+                index += istride;
             }
-            index+=(jstride-isize);
+            index += jstride - isize * istride;
         }
     }
-/*
-    #pragma omp parallel for
-    for(int k=h; k<ksize+h; ++k) {
-        for(int j=h; j<jsize+h; ++j) {
-            for(int i=h; i<isize+h; ++i) {
-                b[si.index(i,j,k)] = a[si.index(i,j,k)] + a[si.index(i-1,j,k)] + a[si.index(i+1,j,k)]
-                    + a[si.index(i,j+1,k)] + a[si.index(i,j-1,k)];
-            }
-        }
-    }*/
 }

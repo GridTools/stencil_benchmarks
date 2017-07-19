@@ -16,9 +16,9 @@ void copy( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index];
-                        ++index;
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -43,10 +43,10 @@ void copyi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, con
             for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
-                        b[index] = a[index+1];
-                        ++index;
+                        b[index] = a[index+istride];
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -71,10 +71,10 @@ void sumi1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
             for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
-                        b[index] = a[index] + a[index+1];
-                        ++index;
+                        b[index] = a[index] + a[index+istride];
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -100,10 +100,10 @@ void avgi( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
             for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
-                        b[index] = a[index-1] + a[index+1];
-                        ++index;
+                        b[index] = a[index-istride] + a[index+istride];
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -129,9 +129,9 @@ void sumj1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index] + a[index+jstride];
-                        ++index;
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -157,9 +157,9 @@ void avgj( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index-jstride] + a[index+jstride];
-                        ++index;
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -185,9 +185,9 @@ void sumk1( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, cons
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index] + a[index+kstride];
-                        ++index;
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -213,9 +213,9 @@ void avgk( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
                         b[index] = a[index-kstride] + a[index+kstride];
-                        ++index;
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
@@ -241,10 +241,10 @@ void lap( T* __restrict__ a,  T* __restrict__ b, const storage_info_t si, const 
             for(int k=0; k < ksize; ++k) {
                 for(int j=0; j<BLOCKSIZEY; ++j) {
                     for(int i=0; i<BLOCKSIZEX; ++i) {
-                        b[index] = a[index] + a[index-1] + a[index+1] + a[index-jstride] + a[index+jstride];
-                        ++index;
+                        b[index] = a[index] + a[index-istride] + a[index+istride] + a[index-jstride] + a[index+jstride];
+                        index += istride;
                     }
-                    index+=(jstride-BLOCKSIZEX);
+                    index+=(jstride-istride*BLOCKSIZEX);
                 }
                 index+=(kstride-jstride*BLOCKSIZEY);
             }
