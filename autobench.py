@@ -153,7 +153,7 @@ def plot_results(vos, outdir):
 
         for prec, data in [('single', float_data), ('double', double_data)]:
             fig, axs = plt.subplots(2, 2, figsize=(30, 20))
-            fig.suptitle('- '.join(str(o) for o in ctoptions) + '; ' + prec.upper() + ' PREC.')
+            fig.suptitle(' - '.join(str(o) for o in ctoptions) + ' - ' + prec.upper() + ' PREC.')
 
             for ax, threads in zip(axs.flat, sorted(float_data.keys())):
                 for stencil in sorted(float_data[threads].keys()):
