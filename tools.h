@@ -61,25 +61,30 @@ struct timing {
     }
 
     double min(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         std::sort(st[s].begin(), st[s].end());
         return st[s].front();
     }
 
     double max(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         std::sort(st[s].begin(), st[s].end());
         return st[s].back();
     }
 
     double mean(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         double sum = std::accumulate(st[s].begin(), st[s].end(), 0.0);
         return (sum/st[s].size());
     }
 
     double sum(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         return std::accumulate(st[s].begin(), st[s].end(), 0.0);
     }
 
     double median(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         int size = st[s].size();
         bool odd = size%2;
         if(odd) return st[s][(size+1)/2];
@@ -87,10 +92,12 @@ struct timing {
     }
 
     int size(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         return st[s].size();
     }
 
     double rms(std::string const& s) {
+        if (!st.count(s)) return 0.0;
         double sum = 0.;
         for(auto e : st[s]) sum += e*e;
         sum /= st[s].size();
