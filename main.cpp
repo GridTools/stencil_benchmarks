@@ -341,7 +341,7 @@ int main(int argc, char** argv) {
     }
 
     const storage_info_t si(isize-2*h, jsize-2*h, ksize-2*h);
-    const size_t tot_size = si.size();
+    const size_t tot_size = (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h);
     const size_t tsteps=22;
     const size_t warmup_step=1;
 
@@ -386,14 +386,14 @@ int main(int argc, char** argv) {
     dsize.push_back(JSONNode("mode", "flat_mode"));
 #endif
 
-    auto get_float_bw = [&](std::string const& s) -> double {
-        auto size = tot_size*2*sizeof(float);
+    auto get_float_bw = [&](std::string const& s, int touched_elements) -> double {
+        auto size = sizeof(float) * touched_elements;
         auto time = times.min(s);
         return size/time/(1024.*1024.*1024.);
     };
 
-    auto get_double_bw = [&](std::string const& s) -> double {
-        auto size = tot_size*2*sizeof(double);
+    auto get_double_bw = [&](std::string const& s, int touched_elements) -> double {
+        auto size = sizeof(double) * touched_elements;
         auto time = times.min(s);
         return size/time/(1024.*1024.*1024.);
     };
@@ -426,15 +426,15 @@ int main(int argc, char** argv) {
     {
       JSONNode stencils;
       stencils.set_name("stencils");
-      push_stencil_info(stencils, "copy", get_float_bw("copy"));
-      push_stencil_info(stencils, "copyi1", get_float_bw("copyi1"));
-      push_stencil_info(stencils, "sumi1", get_float_bw("sumi1"));
-      push_stencil_info(stencils, "sumj1", get_float_bw("sumj1"));
-      push_stencil_info(stencils, "sumk1", get_float_bw("sumk1"));
-      push_stencil_info(stencils, "avgi", get_float_bw("avgi"));
-      push_stencil_info(stencils, "avgj", get_float_bw("avgj"));
-      push_stencil_info(stencils, "avgk", get_float_bw("avgk"));
-      push_stencil_info(stencils, "lap", get_float_bw("lap"));
+      push_stencil_info(stencils, "copy", get_float_bw("copy", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "copyi1", get_float_bw("copyi1", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "sumi1", get_float_bw("sumi1", 2 * (isize - 2 * h + 1) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "sumj1", get_float_bw("sumj1", 2 * (isize - 2 * h) * (jsize - 2 * h + 1) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "sumk1", get_float_bw("sumk1", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h + 1)));
+      push_stencil_info(stencils, "avgi", get_float_bw("avgi", 2 * (isize - 2 * h + 2) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "avgj", get_float_bw("avgj", 2 * (isize - 2 * h) * (jsize - 2 * h + 2) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "avgk", get_float_bw("avgk", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h + 2)));
+      push_stencil_info(stencils, "lap", get_float_bw("lap", 2 * (isize - 2 * h + 2) * (jsize - 2 * h + 2) * (ksize - 2 * h)));
       precf.push_back(stencils);
     }
 
@@ -451,15 +451,15 @@ int main(int argc, char** argv) {
     {
       JSONNode stencils;
       stencils.set_name("stencils");
-      push_stencil_info(stencils, "copy", get_double_bw("copy"));
-      push_stencil_info(stencils, "copyi1", get_double_bw("copyi1"));
-      push_stencil_info(stencils, "sumi1", get_double_bw("sumi1"));
-      push_stencil_info(stencils, "sumj1", get_double_bw("sumj1"));
-      push_stencil_info(stencils, "sumk1", get_double_bw("sumk1"));
-      push_stencil_info(stencils, "avgi", get_double_bw("avgi"));
-      push_stencil_info(stencils, "avgj", get_double_bw("avgj"));
-      push_stencil_info(stencils, "avgk", get_double_bw("avgk"));
-      push_stencil_info(stencils, "lap", get_double_bw("lap"));
+      push_stencil_info(stencils, "copy", get_double_bw("copy", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "copyi1", get_double_bw("copyi1", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "sumi1", get_double_bw("sumi1", 2 * (isize - 2 * h + 1) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "sumj1", get_double_bw("sumj1", 2 * (isize - 2 * h) * (jsize - 2 * h + 1) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "sumk1", get_double_bw("sumk1", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h + 1)));
+      push_stencil_info(stencils, "avgi", get_double_bw("avgi", 2 * (isize - 2 * h + 2) * (jsize - 2 * h) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "avgj", get_double_bw("avgj", 2 * (isize - 2 * h) * (jsize - 2 * h + 2) * (ksize - 2 * h)));
+      push_stencil_info(stencils, "avgk", get_double_bw("avgk", 2 * (isize - 2 * h) * (jsize - 2 * h) * (ksize - 2 * h + 2)));
+      push_stencil_info(stencils, "lap", get_double_bw("lap", 2 * (isize - 2 * h + 2) * (jsize - 2 * h + 2) * (ksize - 2 * h)));
       precd.push_back(stencils);
     }
 
