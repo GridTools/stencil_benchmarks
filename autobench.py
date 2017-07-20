@@ -78,11 +78,14 @@ def create_sbatch(vos, outdir):
                     bf.write('\nsrun ./{} {}\n'.format(bname, rtstr))
 
 
-def commit_sbatch(vos, outdir, wait, maxrun):
+def commit_sbatch(vos, outdir, wait, maxrun, failed_only):
     jobids = []
     for options in vos.generate():
         sbname = sbatch_name(options)
         sbpath = os.path.join(outdir, sbname)
+        if failed_only and os.path.isfile(os.path.join(outdir, result_name(options))):
+            continue
+
         if os.path.isfile(sbpath):
             print('Commiting {}'.format(sbname))
             while True:
@@ -104,7 +107,7 @@ def commit_sbatch(vos, outdir, wait, maxrun):
                     time.sleep(waittime)
                     waittime = min(2 * waittime, 300)
 
-    if wait:
+    if wait and jobids:
         print('Waiting for jobs to finish...')
         with open(os.path.join(outdir, 'wait.sh'), 'w') as wf:
             wf.write('#!/bin/bash -l\n')
@@ -222,8 +225,9 @@ def sbatch():
 @cli.command()
 @click.option('--wait/--no-wait', '-w', default=False)
 @click.option('--maxrun', '-m', default=100)
-def commit(wait, maxrun):
-    commit_sbatch(vos, outdir, wait, maxrun)
+@click.option('--failed-only', is_flag=True, default=False)
+def commit(wait, maxrun, failed_only):
+    commit_sbatch(vos, outdir, wait, maxrun, failed_only)
 
 
 @cli.command()
