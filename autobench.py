@@ -166,6 +166,7 @@ def plot_results(vos, outdir):
                 ax.legend(ncol=3, loc='upper left')
 
             fig.savefig(os.path.join(outdir, plot_name(ctoptions, prec[0])))
+            plt.close(fig)
 
 
 vos = None
