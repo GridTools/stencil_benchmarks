@@ -242,7 +242,7 @@ def all(maxrun):
     print('Working directory: {}'.format(outdir))
     compile_binaries(vos, outdir)
     create_sbatch(vos, outdir)
-    commit_sbatch(vos, outdir, True, maxrun)
+    commit_sbatch(vos, outdir, True, maxrun, False)
     plot_results(vos, outdir)
 
 
