@@ -68,6 +68,8 @@ def create_sbatch(vos, outdir):
                 envstr = '\n'.join('#SBATCH --export={}'.format(str(o)) for o in envoptions)
                 rtstr = ' '.join(str(o) for o in rtoptions) + ' --write ' + result_name(options)
 
+                envstr += '\n#SBATCH --export=KMP_AFFINITY=balanced'
+
                 with open(outname, 'w') as bf:
                     bf.write('#!/bin/bash -l\n')
                     bf.write('#SBATCH --job-name={}\n'.format(suffix(options)))
