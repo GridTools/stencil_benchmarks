@@ -81,7 +81,7 @@ void launch( timing& times, const unsigned int is, const unsigned int js, const 
     }
 
     std::chrono::high_resolution_clock::time_point t1,t2;
-    cache_flusher c(64, isize*1.5);
+    cache_flusher c;
 
     for(unsigned int t=0; t < tsteps; t++) {
 

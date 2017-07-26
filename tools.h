@@ -1,12 +1,14 @@
 #ifdef FLAT_MODE
 #include <hbwmalloc.h>
 #endif
-#include <stdlib.h>
-#include <omp.h>
-#include <map>
-#include <vector>
-#include <string.h>
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <thread>
+#include <vector>
+
+#include <omp.h>
 
 #pragma once
 
@@ -16,38 +18,18 @@ int parse_uint(const char *str, unsigned int *output) {
   return !strlen(next);
 }
 
-struct cache_flusher {
-    const size_t bigger_than_cachesize;
-    float *p;
-    float m_init;
-
-    cache_flusher(int megabyte, float init) : 
-        bigger_than_cachesize((megabyte*1024*1024)/sizeof(float)), 
-#ifdef CACHE_MODE
-        p(new float[bigger_than_cachesize]),
-#elif defined FLAT_MODE
-        p(static_cast<float*>(hbw_malloc(bigger_than_cachesize * sizeof(float)))),
-#endif
-        m_init(init) {
-        std::cout << "created cache_flusher with " << bigger_than_cachesize << " elements" << std::endl;
-        std::cout << "total size: " << megabyte << " MB" << std::endl;
-    }
-
-    ~cache_flusher() {
-#ifdef CACHE_MODE
-      delete [] p;
-#elif defined FLAT_MODE
-      hbw_free(p);
-#endif
-    }
-
-    __attribute__((noinline)) void flush() {
-        #pragma omp parallel for
-        for(int i = 0; i < bigger_than_cachesize; i++) {
-            p[i] = m_init;
+class cache_flusher {
+  public:
+    void flush() {
+        // just wait, this should to a context switch
+        // and the OS will flush all the cache
+        #pragma omp parallel
+        {
+            std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
         }
     }
 };
+
 
 struct timing {
     std::map<std::string, std::vector<double> > st;
