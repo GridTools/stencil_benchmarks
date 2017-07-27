@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+stencil_bench
+
+# Temporary files
+*.swp
+
+# User config
+Makefile.user
