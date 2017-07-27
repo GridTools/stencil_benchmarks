@@ -1,0 +1,11 @@
+the block size impact plots are based on the results we got
+when using IJ tiling, temporal storages, and i-first strategy.
+
+The plots are grouped into domain sizes. The script iterates through 
+all the results for one specific domain size, and blocksize in I and J.
+
+The best result (thread count is the only remaining variable) for 
+each stencil is stored. Afterwards we build the average bandwidth 
+of all the basic stencils with the fixed blocksize and domain size. 
+This value will be used in the heatmap plot.
+
