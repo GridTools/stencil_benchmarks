@@ -63,7 +63,6 @@ void arguments::print_help() const {
     std::string subcommand_name = m_subcommand_name;
     for (auto& c : subcommand_name)
       c = std::toupper(static_cast<unsigned char>(c));
-    std::cout << " " << subcommand_name;
   }
   std::cout << std::endl << std::endl;
 
