@@ -172,7 +172,6 @@ arguments_map arguments::parse(int argc, char** argv) const {
 
   if (!m_command_map.empty()) {
     argsmap.m_map[m_subcommand_name] = command;
-    std::cout << m_subcommand_name << ": " << command << std::endl;
     auto command_argsmap = m_command_map.find(command)->second->parse(
         argc - subcommand_argc, argv + subcommand_argc);
     for (const auto& a : command_argsmap.m_map)
