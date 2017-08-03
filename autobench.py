@@ -129,7 +129,7 @@ def commit_sbatch(vos, outdir, wait, maxrun, failed_only):
 
 
 def plot_results(vos, outdir):
-    matplotlib.rcParams.update({'font.size': 25})
+    matplotlib.rcParams.update({'font.size': 25, 'xtick.labelsize': 20})
     for ctoptions in vos.generate(VarType.compiletime):
         print('Create plot for compile-time options {}'.format(' '.join(str(o) for o in ctoptions)))
         
@@ -168,6 +168,9 @@ def plot_results(vos, outdir):
                     ax.semilogx(x, y, basex=2, lw=2, ls='--', label=stencil)
                     ax.set_xlim([0, 1024])
                     ax.set_ylim([0, 500])
+                    ax.set_xlabel('Domain Size')
+                    ax.set_ylabel('Estimated Bandwidth [GB/s]')
+                    ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda s, _: '{0}x{0}x80'.format(int(s))))
                     ax.grid(True)
                 ax.legend(ncol=3, loc='upper left')
 
