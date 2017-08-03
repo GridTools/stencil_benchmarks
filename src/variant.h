@@ -42,10 +42,65 @@ class variant : public variant_base {
   }
 
   bool verify(const std::string& kernel) const override {
-    if (kernel == "copy")
-      return verify_loop(
-          [&](int i, int j, int k) { return dst(i, j, k) == src(i, j, k); });
-    throw std::logic_error("Error: unknown stencil '" + kernel + "'");
+    auto equal = [](value_type a, value_type b) { return a == b; };
+    if (kernel == "copy") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k));
+      });
+    }
+    if (kernel == "copyi") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i + 1, j, k));
+      });
+    }
+    if (kernel == "copyj") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j + 1, k));
+      });
+    }
+    if (kernel == "copyk") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k + 1));
+      });
+    }
+    if (kernel == "avgi") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i - 1, j, k) + src(i + 1, j, k));
+      });
+    }
+    if (kernel == "avgj") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j - 1, k) + src(i, j + 1, k));
+      });
+    }
+    if (kernel == "avgk") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k - 1) + src(i, j, k + 1));
+      });
+    }
+    if (kernel == "sumi") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k) + src(i + 1, j, k));
+      });
+    }
+    if (kernel == "sumj") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k) + src(i, j + 1, k));
+      });
+    }
+    if (kernel == "sumk") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k) + src(i, j, k + 1));
+      });
+    }
+    if (kernel == "lapij") {
+      return verify_loop([&](int i, int j, int k) {
+        return equal(dst(i, j, k), src(i, j, k) + src(i - 1, j, k) +
+                                       src(i + 1, j, k) + src(i, j - 1, k) +
+                                       src(i, j + 1, k));
+      });
+    }
+    throw ERROR("unknown stencil '" + kernel + "'");
   }
 
   std::size_t bytes(const std::string& kernel) const override {
