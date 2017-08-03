@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "arguments.h"
+#include "except.h"
 #include "result.h"
 
 namespace platform {
@@ -18,9 +19,9 @@ variant_base::variant_base(const arguments_map& args)
       m_halo(args.get<int>("halo")),
       m_pad(args.get<int>("padding")) {
   if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
-    throw std::logic_error("invalid domain size");
-  if (m_halo <= 0) throw std::logic_error("invalid m_halo size");
-  if (m_pad <= 0) throw std::logic_error("invalid padding");
+    throw ERROR("invalid domain size");
+  if (m_halo <= 0) throw ERROR("invalid m_halo size");
+  if (m_pad <= 0) throw ERROR("invalid padding");
 
   int ish = m_isize + 2 * m_halo;
   int jsh = m_jsize + 2 * m_halo;
@@ -37,7 +38,7 @@ variant_base::variant_base(const arguments_map& args)
     m_kstride = s;
     s *= ksh;
   } else {
-    throw std::logic_error("invalid layout");
+    throw ERROR("invalid layout");
   }
 
   s = ((s + m_pad - 1) / m_pad) * m_pad;
@@ -52,7 +53,7 @@ variant_base::variant_base(const arguments_map& args)
     m_kstride = s;
     s *= ksh;
   } else {
-    throw std::logic_error("invalid layout");
+    throw ERROR("invalid layout");
   }
 
   if (m_ilayout == 0) {
@@ -65,7 +66,7 @@ variant_base::variant_base(const arguments_map& args)
     m_kstride = s;
     s *= ksh;
   } else {
-    throw std::logic_error("invalid layout");
+    throw ERROR("invalid layout");
   }
 
   m_storage_size = s;
@@ -116,7 +117,7 @@ variant_base::stencil_fptr variant_base::stencil_function(
   if (kernel == "sumj") return &variant_base::sumj;
   if (kernel == "sumk") return &variant_base::sumk;
   if (kernel == "lapij") return &variant_base::lapij;
-  throw std::logic_error("Error: unknown stencil '" + kernel + "'");
+  throw ERROR("unknown stencil '" + kernel + "'");
 }
 
 }  // namespace platform

@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "except.h"
 #include "platform_list.h"
 
 #ifdef PLATFORM_KNL
@@ -44,6 +45,8 @@ void setup(arguments& args) { pls::loop<setuper>(args); }
 std::unique_ptr<variant_base> create_variant(const arguments_map& args) {
   variant_base* variant = nullptr;
   pls::loop<creator>(args, variant);
+  if (!variant)
+    throw ERROR("Error: variant '" + args.get("variant") + "' not found");
   return std::unique_ptr<variant_base>(variant);
 }
 

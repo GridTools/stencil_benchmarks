@@ -3,11 +3,12 @@
 #include <getopt.h>
 
 #include "arguments.h"
+#include "except.h"
 
 std::string arguments_map::get_raw(const std::string& name) const {
   auto i = m_map.find(name);
   if (i == std::end(m_map))
-    throw std::invalid_argument("given argument '" + name + "' is not in map");
+    throw ERROR("given argument '" + name + "' is not in argument map");
   return i->second;
 }
 

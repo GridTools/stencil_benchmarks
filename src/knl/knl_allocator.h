@@ -2,6 +2,8 @@
 
 #include <hbwmalloc.h>
 
+#include "except.h"
+
 namespace platform {
 
 namespace knl {
@@ -21,7 +23,7 @@ class flat_allocator {
     value_type* ptr;
     if (hbw_posix_memalign(reinterpret_cast<void**>(&ptr), alignment,
                            n * sizeof(value_type)))
-      throw std::bad_alloc();
+      throw ERROR("could not allocate HBW memory");
     return ptr;
   }
 
