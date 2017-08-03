@@ -35,7 +35,7 @@ double arguments_map::get_impl(const std::string& name,
 }
 
 arguments_map arguments_map::with(
-    std::initializer_list<std::pair<std::string, std::string>> args) const {
+    const std::vector<std::pair<std::string, std::string>>& args) const {
   arguments_map copy = *this;
   for (auto& a : args) copy.m_map[a.first] = a.second;
   return copy;

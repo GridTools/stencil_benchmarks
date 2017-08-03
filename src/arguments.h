@@ -32,7 +32,7 @@ class arguments_map {
   const_iterator end() const { return m_map.end(); }
 
   arguments_map with(
-      std::initializer_list<std::pair<std::string, std::string>> args) const;
+      const std::vector<std::pair<std::string, std::string>>& args) const;
 
  private:
   std::string get_impl(const std::string& name, overload<std::string>) const;
