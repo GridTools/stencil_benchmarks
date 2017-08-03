@@ -27,7 +27,7 @@ class knl_variant : public variant<Platform, ValueType> {
  private:
   void flush_cache() {
 #pragma omp parallel
-    { std::this_thread::sleep_for(std::chrono::duration<double>(0.01)); }
+    { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }
   }
 };
 
