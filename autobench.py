@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import time
+import sys
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
@@ -206,6 +207,9 @@ def cli(stencil, align, layout, mcdram, blocksize, threads, size, directory):
     vos.add_rt('size', size, fmt=lambda v: '--isize {0} --jsize {0}'.format(v))
 
     outdir = directory
+
+    with open(os.path.join(outdir, 'command.txt'), 'w') as f:
+        f.write(' '.join(sys.argv) + '\n')
 
 
 @cli.command()
