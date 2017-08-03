@@ -14,7 +14,17 @@ class variant : public variant_base {
   variant(const arguments_map& args)
       : variant_base(args),
         m_src_data(storage_size()),
-        m_dst_data(storage_size()) {}
+        m_dst_data(storage_size()) {
+    int imin = -m_halo, imax = m_isize + m_halo;
+    int jmin = -m_halo, jmax = m_jsize + m_halo;
+    int kmin = -m_halo, kmax = m_ksize + m_halo;
+#pragma omp parallel for collapse(3)
+    for (int k = kmin; k < kmax; ++k)
+      for (int j = jmin; j < jmax; ++j)
+        for (int i = imin; i < imax; ++i) {
+          m_src_data.at(zero_offset() + index(i, j, k)) = index(i, j, k);
+        }
+  }
 
  protected:
   value_type *m_src, *m_dst;
