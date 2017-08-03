@@ -17,7 +17,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
   void copy() override {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i];
   }
 
@@ -25,7 +25,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int istride = base::istride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i + istride];
   }
 
@@ -33,7 +33,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int jstride = base::jstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i + jstride];
   }
 
@@ -41,7 +41,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int kstride = base::kstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i + kstride];
   }
 
@@ -49,7 +49,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int istride = base::istride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i)
       base::m_dst[i] = base::m_src[i - istride] + base::m_src[i + istride];
   }
@@ -58,7 +58,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int jstride = base::jstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i)
       base::m_dst[i] = base::m_src[i - jstride] + base::m_src[i + jstride];
   }
@@ -67,7 +67,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int kstride = base::kstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i)
       base::m_dst[i] = base::m_src[i - kstride] + base::m_src[i + kstride];
   }
@@ -76,7 +76,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int istride = base::istride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i)
       base::m_dst[i] = base::m_src[i] + base::m_src[i + istride];
   }
@@ -85,7 +85,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int jstride = base::jstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i)
       base::m_dst[i] = base::m_src[i] + base::m_src[i + jstride];
   }
@@ -94,7 +94,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
     const int last =
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int kstride = base::kstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i)
       base::m_dst[i] = base::m_src[i] + base::m_src[i + kstride];
   }
@@ -104,7 +104,7 @@ class variant_1d final : public knl_variant<Platform, ValueType> {
         base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
     const int istride = base::istride();
     const int jstride = base::jstride();
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (int i = 0; i <= last; ++i) {
       base::m_dst[i] = base::m_src[i] + base::m_src[i - istride] +
                        base::m_src[i + istride] + base::m_src[i - jstride] +
