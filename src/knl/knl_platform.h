@@ -1,9 +1,8 @@
 #pragma once
 
 #include "arguments.h"
-
 #include "knl/knl_allocator.h"
-#include "knl/knl_variant_1d.h"
+#include "variant_base.h"
 
 namespace platform {
 
