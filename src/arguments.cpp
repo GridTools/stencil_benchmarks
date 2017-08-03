@@ -33,6 +33,27 @@ double arguments_map::get_impl(const std::string& name,
   return std::stod(get_raw(name));
 }
 
+arguments_map arguments_map::with(
+    std::initializer_list<std::pair<std::string, std::string>> args) const {
+  arguments_map copy = *this;
+  for (auto& a : args) copy.m_map[a.first] = a.second;
+  return copy;
+}
+
+std::ostream& operator<<(std::ostream& out, const arguments_map& argsmap) {
+  out << "Arguments:" << std::endl;
+  std::size_t name_maxl = 0;
+  std::size_t value_maxl = 0;
+  for (const auto& arg : argsmap) {
+    name_maxl = std::max(name_maxl, arg.first.size());
+    value_maxl = std::max(value_maxl, arg.second.size());
+  }
+  for (const auto& arg : argsmap)
+    out << "    " << std::setw(name_maxl + 1) << std::left << (arg.first + ":")
+        << "    " << arg.second << std::endl;
+  return out;
+}
+
 arguments::arguments(const std::string& command_name,
                      const std::string& subcommand_name)
     : m_command_name(command_name), m_subcommand_name(subcommand_name) {}

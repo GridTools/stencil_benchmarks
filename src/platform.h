@@ -1,52 +1,14 @@
 #pragma once
 
-#include "platform_list.h"
+#include <memory>
+
+#include "arguments.h"
 #include "variant_base.h"
-
-#ifdef PLATFORM_KNL
-#include "knl/platform.h"
-#endif
-
-#ifdef PLATFORM_CUDA
-#include "cuda/platform.h"
-#endif
 
 namespace platform {
 
-struct setuper {
-  template <class Platform>
-  static void execute(arguments& args) {
-    Platform::setup(args);
-  }
-};
+void setup(arguments& args);
 
-struct creator {
-  template <class Platform>
-  static void execute(const arguments_map& args, variant_base*& variant) {
-    if (variant == nullptr) variant = Platform::create_variant(args);
-  }
-};
-
-#ifdef PLATFORM_KNL
-using knl_pls = platform_list<knl::flat, knl::cache>;
-#else
-using knl_pls = platform_list<>;
-#endif
-
-#ifdef PLATFORM_CUDA
-using cuda_pls = platform_list<cuda>;
-#else
-using cuda_pls = platform_list<>;
-#endif
-
-using pls = merge_platform_list<knl_pls, cuda_pls>::type;
-
-void setup(arguments& args) { pls::loop<setuper>(args); }
-
-std::unique_ptr<variant_base> create_variant(const arguments_map& args) {
-  variant_base* variant = nullptr;
-  pls::loop<creator>(args, variant);
-  return std::unique_ptr<variant_base>(variant);
-}
+std::unique_ptr<variant_base> create_variant(const arguments_map& args);
 
 }  // namespace platform

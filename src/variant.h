@@ -39,8 +39,31 @@ class variant : public variant_base {
   }
 
   std::size_t bytes(const std::string& kernel) const override {
-    if (kernel == "copy")
+    if (kernel == "copy" || kernel == "copyi" || kernel == "copyj" ||
+        kernel == "copyk")
       return sizeof(value_type) * 2 * isize() * jsize() * ksize();
+    if (kernel == "avgi")
+      return sizeof(value_type) *
+             ((isize() + 2) * jsize() * ksize() + isize() * jsize() * ksize());
+    if (kernel == "avgj")
+      return sizeof(value_type) *
+             (isize() * (jsize() + 2) * ksize() + isize() * jsize() * ksize());
+    if (kernel == "avgk")
+      return sizeof(value_type) *
+             (isize() * jsize() * (ksize() + 2) + isize() * jsize() * ksize());
+    if (kernel == "sumi")
+      return sizeof(value_type) *
+             ((isize() + 1) * jsize() * ksize() + isize() * jsize() * ksize());
+    if (kernel == "sumj")
+      return sizeof(value_type) *
+             (isize() * (jsize() + 1) * ksize() + isize() * jsize() * ksize());
+    if (kernel == "sumk")
+      return sizeof(value_type) *
+             (isize() * jsize() * (ksize() + 1) + isize() * jsize() * ksize());
+    if (kernel == "lapij")
+      return sizeof(value_type) *
+             ((isize() + 2) * (jsize() + 2) * (ksize() * 2) +
+              isize() * jsize() * ksize());
     throw std::logic_error("Error: unknown stencil '" + kernel + "'");
   }
 

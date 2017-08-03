@@ -30,7 +30,7 @@
 *.exe
 *.out
 *.app
-stencil_bench
+stencil_bench_*
 
 # Temporary files
 *.swp

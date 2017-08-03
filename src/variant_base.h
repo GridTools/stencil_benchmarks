@@ -12,100 +12,26 @@ class variant_base {
   using stencil_fptr = void (variant_base::*)();
 
  public:
-  variant_base(const arguments_map& args)
-      : m_isize(args.get<int>("i-size")),
-        m_jsize(args.get<int>("j-size")),
-        m_ksize(args.get<int>("k-size")),
-        m_ilayout(args.get<int>("i-layout")),
-        m_jlayout(args.get<int>("j-layout")),
-        m_klayout(args.get<int>("k-layout")),
-        m_halo(args.get<int>("halo")),
-        m_pad(args.get<int>("padding")) {
-    if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
-      throw std::logic_error("invalid domain size");
-    if (m_halo <= 0) throw std::logic_error("invalid m_halo size");
-    if (m_pad <= 0) throw std::logic_error("invalid padding");
+  variant_base(const arguments_map& args);
 
-    int ish = m_isize + 2 * m_halo;
-    int jsh = m_jsize + 2 * m_halo;
-    int ksh = m_ksize + 2 * m_halo;
+  result run(const std::string& kernel, int runs);
 
-    int s = 1;
-    if (m_ilayout == 2) {
-      m_istride = s;
-      s *= ish;
-    } else if (m_jlayout == 2) {
-      m_jstride = s;
-      s *= jsh;
-    } else if (m_klayout == 2) {
-      m_kstride = s;
-      s *= ksh;
-    } else {
-      throw std::logic_error("invalid layout");
-    }
-
-    s = ((s + m_pad - 1) / m_pad) * m_pad;
-
-    if (m_ilayout == 1) {
-      m_istride = s;
-      s *= ish;
-    } else if (m_jlayout == 1) {
-      m_jstride = s;
-      s *= jsh;
-    } else if (m_klayout == 1) {
-      m_kstride = s;
-      s *= ksh;
-    } else {
-      throw std::logic_error("invalid layout");
-    }
-
-    if (m_ilayout == 0) {
-      m_istride = s;
-      s *= ish;
-    } else if (m_jlayout == 0) {
-      m_jstride = s;
-      s *= jsh;
-    } else if (m_klayout == 0) {
-      m_kstride = s;
-      s *= ksh;
-    } else {
-      throw std::logic_error("invalid layout");
-    }
-
-    m_storage_size = s;
-  }
-
-  result run(const std::string& kernel, int runs) {
-    using clock = std::chrono::high_resolution_clock;
-
-    stencil_fptr f = stencil_function(kernel);
-
-    result res;
-
-    for (int i = 0; i < runs + 1; ++i) {
-      prerun();
-
-      auto tstart = clock::now();
-      (this->*f)();
-      auto tend = clock::now();
-
-      postrun();
-
-      if (i == 0) {
-        verify(kernel);
-      } else {
-        double t = std::chrono::duration<double>(tend - tstart).count();
-        res.push_back(t, bytes(kernel) / (1024.0 * 1024.0 * 1024.0));
-      }
-    }
-
-    return res;
-  }
+  static std::vector<std::string> kernel_list();
 
   virtual void prerun() = 0;
   virtual void postrun() = 0;
 
   virtual void copy() = 0;
+  virtual void copyi() = 0;
+  virtual void copyj() = 0;
+  virtual void copyk() = 0;
+  virtual void avgi() = 0;
+  virtual void avgj() = 0;
+  virtual void avgk() = 0;
+  virtual void sumi() = 0;
+  virtual void sumj() = 0;
+  virtual void sumk() = 0;
+  virtual void lapij() = 0;
 
  protected:
   int index(int i, int j, int k) const {
@@ -143,10 +69,7 @@ class variant_base {
   int m_istride, m_jstride, m_kstride;
   int m_halo, m_pad, m_storage_size;
 
-  stencil_fptr stencil_function(const std::string& kernel) {
-    if (kernel == "copy") return &variant_base::copy;
-    throw std::logic_error("Error: unknown stencil '" + kernel + "'");
-  }
+  stencil_fptr stencil_function(const std::string& kernel);
 };
 
 }  // namespace platform

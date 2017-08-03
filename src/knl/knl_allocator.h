@@ -4,15 +4,17 @@
 
 namespace platform {
 
+namespace knl {
+
 template <class ValueType>
-class knl_flat_allocator {
+class flat_allocator {
  public:
   using value_type = ValueType;
   static constexpr std::size_t alignment = 64;
 
   template <class OtherValueType>
   struct rebind {
-    using other = knl_flat_allocator<OtherValueType>;
+    using other = flat_allocator<OtherValueType>;
   };
 
   value_type* allocate(std::size_t n) const {
@@ -25,5 +27,7 @@ class knl_flat_allocator {
 
   void deallocate(value_type* ptr, std::size_t) { hbw_free(ptr); }
 };
+
+}  // namespace knl
 
 }  // namespace platform

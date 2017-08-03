@@ -1,20 +1,23 @@
 -include Makefile.user
 
-PLATFORM_DEFS=-DPLATFORM_KNL
+CCFLAGS=-std=c++11 -O1 -ggdb -qopenmp -ffreestanding -DNDEBUG -Isrc $(USERFLAGS)
 
-CCFLAGS=-std=c++11 -O1 -ggdb -qopenmp -ffreestanding -DNDEBUG -Isrc $(PLATFORM_DEFS) $(USERFLAGS)
-LIBS=
+SRCS=$(wildcard src/*.cpp)
+OBJS=$(SRCS:.cpp=.o)
+
+SRCS_KNL=$(wildcard src/knl/*.cpp)
+OBJS_KNL=$(SRCS_KNL:.cpp=.o)
 
 %.o: %.cpp
 	CC $(CCFLAGS) -c $< -o $@
 	
-stencil_bench: src/main.o src/arguments.o
-	CC $(CCFLAGS) $+ $(LIBS) -o $@
+stencil_bench_knl: $(OBJS) $(OBJS_KNL)
+	CC $(CCFLAGS) $+ -o $@
 
 .PHONY: clean
 clean:
-	rm -f src/*.o stencil_bench
+	rm -f src/*.o stencil_bench_*
 
 .PHONY: format
 format:
-	clang-format -i src/*.cpp src/*.h src/*/*.h
+	clang-format -i src/*.cpp src/*.h src/*/*.cpp src/*/*.h

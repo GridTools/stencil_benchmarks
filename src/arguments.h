@@ -1,5 +1,6 @@
 #pragma once
 
+#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -30,6 +31,9 @@ class arguments_map {
   const_iterator begin() const { return m_map.begin(); }
   const_iterator end() const { return m_map.end(); }
 
+  arguments_map with(
+      std::initializer_list<std::pair<std::string, std::string>> args) const;
+
  private:
   std::string get_impl(const std::string& name, overload<std::string>) const;
   int get_impl(const std::string& name, overload<int>) const;
@@ -42,21 +46,7 @@ class arguments_map {
   friend class arguments;
 };
 
-template <class Char, class Traits>
-std::basic_ostream<Char, Traits>& operator<<(
-    std::basic_ostream<Char, Traits>& out, const arguments_map& argsmap) {
-  out << "Arguments:" << std::endl;
-  std::size_t name_maxl = 0;
-  std::size_t value_maxl = 0;
-  for (const auto& arg : argsmap) {
-    name_maxl = std::max(name_maxl, arg.first.size());
-    value_maxl = std::max(value_maxl, arg.second.size());
-  }
-  for (const auto& arg : argsmap)
-    out << "    " << std::setw(name_maxl + 1) << std::left << (arg.first + ":")
-        << "    " << arg.second << std::endl;
-  return out;
-}
+std::ostream& operator<<(std::ostream& out, const arguments_map& argsmap);
 
 class arguments {
   struct argument {
