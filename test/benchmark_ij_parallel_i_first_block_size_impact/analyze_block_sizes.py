@@ -122,6 +122,7 @@ def main():
             val_arr_f.append(tmp_arr_f)
             val_arr_d.append(tmp_arr_d)
         # create plot out of vals
+        lim = sum(i < int(s) for i in [2,8,16,32,64,128,256,512,1024])
         plt.figure(figsize=(15, 15))
         plt.suptitle("i-first layout, double prec., domain size "+str(s), fontsize=25)
         x = np.array([0,1,2,3,4,5,6,7,8])
@@ -135,6 +136,9 @@ def main():
         ix = plt.imshow(val_arr_d, cmap=plt.get_cmap("gist_rainbow"), interpolation='bicubic', vmin=0, vmax=maxed )
         cb = plt.colorbar(ix)
         cb.set_label('GB/s')
+        plt.gca().invert_yaxis()
+        plt.ylim([0,lim])
+        plt.xlim([0,lim])
         plt.savefig("hm_double_"+str(s)+".png")
 
         plt.figure(figsize=(15, 15))
@@ -150,6 +154,9 @@ def main():
         ix = plt.imshow(val_arr_f, cmap=plt.get_cmap("gist_rainbow"), interpolation='bicubic', vmin=0, vmax=maxed )
         cb = plt.colorbar(ix)
         cb.set_label('GB/s')
+        plt.gca().invert_yaxis()
+        plt.ylim([0,lim])
+        plt.xlim([0,lim])
         plt.savefig("hm_float_"+str(s)+".png")
 
 if __name__ == "__main__":
