@@ -10,14 +10,14 @@
 namespace platform {
 
 variant_base::variant_base(const arguments_map& args)
-    : m_isize(args.get<int>("i-size")),
-      m_jsize(args.get<int>("j-size")),
-      m_ksize(args.get<int>("k-size")),
+    : m_halo(args.get<int>("halo")),
+      m_pad(args.get<int>("padding")),
+      m_isize(args.get<int>("i-size") - 2 * m_halo),
+      m_jsize(args.get<int>("j-size") - 2 * m_halo),
+      m_ksize(args.get<int>("k-size") - 2 * m_halo),
       m_ilayout(args.get<int>("i-layout")),
       m_jlayout(args.get<int>("j-layout")),
-      m_klayout(args.get<int>("k-layout")),
-      m_halo(args.get<int>("halo")),
-      m_pad(args.get<int>("padding")) {
+      m_klayout(args.get<int>("k-layout")) {
   if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
     throw ERROR("invalid domain size");
   if (m_halo <= 0) throw ERROR("invalid m_halo size");
@@ -74,12 +74,13 @@ variant_base::variant_base(const arguments_map& args)
 
 result variant_base::run(const std::string& kernel, int runs) {
   using clock = std::chrono::high_resolution_clock;
+  constexpr int dry = 2;
 
   stencil_fptr f = stencil_function(kernel);
 
   result res;
 
-  for (int i = 0; i < runs + 1; ++i) {
+  for (int i = 0; i < runs + dry; ++i) {
     prerun();
 
     auto tstart = clock::now();
@@ -89,17 +90,18 @@ result variant_base::run(const std::string& kernel, int runs) {
     postrun();
 
     if (i == 0) {
-      verify(kernel);
-    } else {
+      if (!verify(kernel))
+        throw ERROR("result of kernel '" + kernel + "' is wrong");
+    } else if (i >= dry) {
       double t = std::chrono::duration<double>(tend - tstart).count();
-      res.push_back(t, bytes(kernel) / (1024.0 * 1024.0 * 1024.0));
+      res.push_back(t, touched_bytes(kernel) / (1024.0 * 1024.0 * 1024.0));
     }
   }
 
   return res;
 }
 
-std::vector<std::string> variant_base::kernel_list() {
+std::vector<std::string> variant_base::stencil_list() {
   return {"copy", "copyi", "copyj", "copyk", "avgi", "avgj",
           "avgk", "sumi",  "sumj",  "sumk",  "lapij"};
 }
@@ -117,6 +119,23 @@ variant_base::stencil_fptr variant_base::stencil_function(
   if (kernel == "sumj") return &variant_base::sumj;
   if (kernel == "sumk") return &variant_base::sumk;
   if (kernel == "lapij") return &variant_base::lapij;
+  throw ERROR("unknown stencil '" + kernel + "'");
+}
+
+std::size_t variant_base::touched_elements(const std::string& kernel) const {
+  std::size_t i = isize();
+  std::size_t j = jsize();
+  std::size_t k = ksize();
+  if (kernel == "copy" || kernel == "copyi" || kernel == "copyj" ||
+      kernel == "copyk")
+    return i * j * k * 2;
+  if (kernel == "avgi") return i * j * k + (i + 2) * j * k;
+  if (kernel == "avgj") return i * j * k + i * (j + 2) * k;
+  if (kernel == "avgk") return i * j * k + i * j * (k + 2);
+  if (kernel == "sumi") return i * j * k + (i + 1) * j * k;
+  if (kernel == "sumj") return i * j * k + i * (j + 1) * k;
+  if (kernel == "sumk") return i * j * k + i * j * (k + 1);
+  if (kernel == "lapij") return i * j * k + (i + 2) * (j + 2) * (k + 2);
   throw ERROR("unknown stencil '" + kernel + "'");
 }
 

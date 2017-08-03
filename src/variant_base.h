@@ -14,9 +14,9 @@ class variant_base {
  public:
   variant_base(const arguments_map& args);
 
-  result run(const std::string& kernel, int runs);
+  result run(const std::string& kernel, int runs = 20);
 
-  static std::vector<std::string> kernel_list();
+  static std::vector<std::string> stencil_list();
 
   virtual void prerun() = 0;
   virtual void postrun() = 0;
@@ -52,22 +52,29 @@ class variant_base {
   int storage_size() const { return m_storage_size; }
 
   virtual bool verify(const std::string& kernel) const = 0;
-  virtual std::size_t bytes(const std::string& kernel) const = 0;
 
   template <class F>
   bool verify_loop(F f) const {
     bool success = true;
+#pragma omp parallel for collapse(3) reduction(&& : success)
     for (int k = 0; k < m_ksize; ++k)
       for (int j = 0; j < m_jsize; ++j)
-        for (int i = 0; i < m_isize; ++i) success &= f(i, j, k);
+        for (int i = 0; i < m_isize; ++i) success = success && f(i, j, k);
     return success;
   }
 
+  std::size_t touched_elements(const std::string& kernel) const;
+  virtual std::size_t touched_bytes(const std::string& kernel) const = 0;
+
  private:
+  template <class Platform, class ValueType>
+  friend class variant;
+
+  int m_halo, m_pad;
   int m_isize, m_jsize, m_ksize;
   int m_ilayout, m_jlayout, m_klayout;
   int m_istride, m_jstride, m_kstride;
-  int m_halo, m_pad, m_storage_size;
+  int m_storage_size;
 
   stencil_fptr stencil_function(const std::string& kernel);
 };
