@@ -6,11 +6,11 @@
   void name() override {                                                       \
     const int last =                                                           \
         this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);  \
-    const value_type* src = this->src();                                       \
+    const value_type* __restrict__ src = this->src();                          \
     const int istride = this->istride();                                       \
     const int jstride = this->jstride();                                       \
     const int kstride = this->kstride();                                       \
-    value_type* dst = this->dst();                                             \
+    value_type* __restrict__ dst = this->dst();                                \
     _Pragma("vector nontemporal")                                              \
         _Pragma("omp parallel for simd") for (int i = 0; i <= last; ++i) stmt; \
   }
