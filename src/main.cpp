@@ -9,13 +9,6 @@
 #include "table.h"
 #include "variant_base.h"
 
-template <class Type>
-std::string str(const Type& t) {
-  std::stringstream s;
-  s << t;
-  return s.str();
-}
-
 std::vector<std::pair<std::string, result>> run_stencils(
     const arguments_map& args) {
   auto variant = platform::create_variant(args);
@@ -67,8 +60,11 @@ void run_ij_scaling(const arguments_map& args, std::ostream& out) {
 
   int sizes = 0;
   for (int size = 32; size <= isize_max; size *= 2) {
-    auto res =
-        run_stencils(args.with({{"i-size", str(size)}, {"j-size", str(size)}}));
+    std::stringstream size_stream;
+    size_stream << size;
+
+    auto res = run_stencils(args.with(
+        {{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
     for (auto& r : res) res_map[r.first].push_back(r.second.bandwidth.max());
     ++sizes;
   }
