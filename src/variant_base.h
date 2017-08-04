@@ -13,6 +13,7 @@ class variant_base {
 
  public:
   variant_base(const arguments_map& args);
+  virtual ~variant_base();
 
   result run(const std::string& kernel, int runs = 20);
 

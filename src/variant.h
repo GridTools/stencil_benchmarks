@@ -24,13 +24,27 @@ class variant : public variant_base {
         for (int i = imin; i < imax; ++i) {
           m_src_data.at(zero_offset() + index(i, j, k)) = index(i, j, k);
         }
+    set_ptrs(src_data() + zero_offset(), dst_data() + zero_offset());
   }
 
- protected:
-  value_type *m_src, *m_dst;
+  virtual ~variant() {}
 
+ protected:
   value_type* src_data() { return m_src_data.data(); }
   value_type* dst_data() { return m_dst_data.data(); }
+  value_type* src() {
+    if (!m_src) throw ERROR("src is nullptr");
+    return m_src;
+  }
+  value_type* dst() {
+    if (!m_dst) throw ERROR("dst is nullptr");
+    return m_dst;
+  }
+
+  void set_ptrs(value_type* src, value_type* dst) {
+    m_src = src;
+    m_dst = dst;
+  }
 
  private:
   const value_type& src(int i, int j, int k) const {
@@ -108,6 +122,7 @@ class variant : public variant_base {
   }
 
   std::vector<value_type, allocator> m_src_data, m_dst_data;
+  value_type *m_src, *m_dst;
 };
 
 }  // platform
