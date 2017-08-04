@@ -32,11 +32,11 @@ class variant : public variant_base {
  protected:
   value_type* src_data() { return m_src_data.data(); }
   value_type* dst_data() { return m_dst_data.data(); }
-  value_type* src() {
+  inline value_type* src() {
     if (!m_src) throw ERROR("src is nullptr");
     return m_src;
   }
-  value_type* dst() {
+  inline value_type* dst() {
     if (!m_dst) throw ERROR("dst is nullptr");
     return m_dst;
   }
