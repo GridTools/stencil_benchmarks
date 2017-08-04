@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
       .add("j-layout", "layout specifier", "1")
       .add("k-layout", "layout specifier", "0")
       .add("halo", "halo size", "2")
-      .add("padding", "padding in elements", "1")
+      .add("alignment", "alignment in elements", "1")
       .add("precision", "single or double precision", "double")
       .add("stencil", "stencil to run", "all")
       .add("run-mode", "run mode (single-size, ij-scaling)", "single-size")
