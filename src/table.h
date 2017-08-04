@@ -6,8 +6,8 @@
 
 class table {
  public:
-  table(std::ostream& out, int cols, std::initializer_list<int> widths = {10},
-        int prec = 6)
+  table(std::ostream& out, std::size_t cols,
+        std::initializer_list<std::size_t> widths = {10}, std::size_t prec = 6)
       : m_out(out), m_cols(cols), m_col(0), m_prec(prec), m_widths(widths) {}
 
   template <class Input>
@@ -31,6 +31,6 @@ class table {
 
  private:
   std::ostream& m_out;
-  int m_cols, m_col, m_prec;
-  std::vector<int> m_widths;
+  std::size_t m_cols, m_col, m_prec;
+  std::vector<std::size_t> m_widths;
 };
