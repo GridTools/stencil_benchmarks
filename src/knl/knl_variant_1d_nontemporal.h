@@ -2,6 +2,19 @@
 
 #include "knl/knl_variant.h"
 
+#define KERNEL(name, stmt)                                                     \
+  void name() override {                                                       \
+    const int last =                                                           \
+        this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);  \
+    const value_type* src = this->src();                                       \
+    const int istride = this->istride();                                       \
+    const int jstride = this->jstride();                                       \
+    const int kstride = this->kstride();                                       \
+    value_type* dst = this->dst();                                             \
+    _Pragma("vector nontemporal")                                              \
+        _Pragma("omp parallel for simd") for (int i = 0; i <= last; ++i) stmt; \
+  }
+
 namespace platform {
 
 namespace knl {
@@ -9,121 +22,27 @@ namespace knl {
 template <class Platform, class ValueType>
 class variant_1d_nontemporal final : public knl_variant<Platform, ValueType> {
  public:
-  using base = knl_variant<Platform, ValueType>;
+  using value_type = ValueType;
 
   variant_1d_nontemporal(const arguments_map& args)
       : knl_variant<Platform, ValueType>(args) {}
 
-  void copy() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i];
-  }
-
-  void copyi() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int istride = base::istride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i + istride];
-  }
-
-  void copyj() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int jstride = base::jstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i + jstride];
-  }
-
-  void copyk() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int kstride = base::kstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i) base::m_dst[i] = base::m_src[i + kstride];
-  }
-
-  void avgi() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int istride = base::istride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i)
-      base::m_dst[i] = base::m_src[i - istride] + base::m_src[i + istride];
-  }
-
-  void avgj() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int jstride = base::jstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i)
-      base::m_dst[i] = base::m_src[i - jstride] + base::m_src[i + jstride];
-  }
-
-  void avgk() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int kstride = base::kstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i)
-      base::m_dst[i] = base::m_src[i - kstride] + base::m_src[i + kstride];
-  }
-
-  void sumi() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int istride = base::istride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i)
-      base::m_dst[i] = base::m_src[i] + base::m_src[i + istride];
-  }
-
-  void sumj() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int jstride = base::jstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i)
-      base::m_dst[i] = base::m_src[i] + base::m_src[i + jstride];
-  }
-
-  void sumk() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int kstride = base::kstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i)
-      base::m_dst[i] = base::m_src[i] + base::m_src[i + kstride];
-  }
-
-  void lapij() override {
-    const int last =
-        base::index(base::isize() - 1, base::jsize() - 1, base::ksize() - 1);
-    const int istride = base::istride();
-    const int jstride = base::jstride();
-#pragma vector nontemporal
-#pragma omp parallel for simd
-    for (int i = 0; i <= last; ++i) {
-      base::m_dst[i] = base::m_src[i] + base::m_src[i - istride] +
-                       base::m_src[i + istride] + base::m_src[i - jstride] +
-                       base::m_src[i + jstride];
-    }
-  }
+  KERNEL(copy, dst[i] = src[i])
+  KERNEL(copyi, dst[i] = src[i + istride])
+  KERNEL(copyj, dst[i] = src[i + jstride])
+  KERNEL(copyk, dst[i] = src[i + kstride])
+  KERNEL(avgi, dst[i] = src[i - istride] + src[i + istride])
+  KERNEL(avgj, dst[i] = src[i - jstride] + src[i + jstride])
+  KERNEL(avgk, dst[i] = src[i - kstride] + src[i + kstride])
+  KERNEL(sumi, dst[i] = src[i] + src[i + istride])
+  KERNEL(sumj, dst[i] = src[i] + src[i + jstride])
+  KERNEL(sumk, dst[i] = src[i] + src[i + kstride])
+  KERNEL(lapij, dst[i] = src[i] + src[i - istride] + src[i + istride] +
+                         src[i - jstride] + src[i + jstride])
 };
 
 }  // namespace knl
 
 }  // namespace platform
+
+#undef KERNEL
