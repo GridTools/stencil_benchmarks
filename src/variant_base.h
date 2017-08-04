@@ -35,22 +35,25 @@ class variant_base {
   virtual void lapij() = 0;
 
  protected:
-  int index(int i, int j, int k) const {
+  inline int index(int i, int j, int k) const {
     return i * m_istride + j * m_jstride + k * m_kstride;
   }
 
-  int zero_offset() const { return index(m_halo, m_halo, m_halo); }
+  inline int zero_offset() const {
+    return m_data_offset + index(m_halo, m_halo, m_halo);
+  }
 
-  int isize() const { return m_isize; }
-  int jsize() const { return m_jsize; }
-  int ksize() const { return m_ksize; }
-  int ilayout() const { return m_ilayout; }
-  int jlayout() const { return m_jlayout; }
-  int klayout() const { return m_klayout; }
-  int istride() const { return m_istride; }
-  int jstride() const { return m_jstride; }
-  int kstride() const { return m_kstride; }
-  int storage_size() const { return m_storage_size; }
+  inline int halo() const { return m_halo; }
+  inline int isize() const { return m_isize; }
+  inline int jsize() const { return m_jsize; }
+  inline int ksize() const { return m_ksize; }
+  inline int ilayout() const { return m_ilayout; }
+  inline int jlayout() const { return m_jlayout; }
+  inline int klayout() const { return m_klayout; }
+  inline int istride() const { return m_istride; }
+  inline int jstride() const { return m_jstride; }
+  inline int kstride() const { return m_kstride; }
+  inline int storage_size() const { return m_storage_size; }
 
   virtual bool verify(const std::string& kernel) const = 0;
 
@@ -71,11 +74,11 @@ class variant_base {
   template <class Platform, class ValueType>
   friend class variant;
 
-  int m_halo, m_pad;
+  int m_halo, m_alignment;
   int m_isize, m_jsize, m_ksize;
   int m_ilayout, m_jlayout, m_klayout;
   int m_istride, m_jstride, m_kstride;
-  int m_storage_size;
+  int m_data_offset, m_storage_size;
 
   stencil_fptr stencil_function(const std::string& kernel);
 };

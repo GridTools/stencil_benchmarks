@@ -11,17 +11,19 @@ namespace platform {
 
 variant_base::variant_base(const arguments_map& args)
     : m_halo(args.get<int>("halo")),
-      m_pad(args.get<int>("padding")),
-      m_isize(args.get<int>("i-size") - 2 * m_halo),
-      m_jsize(args.get<int>("j-size") - 2 * m_halo),
-      m_ksize(args.get<int>("k-size") - 2 * m_halo),
+      m_alignment(args.get<int>("alignment")),
+      m_isize(args.get<int>("i-size")),
+      m_jsize(args.get<int>("j-size")),
+      m_ksize(args.get<int>("k-size")),
       m_ilayout(args.get<int>("i-layout")),
       m_jlayout(args.get<int>("j-layout")),
-      m_klayout(args.get<int>("k-layout")) {
+      m_klayout(args.get<int>("k-layout")),
+      m_data_offset(((m_halo + m_alignment - 1) / m_alignment) * m_alignment -
+                    m_halo) {
   if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
     throw ERROR("invalid domain size");
   if (m_halo <= 0) throw ERROR("invalid m_halo size");
-  if (m_pad <= 0) throw ERROR("invalid padding");
+  if (m_alignment <= 0) throw ERROR("invalid alignment");
 
   int ish = m_isize + 2 * m_halo;
   int jsh = m_jsize + 2 * m_halo;
@@ -41,7 +43,7 @@ variant_base::variant_base(const arguments_map& args)
     throw ERROR("invalid layout");
   }
 
-  s = ((s + m_pad - 1) / m_pad) * m_pad;
+  s = ((s + m_alignment - 1) / m_alignment) * m_alignment;
 
   if (m_ilayout == 1) {
     m_istride = s;
@@ -69,7 +71,7 @@ variant_base::variant_base(const arguments_map& args)
     throw ERROR("invalid layout");
   }
 
-  m_storage_size = s;
+  m_storage_size = m_data_offset + s;
 }
 
 result variant_base::run(const std::string& kernel, int runs) {
@@ -123,9 +125,9 @@ variant_base::stencil_fptr variant_base::stencil_function(
 }
 
 std::size_t variant_base::touched_elements(const std::string& kernel) const {
-  std::size_t i = isize();
-  std::size_t j = jsize();
-  std::size_t k = ksize();
+  std::size_t i = m_isize;
+  std::size_t j = m_jsize;
+  std::size_t k = m_ksize;
   if (kernel == "copy" || kernel == "copyi" || kernel == "copyj" ||
       kernel == "copyk")
     return i * j * k * 2;
