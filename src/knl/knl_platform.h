@@ -9,7 +9,7 @@ namespace platform {
 namespace knl {
 
 struct flat {
-  static constexpr char* name = "knl-flat";
+  static constexpr const char* name = "knl-flat";
 
   template <class ValueType>
   using allocator = flat_allocator<ValueType>;
@@ -20,7 +20,7 @@ struct flat {
 };
 
 struct cache {
-  static constexpr char* name = "knl-cache";
+  static constexpr const char* name = "knl-cache";
 
   template <class ValueType>
   using allocator = std::allocator<ValueType>;
