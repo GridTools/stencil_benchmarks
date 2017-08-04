@@ -162,7 +162,7 @@ arguments_map arguments::parse(int argc, char** argv) const {
 
     switch (c) {
       case 0:
-        if (index < m_args.size())
+        if (index < int(m_args.size()))
           argsmap.m_map[m_args[index].name] = optarg;
         else
           argsmap.m_flags.insert(m_flags[index - m_args.size()].name);
