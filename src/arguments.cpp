@@ -69,6 +69,7 @@ arguments& arguments::add(const std::string& name,
 arguments& arguments::add_flag(const std::string& name,
                                const std::string& description) {
   m_flags.push_back({name, description});
+  return *this;
 }
 
 arguments& arguments::command(const std::string& command_name,
