@@ -93,7 +93,7 @@ void run_ij_scaling(const arguments_map& args, std::ostream& out) {
 
   table t(out, sizes + 1);
   t << "Stencil";
-  for (int size = 32; size <= isize_max + 2 * halo; size *= 2) t << size;
+  for (int size = 32; size <= isize_max + 2 * halo; size *= 2) t << (size - 2 * halo);
 
   if (stencil == "all") {
     for (auto& s : stencils) {
