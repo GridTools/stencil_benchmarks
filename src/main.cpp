@@ -9,6 +9,27 @@
 #include "table.h"
 #include "variant_base.h"
 
+void print_header(const arguments_map& args, std::ostream& out) {
+  std::size_t max_name_width = 0, max_value_width = 0;
+  for (auto& a : args) {
+    max_name_width = std::max(max_name_width, a.first.size());
+    max_value_width = std::max(max_value_width, a.second.size());
+  }
+
+  int i = 0;
+  for (auto& a : args) {
+    if (i == 0) out << "# ";
+    out << std::setw(max_name_width + 2) << std::right << (a.first + ": ")
+        << std::setw(max_value_width) << std::left << a.second << "   ";
+    if (++i >= 5) {
+      out << std::endl;
+      i = 0;
+    }
+  }
+  if (i != 0) out << std::endl;
+  out << "# ---" << std::endl;
+}
+
 std::vector<std::pair<std::string, result>> run_stencils(
     const arguments_map& args) {
   auto variant = platform::create_variant(args);
@@ -82,27 +103,6 @@ void run_ij_scaling(const arguments_map& args, std::ostream& out) {
     t << stencil;
     for (auto& r : res_map[stencil]) t << r;
   }
-}
-
-void print_header(const arguments_map& args, std::ostream& out) {
-  std::size_t max_name_width = 0, max_value_width = 0;
-  for (auto& a : args) {
-    max_name_width = std::max(max_name_width, a.first.size());
-    max_value_width = std::max(max_value_width, a.second.size());
-  }
-
-  int i = 0;
-  for (auto& a : args) {
-    if (i == 0) out << "# ";
-    out << std::setw(max_name_width + 2) << std::right << (a.first + ": ")
-        << std::setw(max_value_width) << std::left << a.second << "   ";
-    if (++i >= 5) {
-      out << std::endl;
-      i = 0;
-    }
-  }
-  if (i != 0) out << std::endl;
-  out << "# ---" << std::endl;
 }
 
 int main(int argc, char** argv) {
