@@ -26,7 +26,7 @@ knl: stencil_bench_knl
 .PHONY: cuda
 cuda: stencil_bench_cuda
 	
-stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding -xMIC-AVX512 -qopt-streaming-stores always
+stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding
 stencil_bench_knl: $(OBJS) $(OBJS_KNL)
 	CC $(CCFLAGS) $+ -o $@
 
