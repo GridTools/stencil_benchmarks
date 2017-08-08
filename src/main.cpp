@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <omp.h>
+
 #include "arguments.h"
 #include "except.h"
 #include "platform.h"
@@ -119,6 +121,7 @@ int main(int argc, char **argv) {
         .add("precision", "single or double precision", "double")
         .add("stencil", "stencil to run", "all")
         .add("run-mode", "run mode (single-size, ij-scaling)", "single-size")
+        .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
         .add("output", "output file", "stdout")
         .add_flag("no-header", "do not print header");
 
@@ -138,6 +141,10 @@ int main(int argc, char **argv) {
 
     if (!argsmap.get_flag("no-header"))
         print_header(argsmap, out);
+
+    omp_set_dynamic(0);
+    if (int threads = argsmap.get< int >("threads"))
+        omp_set_num_threads(threads);
 
     std::string run_mode = argsmap.get("run-mode");
     if (run_mode == "single-size")
