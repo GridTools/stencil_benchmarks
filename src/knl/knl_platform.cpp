@@ -5,58 +5,64 @@
 
 namespace platform {
 
-namespace knl {
+    namespace knl {
 
-void flat::setup(arguments& args) {
-  arguments& pargs = args.command(name, "variant");
-  pargs.command("1d");
-  pargs.command("1d-nontemporal");
-}
+        void flat::setup(arguments &args) {
+            arguments &pargs = args.command(name, "variant");
+            pargs.command("1d");
+            pargs.command("1d-nontemporal");
+        }
 
-variant_base* flat::create_variant(const arguments_map& args) {
-  if (args.get("platform") != name) return nullptr;
+        variant_base *flat::create_variant(const arguments_map &args) {
+            if (args.get("platform") != name)
+                return nullptr;
 
-  std::string prec = args.get("precision");
-  std::string var = args.get("variant");
+            std::string prec = args.get("precision");
+            std::string var = args.get("variant");
 
-  if (prec == "single") {
-    if (var == "1d") return new variant_1d<flat, float>(args);
-    if (var == "1d-nontemporal")
-      return new variant_1d_nontemporal<flat, float>(args);
-  } else if (prec == "double") {
-    if (var == "1d") return new variant_1d<flat, double>(args);
-    if (var == "1d-nontemporal")
-      return new variant_1d_nontemporal<flat, double>(args);
-  }
+            if (prec == "single") {
+                if (var == "1d")
+                    return new variant_1d< flat, float >(args);
+                if (var == "1d-nontemporal")
+                    return new variant_1d_nontemporal< flat, float >(args);
+            } else if (prec == "double") {
+                if (var == "1d")
+                    return new variant_1d< flat, double >(args);
+                if (var == "1d-nontemporal")
+                    return new variant_1d_nontemporal< flat, double >(args);
+            }
 
-  return nullptr;
-}
+            return nullptr;
+        }
 
-void cache::setup(arguments& args) {
-  arguments& pargs = args.command(name, "variant");
-  pargs.command("1d");
-  pargs.command("1d-nontemporal");
-}
+        void cache::setup(arguments &args) {
+            arguments &pargs = args.command(name, "variant");
+            pargs.command("1d");
+            pargs.command("1d-nontemporal");
+        }
 
-variant_base* cache::create_variant(const arguments_map& args) {
-  if (args.get("platform") != name) return nullptr;
+        variant_base *cache::create_variant(const arguments_map &args) {
+            if (args.get("platform") != name)
+                return nullptr;
 
-  std::string prec = args.get("precision");
-  std::string var = args.get("variant");
+            std::string prec = args.get("precision");
+            std::string var = args.get("variant");
 
-  if (prec == "single") {
-    if (var == "1d") return new variant_1d<cache, float>(args);
-    if (var == "1d-nontemporal")
-      return new variant_1d_nontemporal<cache, float>(args);
-  } else if (prec == "double") {
-    if (var == "1d") return new variant_1d<cache, double>(args);
-    if (var == "1d-nontemporal")
-      return new variant_1d_nontemporal<cache, double>(args);
-  }
+            if (prec == "single") {
+                if (var == "1d")
+                    return new variant_1d< cache, float >(args);
+                if (var == "1d-nontemporal")
+                    return new variant_1d_nontemporal< cache, float >(args);
+            } else if (prec == "double") {
+                if (var == "1d")
+                    return new variant_1d< cache, double >(args);
+                if (var == "1d-nontemporal")
+                    return new variant_1d_nontemporal< cache, double >(args);
+            }
 
-  return nullptr;
-}
+            return nullptr;
+        }
 
-}  // namespace knl
+    } // namespace knl
 
-}  // namespace platform
+} // namespace platform

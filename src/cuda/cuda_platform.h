@@ -6,19 +6,19 @@
 
 namespace platform {
 
-namespace cuda {
+    namespace cuda {
 
-struct cuda {
-  static constexpr const char* name = "cuda";
+        struct cuda {
+            static constexpr const char *name = "cuda";
 
-  template <class ValueType>
-  using allocator = host_allocator<ValueType>;
+            template < class ValueType >
+            using allocator = host_allocator< ValueType >;
 
-  static void setup(arguments& args);
+            static void setup(arguments &args);
 
-  static variant_base* create_variant(const arguments_map& args);
-};
+            static variant_base *create_variant(const arguments_map &args);
+        };
 
-}  // namespace cuda
+    } // namespace cuda
 
-}  // namespace platform
+} // namespace platform

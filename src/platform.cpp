@@ -12,42 +12,43 @@
 
 namespace platform {
 
-struct setuper {
-  template <class Platform>
-  static void execute(arguments& args) {
-    Platform::setup(args);
-  }
-};
+    struct setuper {
+        template < class Platform >
+        static void execute(arguments &args) {
+            Platform::setup(args);
+        }
+    };
 
-struct creator {
-  template <class Platform>
-  static void execute(const arguments_map& args, variant_base*& variant) {
-    if (variant == nullptr) variant = Platform::create_variant(args);
-  }
-};
+    struct creator {
+        template < class Platform >
+        static void execute(const arguments_map &args, variant_base *&variant) {
+            if (variant == nullptr)
+                variant = Platform::create_variant(args);
+        }
+    };
 
 #ifdef PLATFORM_KNL
-using knl_pls = platform_list<knl::flat, knl::cache>;
+    using knl_pls = platform_list< knl::flat, knl::cache >;
 #else
-using knl_pls = platform_list<>;
+    using knl_pls = platform_list<>;
 #endif
 
 #ifdef PLATFORM_CUDA
-using cuda_pls = platform_list<cuda::cuda>;
+    using cuda_pls = platform_list< cuda::cuda >;
 #else
-using cuda_pls = platform_list<>;
+    using cuda_pls = platform_list<>;
 #endif
 
-using pls = merge_platform_list<knl_pls, cuda_pls>::type;
+    using pls = merge_platform_list< knl_pls, cuda_pls >::type;
 
-void setup(arguments& args) { pls::loop<setuper>(args); }
+    void setup(arguments &args) { pls::loop< setuper >(args); }
 
-std::unique_ptr<variant_base> create_variant(const arguments_map& args) {
-  variant_base* variant = nullptr;
-  pls::loop<creator>(args, variant);
-  if (!variant)
-    throw ERROR("Error: variant '" + args.get("variant") + "' not found");
-  return std::unique_ptr<variant_base>(variant);
-}
+    std::unique_ptr< variant_base > create_variant(const arguments_map &args) {
+        variant_base *variant = nullptr;
+        pls::loop< creator >(args, variant);
+        if (!variant)
+            throw ERROR("Error: variant '" + args.get("variant") + "' not found");
+        return std::unique_ptr< variant_base >(variant);
+    }
 
-}  // namespace platform
+} // namespace platform
