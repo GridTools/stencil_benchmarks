@@ -10,26 +10,18 @@
 #include "variant_base.h"
 
 void print_header(const arguments_map &args, std::ostream &out) {
-    std::size_t max_name_width = 0, max_value_width = 0;
+    out << "# passed arguments:" << std::endl;
+
+    const int cols = 3;
+    table t(2 * cols + 1);
+    int col = 0;
     for (auto &a : args) {
-        max_name_width = std::max(max_name_width, a.first.size());
-        max_value_width = std::max(max_value_width, a.second.size());
+        if (col++ % cols == 0)
+            t << "#";
+        t << (a.first + ":") << a.second;
     }
 
-    int i = 0;
-    for (auto &a : args) {
-        if (i == 0)
-            out << "# ";
-        out << std::setw(max_name_width + 2) << std::right << (a.first + ": ") << std::setw(max_value_width)
-            << std::left << a.second << "   ";
-        if (++i >= 5) {
-            out << std::endl;
-            i = 0;
-        }
-    }
-    if (i != 0)
-        out << std::endl;
-    out << "# ---" << std::endl;
+    out << t;
 }
 
 std::vector< std::pair< std::string, result > > run_stencils(const arguments_map &args) {
@@ -48,7 +40,7 @@ std::vector< std::pair< std::string, result > > run_stencils(const arguments_map
 void run_single_size(const arguments_map &args, std::ostream &out) {
     out << "# times are given in milliseconds, bandwidth in GB/s" << std::endl;
 
-    table t(out, 7);
+    table t(7);
     t << "Stencil"
       << "Time-avg"
       << "Time-min"
@@ -65,6 +57,8 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
     const auto res = run_stencils(args);
     for (auto &r : res)
         print_result(r.first, r.second);
+
+    out << t;
 }
 
 void run_ij_scaling(const arguments_map &args, std::ostream &out) {
@@ -92,7 +86,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
         ++sizes;
     }
 
-    table t(out, sizes + 1);
+    table t(sizes + 1);
     t << "Stencil";
     for (int size = 32; size <= isize_max + 2 * halo; size *= 2)
         t << (size - 2 * halo);
@@ -108,6 +102,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
         for (auto &r : res_map[stencil])
             t << r;
     }
+    out << t;
 }
 
 int main(int argc, char **argv) {

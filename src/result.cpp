@@ -22,7 +22,7 @@ void result::push_back(double t, double gb) {
 }
 
 std::ostream &operator<<(std::ostream &out, const result &r) {
-    table t(out, 5, {9, 4, 10});
+    table t(5);
     auto tdata = [&](const std::string &name, const std::string &unit, const result_array &a, double mul = 1) {
         t << name << unit << (a.avg() * mul) << (a.min() * mul) << (a.max() * mul);
     };
@@ -35,5 +35,6 @@ std::ostream &operator<<(std::ostream &out, const result &r) {
     tdata("Time", "ms", r.time, 1000);
     tdata("Bandwidth", "GB/s", r.bandwidth);
 
+    out << t;
     return out;
 }

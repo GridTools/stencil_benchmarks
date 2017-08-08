@@ -2,33 +2,35 @@
 
 #include <iomanip>
 #include <ostream>
+#include <sstream>
+#include <tuple>
 #include <vector>
 
 class table {
+    enum class align { left, right };
+
   public:
-    table(std::ostream &out, std::size_t cols, std::initializer_list< std::size_t > widths = {10}, std::size_t prec = 6)
-        : m_out(out), m_cols(cols), m_col(0), m_prec(prec), m_widths(widths) {}
+    table(std::size_t cols, std::size_t prec = 6) : m_cols(cols), m_prec(prec) {}
 
     template < class Input >
     table &operator<<(const Input &i) {
-        if (std::is_scalar< Input >::value)
-            m_out << std::right << std::fixed << std::setprecision(m_prec);
-        else
-            m_out << std::left;
-        if (!m_widths.empty())
-            m_out << std::setw(m_widths[m_col < m_widths.size() ? m_col : m_widths.size() - 1]);
-        m_out << i;
-        if (++m_col >= m_cols) {
-            m_out << std::endl;
-            m_col = 0;
-        } else {
-            m_out << "  ";
+        std::stringstream s;
+        align a = align::left;
+
+        if (std::is_scalar< Input >::value) {
+            s << std::fixed << std::setprecision(m_prec);
+            a = align::right;
         }
+        s << i;
+        m_out.emplace_back(a, s.str());
         return *this;
     }
 
+    std::size_t cols() const { return m_cols; }
+
+    friend std::ostream &operator<<(std::ostream &out, const table &t);
+
   private:
-    std::ostream &m_out;
-    std::size_t m_cols, m_col, m_prec;
-    std::vector< std::size_t > m_widths;
+    std::size_t m_cols, m_prec;
+    std::vector< std::tuple< align, std::string > > m_out;
 };
