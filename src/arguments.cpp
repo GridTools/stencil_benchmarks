@@ -14,15 +14,15 @@ std::string arguments_map::get_raw(const std::string &name) const {
 
 bool arguments_map::get_flag(const std::string &name) const { return m_flags.count(name); }
 
-std::string arguments_map::get_impl(const std::string &name, overload< std::string >) const { return get_raw(name); }
+std::string arguments_map::get_impl(const std::string &name, overload<std::string>) const { return get_raw(name); }
 
-int arguments_map::get_impl(const std::string &name, overload< int >) const { return std::stoi(get_raw(name)); }
+int arguments_map::get_impl(const std::string &name, overload<int>) const { return std::stoi(get_raw(name)); }
 
-float arguments_map::get_impl(const std::string &name, overload< float >) const { return std::stof(get_raw(name)); }
+float arguments_map::get_impl(const std::string &name, overload<float>) const { return std::stof(get_raw(name)); }
 
-double arguments_map::get_impl(const std::string &name, overload< double >) const { return std::stod(get_raw(name)); }
+double arguments_map::get_impl(const std::string &name, overload<double>) const { return std::stod(get_raw(name)); }
 
-arguments_map arguments_map::with(const std::vector< std::pair< std::string, std::string > > &args) const {
+arguments_map arguments_map::with(const std::vector<std::pair<std::string, std::string>> &args) const {
     arguments_map copy = *this;
     for (auto &a : args)
         copy.m_map[a.first] = a.second;
@@ -58,7 +58,7 @@ arguments &arguments::add_flag(const std::string &name, const std::string &descr
 
 arguments &arguments::command(const std::string &command_name, const std::string &subcommand_name) {
     return *(
-        m_command_map.emplace(command_name, std::unique_ptr< arguments >(new arguments(command_name, subcommand_name)))
+        m_command_map.emplace(command_name, std::unique_ptr<arguments>(new arguments(command_name, subcommand_name)))
             .first->second);
 }
 
@@ -67,7 +67,7 @@ void arguments::print_help() const {
     if (!m_command_map.empty()) {
         std::string subcommand_name = m_subcommand_name;
         for (auto &c : subcommand_name)
-            c = std::toupper(static_cast< unsigned char >(c));
+            c = std::toupper(static_cast<unsigned char>(c));
     }
     std::cout << std::endl << std::endl;
 
@@ -124,7 +124,7 @@ arguments_map arguments::parse(int argc, char **argv) const {
     for (const auto &arg : m_args)
         argsmap.m_map[arg.name] = arg.default_value;
 
-    std::vector< option > options;
+    std::vector<option> options;
     for (const auto &arg : m_args)
         options.push_back({arg.name.c_str(), required_argument, nullptr, 0});
     for (const auto &flag : m_flags)

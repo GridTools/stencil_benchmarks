@@ -22,14 +22,14 @@ namespace platform {
 
             if (prec == "single") {
                 if (var == "1d")
-                    return new variant_1d< flat, float >(args);
+                    return new variant_1d<flat, float>(args);
                 if (var == "1d-nontemporal")
-                    return new variant_1d_nontemporal< flat, float >(args);
+                    return new variant_1d_nontemporal<flat, float>(args);
             } else if (prec == "double") {
                 if (var == "1d")
-                    return new variant_1d< flat, double >(args);
+                    return new variant_1d<flat, double>(args);
                 if (var == "1d-nontemporal")
-                    return new variant_1d_nontemporal< flat, double >(args);
+                    return new variant_1d_nontemporal<flat, double>(args);
             }
 
             return nullptr;
@@ -50,14 +50,14 @@ namespace platform {
 
             if (prec == "single") {
                 if (var == "1d")
-                    return new variant_1d< cache, float >(args);
+                    return new variant_1d<cache, float>(args);
                 if (var == "1d-nontemporal")
-                    return new variant_1d_nontemporal< cache, float >(args);
+                    return new variant_1d_nontemporal<cache, float>(args);
             } else if (prec == "double") {
                 if (var == "1d")
-                    return new variant_1d< cache, double >(args);
+                    return new variant_1d<cache, double>(args);
                 if (var == "1d-nontemporal")
-                    return new variant_1d_nontemporal< cache, double >(args);
+                    return new variant_1d_nontemporal<cache, double>(args);
             }
 
             return nullptr;

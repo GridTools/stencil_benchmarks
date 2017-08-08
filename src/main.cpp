@@ -26,10 +26,10 @@ void print_header(const arguments_map &args, std::ostream &out) {
     out << t;
 }
 
-std::vector< std::pair< std::string, result > > run_stencils(const arguments_map &args) {
+std::vector<std::pair<std::string, result>> run_stencils(const arguments_map &args) {
     auto variant = platform::create_variant(args);
     auto stencil = args.get("stencil");
-    std::vector< std::pair< std::string, result > > res;
+    std::vector<std::pair<std::string, result>> res;
     if (stencil == "all") {
         for (auto &s : variant->stencil_list())
             res.emplace_back(s, variant->run(s));
@@ -66,18 +66,18 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
 void run_ij_scaling(const arguments_map &args, std::ostream &out) {
     out << "# shown is the estimated max. bandwidth in GB/s" << std::endl;
 
-    const int isize_max = args.get< int >("i-size");
-    const int jsize_max = args.get< int >("j-size");
+    const int isize_max = args.get<int>("i-size");
+    const int jsize_max = args.get<int>("j-size");
     if (isize_max != jsize_max)
         throw ERROR("i-size and j-size must be equal for ij-scaling mode");
 
     const auto stencils = platform::variant_base::stencil_list();
 
     std::string stencil = args.get("stencil");
-    std::map< std::string, std::vector< double > > res_map;
+    std::map<std::string, std::vector<double>> res_map;
 
     int sizes = 0;
-    const int halo = args.get< int >("halo");
+    const int halo = args.get<int>("halo");
     for (int size = 32; size <= isize_max + 2 * halo; size *= 2) {
         std::stringstream size_stream;
         size_stream << (size - 2 * halo);
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
         print_header(argsmap, out);
 
     omp_set_dynamic(0);
-    if (int threads = argsmap.get< int >("threads"))
+    if (int threads = argsmap.get<int>("threads"))
         omp_set_num_threads(threads);
 
     std::string run_mode = argsmap.get("run-mode");

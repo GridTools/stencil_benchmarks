@@ -9,7 +9,7 @@ namespace platform {
 #define LOAD(x) x
 
 #define KERNEL(name, stmt)                                     \
-    template < class ValueType >                               \
+    template <class ValueType>                                 \
     __global__ void kernel_##name(ValueType *__restrict__ dst, \
         const ValueType *__restrict__ src,                     \
         int isize,                                             \
@@ -45,29 +45,29 @@ namespace platform {
             dst[idx] = LOAD(src[idx]) + LOAD(src[idx - istride]) + LOAD(src[idx + istride]) + LOAD(src[idx - jstride]) +
                        LOAD(src[idx + jstride]))
 
-#define KERNEL_CALL(name)                                           \
-    void name() override {                                          \
-        kernel_##name< < < blocks(), blocksize() > > >(this->dst(), \
-            this->src(),                                            \
-            this->isize(),                                          \
-            this->jsize(),                                          \
-            this->ksize(),                                          \
-            this->istride(),                                        \
-            this->jstride(),                                        \
-            this->kstride(),                                        \
-            this->halo());                                          \
-        if (cudaDeviceSynchronize() != cudaSuccess)                 \
-            throw ERROR("error in cudaDeviceSynchronize");          \
+#define KERNEL_CALL(name)                                     \
+    void name() override {                                    \
+        kernel_##name<<<blocks(), blocksize()>>>(this->dst(), \
+            this->src(),                                      \
+            this->isize(),                                    \
+            this->jsize(),                                    \
+            this->ksize(),                                    \
+            this->istride(),                                  \
+            this->jstride(),                                  \
+            this->kstride(),                                  \
+            this->halo());                                    \
+        if (cudaDeviceSynchronize() != cudaSuccess)           \
+            throw ERROR("error in cudaDeviceSynchronize");    \
     }
 
-        template < class Platform, class ValueType >
-        class variant_ij_blocked final : public cuda_variant< Platform, ValueType > {
+        template <class Platform, class ValueType>
+        class variant_ij_blocked final : public cuda_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
             variant_ij_blocked(const arguments_map &args)
-                : cuda_variant< Platform, ValueType >(args), m_iblocksize(args.get< int >("i-blocksize")),
-                  m_jblocksize(args.get< int >("j-blocksize")) {}
+                : cuda_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                  m_jblocksize(args.get<int>("j-blocksize")) {}
 
             ~variant_ij_blocked() {}
 

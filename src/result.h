@@ -3,7 +3,7 @@
 #include <limits>
 
 class result_array {
-    using lim = std::numeric_limits< double >;
+    using lim = std::numeric_limits<double>;
 
   public:
     double min() const;
@@ -13,7 +13,7 @@ class result_array {
   private:
     friend struct result;
 
-    std::vector< double > m_data;
+    std::vector<double> m_data;
 };
 
 struct result {

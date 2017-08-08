@@ -10,10 +10,9 @@
 namespace platform {
 
     variant_base::variant_base(const arguments_map &args)
-        : m_halo(args.get< int >("halo")), m_alignment(args.get< int >("alignment")),
-          m_isize(args.get< int >("i-size")), m_jsize(args.get< int >("j-size")), m_ksize(args.get< int >("k-size")),
-          m_ilayout(args.get< int >("i-layout")), m_jlayout(args.get< int >("j-layout")),
-          m_klayout(args.get< int >("k-layout")),
+        : m_halo(args.get<int>("halo")), m_alignment(args.get<int>("alignment")), m_isize(args.get<int>("i-size")),
+          m_jsize(args.get<int>("j-size")), m_ksize(args.get<int>("k-size")), m_ilayout(args.get<int>("i-layout")),
+          m_jlayout(args.get<int>("j-layout")), m_klayout(args.get<int>("k-layout")),
           m_data_offset(((m_halo + m_alignment - 1) / m_alignment) * m_alignment - m_halo) {
         if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
             throw ERROR("invalid domain size");
@@ -92,7 +91,7 @@ namespace platform {
                 if (!verify(kernel))
                     throw ERROR("result of kernel '" + kernel + "' is wrong");
             } else if (i >= dry) {
-                double t = std::chrono::duration< double >(tend - tstart).count();
+                double t = std::chrono::duration<double>(tend - tstart).count();
                 res.push_back(t, touched_bytes(kernel) / (1024.0 * 1024.0 * 1024.0));
             }
         }
@@ -100,7 +99,7 @@ namespace platform {
         return res;
     }
 
-    std::vector< std::string > variant_base::stencil_list() {
+    std::vector<std::string> variant_base::stencil_list() {
         return {"copy", "copyi", "copyj", "copyk", "avgi", "avgj", "avgk", "sumi", "sumj", "sumk", "lapij"};
     }
 

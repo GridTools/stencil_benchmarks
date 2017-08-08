@@ -11,8 +11,8 @@ namespace platform {
         struct flat {
             static constexpr const char *name = "knl-flat";
 
-            template < class ValueType >
-            using allocator = flat_allocator< ValueType >;
+            template <class ValueType>
+            using allocator = flat_allocator<ValueType>;
 
             static void setup(arguments &args);
 
@@ -22,8 +22,8 @@ namespace platform {
         struct cache {
             static constexpr const char *name = "knl-cache";
 
-            template < class ValueType >
-            using allocator = std::allocator< ValueType >;
+            template <class ValueType>
+            using allocator = std::allocator<ValueType>;
 
             static void setup(arguments &args);
 

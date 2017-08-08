@@ -8,19 +8,19 @@ namespace platform {
 
     namespace cuda {
 
-        template < class ValueType >
+        template <class ValueType>
         class host_allocator {
           public:
             using value_type = ValueType;
 
-            template < class OtherValueType >
+            template <class OtherValueType>
             struct rebind {
-                using other = host_allocator< OtherValueType >;
+                using other = host_allocator<OtherValueType>;
             };
 
             value_type *allocate(std::size_t n) const {
                 value_type *ptr;
-                if (cudaMallocHost(reinterpret_cast< void ** >(&ptr), n * sizeof(value_type)) != cudaSuccess)
+                if (cudaMallocHost(reinterpret_cast<void **>(&ptr), n * sizeof(value_type)) != cudaSuccess)
                     throw ERROR("could not allocate pinned memory");
                 return ptr;
             }

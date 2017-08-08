@@ -17,7 +17,7 @@ namespace platform {
 
         result run(const std::string &kernel, int runs = 20);
 
-        static std::vector< std::string > stencil_list();
+        static std::vector<std::string> stencil_list();
 
         virtual void prerun() = 0;
         virtual void postrun() = 0;
@@ -53,7 +53,7 @@ namespace platform {
 
         virtual bool verify(const std::string &kernel) const = 0;
 
-        template < class F >
+        template <class F>
         bool verify_loop(F f) const {
             bool success = true;
 #pragma omp parallel for collapse(3) reduction(&& : success)
@@ -68,7 +68,7 @@ namespace platform {
         virtual std::size_t touched_bytes(const std::string &kernel) const = 0;
 
       private:
-        template < class Platform, class ValueType >
+        template <class Platform, class ValueType>
         friend class variant;
 
         int m_halo, m_alignment;

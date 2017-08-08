@@ -12,12 +12,12 @@ class table {
   public:
     table(std::size_t cols, std::size_t prec = 6) : m_cols(cols), m_prec(prec) {}
 
-    template < class Input >
+    template <class Input>
     table &operator<<(const Input &i) {
         std::stringstream s;
         align a = align::left;
 
-        if (std::is_scalar< Input >::value) {
+        if (std::is_scalar<Input>::value) {
             s << std::fixed << std::setprecision(m_prec);
             a = align::right;
         }
@@ -32,5 +32,5 @@ class table {
 
   private:
     std::size_t m_cols, m_prec;
-    std::vector< std::tuple< align, std::string > > m_out;
+    std::vector<std::tuple<align, std::string>> m_out;
 };

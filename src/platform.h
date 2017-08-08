@@ -9,6 +9,6 @@ namespace platform {
 
     void setup(arguments &args);
 
-    std::unique_ptr< variant_base > create_variant(const arguments_map &args);
+    std::unique_ptr<variant_base> create_variant(const arguments_map &args);
 
 } // namespace platform

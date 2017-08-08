@@ -22,10 +22,10 @@ namespace platform {
 
             if (prec == "single") {
                 if (var == "ij-blocked")
-                    return new variant_ij_blocked< cuda, float >(args);
+                    return new variant_ij_blocked<cuda, float>(args);
             } else if (prec == "double") {
                 if (var == "ij-blocked")
-                    return new variant_ij_blocked< cuda, double >(args);
+                    return new variant_ij_blocked<cuda, double>(args);
             }
 
             return nullptr;

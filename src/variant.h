@@ -4,12 +4,12 @@
 
 namespace platform {
 
-    template < class Platform, class ValueType >
+    template <class Platform, class ValueType>
     class variant : public variant_base {
       public:
         using platform = Platform;
         using value_type = ValueType;
-        using allocator = typename platform::allocator< value_type >;
+        using allocator = typename platform::allocator<value_type>;
 
         variant(const arguments_map &args)
             : variant_base(args), m_src_data(storage_size()), m_dst_data(storage_size()) {
@@ -102,7 +102,7 @@ namespace platform {
             return touched_elements(kernel) * sizeof(value_type);
         }
 
-        std::vector< value_type, allocator > m_src_data, m_dst_data;
+        std::vector<value_type, allocator> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
     };
 

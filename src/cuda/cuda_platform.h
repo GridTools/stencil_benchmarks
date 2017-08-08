@@ -11,8 +11,8 @@ namespace platform {
         struct cuda {
             static constexpr const char *name = "cuda";
 
-            template < class ValueType >
-            using allocator = host_allocator< ValueType >;
+            template <class ValueType>
+            using allocator = host_allocator<ValueType>;
 
             static void setup(arguments &args);
 

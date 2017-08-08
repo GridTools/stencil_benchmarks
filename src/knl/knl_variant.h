@@ -8,10 +8,10 @@ namespace platform {
 
     namespace knl {
 
-        template < class Platform, class ValueType >
-        class knl_variant : public variant< Platform, ValueType > {
+        template <class Platform, class ValueType>
+        class knl_variant : public variant<Platform, ValueType> {
           public:
-            knl_variant(const arguments_map &args) : variant< Platform, ValueType >(args) {}
+            knl_variant(const arguments_map &args) : variant<Platform, ValueType>(args) {}
             virtual ~knl_variant() {}
 
             void prerun() override { flush_cache(); }
@@ -21,7 +21,7 @@ namespace platform {
           private:
             void flush_cache() {
 #pragma omp parallel
-                { std::this_thread::sleep_for(std::chrono::duration< double >(0.02)); }
+                { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }
             }
         };
 

@@ -17,12 +17,12 @@ namespace platform {
 
     namespace knl {
 
-        template < class Platform, class ValueType >
-        class variant_1d_nontemporal final : public knl_variant< Platform, ValueType > {
+        template <class Platform, class ValueType>
+        class variant_1d_nontemporal final : public knl_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
-            variant_1d_nontemporal(const arguments_map &args) : knl_variant< Platform, ValueType >(args) {}
+            variant_1d_nontemporal(const arguments_map &args) : knl_variant<Platform, ValueType>(args) {}
 
             KERNEL(copy, dst[i] = src[i])
             KERNEL(copyi, dst[i] = src[i + istride])
