@@ -33,7 +33,7 @@ stencil_bench_knl: $(OBJS) $(OBJS_KNL)
 stencil_bench_cuda: CCFLAGS+=-DPLATFORM_CUDA
 stencil_bench_cuda: CUFLAGS+=-DPLATFORM_CUDA
 stencil_bench_cuda: $(OBJS) $(OBJS_CUDA)
-	nvcc $(NVCCFLAGS) $+ -o $@
+	nvcc $(NVCCFLAGS) $+ -lgomp -o $@
 
 -include $(DEPS) $(DEPS_KNL)
 
