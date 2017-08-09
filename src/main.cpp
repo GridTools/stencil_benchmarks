@@ -107,6 +107,39 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
     out << t;
 }
 
+void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
+    out << "# shown is the estimated max. bandwidth in GB/s" << std::endl;
+
+    std::string stencil = args.get("stencil");
+    if (stencil == "all")
+        throw ERROR("blocksize-scan run-mode can only be used with a single stencil");
+
+    const int isize = args.get<int>("i-size");
+    const int jsize = args.get<int>("j-size");
+
+    int jsizes = 0;
+    for (int jblocksize = 1; jblocksize <= jsize; jblocksize *= 2)
+        ++jsizes;
+    table t(jsizes + 1);
+
+    t << "i\\j";
+    for (int jblocksize = 1; jblocksize <= jsize; jblocksize *= 2)
+        t << jblocksize;
+
+    for (int iblocksize = 1; iblocksize <= isize; iblocksize *= 2) {
+        t << iblocksize;
+        std::stringstream ibs;
+        ibs << iblocksize;
+        for (int jblocksize = 1; jblocksize <= jsize; jblocksize *= 2) {
+            std::stringstream jbs;
+            jbs << jblocksize;
+            auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
+            t << res.front().second.bandwidth.max();
+        }
+    }
+    out << t;
+}
+
 int main(int argc, char **argv) {
     arguments args(argv[0], "platform");
 
@@ -120,7 +153,7 @@ int main(int argc, char **argv) {
         .add("alignment", "alignment in elements", "1")
         .add("precision", "single or double precision", "double")
         .add("stencil", "stencil to run", "all")
-        .add("run-mode", "run mode (single-size, ij-scaling)", "single-size")
+        .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan)", "single-size")
         .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
         .add("output", "output file", "stdout")
         .add_flag("no-header", "do not print header");
@@ -151,6 +184,10 @@ int main(int argc, char **argv) {
         run_single_size(argsmap, out);
     else if (run_mode == "ij-scaling")
         run_ij_scaling(argsmap, out);
+    else if (run_mode == "blocksize-scan")
+        run_blocksize_scan(argsmap, out);
+    else
+        throw ERROR("unknown run-mode");
 
     return 0;
 }
