@@ -20,6 +20,10 @@ OBJS_CUDA=$(SRCS_CUDA:.cu=.o)
 %.o: %.cu
 	nvcc $(NVCCFLAGS) -c $< -o $@
 
+.PHONY: default
+default:
+	$(error Please specify the target platform, i.e. use 'make knl' for Intel KNL or 'make cuda' for NVIDIA CUDA GPUs)
+
 .PHONY: knl
 knl: stencil_bench_knl
 
