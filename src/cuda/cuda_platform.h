@@ -12,7 +12,7 @@ namespace platform {
             static constexpr const char *name = "cuda";
 
             template <class ValueType>
-            using allocator = host_allocator<ValueType>;
+            using allocator = managed_allocator<ValueType>;
 
             static void setup(arguments &args);
 
