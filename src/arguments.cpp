@@ -63,11 +63,12 @@ arguments &arguments::command(const std::string &command_name, const std::string
 }
 
 void arguments::print_help() const {
-    std::cout << "Command usage: " << m_command_name << " [OPTION]...";
+    std::cout << "Command usage: " << m_command_name << " [OPTIONS]";
     if (!m_command_map.empty()) {
         std::string subcommand_name = m_subcommand_name;
         for (auto &c : subcommand_name)
             c = std::toupper(static_cast<unsigned char>(c));
+        std::cout << " " << subcommand_name << " [" << subcommand_name << " OPTIONS]";
     }
     std::cout << std::endl << std::endl;
 
@@ -100,7 +101,7 @@ void arguments::print_help() const {
     std::cout << std::endl;
 
     if (!m_command_map.empty()) {
-        std::cout << "Supported commands:" << std::endl;
+        std::cout << "Supported " << m_subcommand_name << "s:" << std::endl;
         for (const auto &command : m_command_map) {
             std::cout << "    " << command.first << std::endl;
         }
