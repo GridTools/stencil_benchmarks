@@ -34,6 +34,9 @@ stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding
 stencil_bench_knl: $(OBJS) $(OBJS_KNL)
 	CC $(CCFLAGS) $+ -o $@
 
+stencil_bench_knl_pat: stencil_bench_knl
+	pat_build -f -T '/.*copy,/.*sum,/.*avg,/.*lap' -w $< -o $@
+
 stencil_bench_cuda: CCFLAGS+=-DPLATFORM_CUDA
 stencil_bench_cuda: CUFLAGS+=-DPLATFORM_CUDA
 stencil_bench_cuda: $(OBJS) $(OBJS_CUDA)
@@ -43,7 +46,7 @@ stencil_bench_cuda: $(OBJS) $(OBJS_CUDA)
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS) $(DEPS) $(OBJS_KNL) $(DEPS_KNL) $(OBJS_CUDA) $(DEPS_CUDA) stencil_bench_knl stencil_bench_cuda
+	rm -f $(OBJS) $(DEPS) $(OBJS_KNL) $(DEPS_KNL) $(OBJS_CUDA) $(DEPS_CUDA) stencil_bench_*
 
 .PHONY: format
 format:
