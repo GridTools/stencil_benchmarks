@@ -67,7 +67,10 @@ namespace platform {
 
             variant_ij_blocked(const arguments_map &args)
                 : cuda_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
-                  m_jblocksize(args.get<int>("j-blocksize")) {}
+                  m_jblocksize(args.get<int>("j-blocksize")) {
+                if (m_iblocksize <= 0 || m_jblocksize <= 0)
+                    throw ERROR("invalid block size");
+            }
 
             ~variant_ij_blocked() {}
 
