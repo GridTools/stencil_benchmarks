@@ -68,8 +68,11 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
     const int isize_max = args.get<int>("i-size");
     const int jsize_max = args.get<int>("j-size");
+    const int min_size = args.get<int>("min-size");
     if (isize_max != jsize_max)
         throw ERROR("i-size and j-size must be equal for ij-scaling mode");
+    if (min_size <= 0)
+        throw ERROR("invalid min-size < 1");
 
     const auto stencils = platform::variant_base::stencil_list();
 
@@ -78,7 +81,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
     int sizes = 0;
     const int halo = args.get<int>("halo");
-    for (int size = 32; size <= isize_max + 2 * halo; size *= 2) {
+    for (int size = min_size; size <= isize_max + 2 * halo; size *= 2) {
         std::stringstream size_stream;
         size_stream << (size - 2 * halo);
 
@@ -90,7 +93,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
     table t(sizes + 1);
     t << "Stencil";
-    for (int size = 32; size <= isize_max + 2 * halo; size *= 2)
+    for (int size = min_size; size <= isize_max + 2 * halo; size *= 2)
         t << (size - 2 * halo);
 
     if (stencil == "all") {
@@ -116,21 +119,24 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
 
     const int isize = args.get<int>("i-size");
     const int jsize = args.get<int>("j-size");
+    const int min_size = args.get<int>("min-size");
+    if (min_size <= 0)
+        throw ERROR("invalid min-size < 1");
 
     int jsizes = 0;
-    for (int jblocksize = 1; jblocksize <= jsize; jblocksize *= 2)
+    for (int jblocksize = min_size; jblocksize <= jsize; jblocksize *= 2)
         ++jsizes;
     table t(jsizes + 1);
 
     t << "i\\j";
-    for (int jblocksize = 1; jblocksize <= jsize; jblocksize *= 2)
+    for (int jblocksize = min_size; jblocksize <= jsize; jblocksize *= 2)
         t << jblocksize;
 
-    for (int iblocksize = 1; iblocksize <= isize; iblocksize *= 2) {
+    for (int iblocksize = min_size; iblocksize <= isize; iblocksize *= 2) {
         t << iblocksize;
         std::stringstream ibs;
         ibs << iblocksize;
-        for (int jblocksize = 1; jblocksize <= jsize; jblocksize *= 2) {
+        for (int jblocksize = min_size; jblocksize <= jsize; jblocksize *= 2) {
             std::stringstream jbs;
             jbs << jblocksize;
             auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
@@ -149,6 +155,7 @@ int main(int argc, char **argv) {
         .add("i-layout", "layout specifier", "2")
         .add("j-layout", "layout specifier", "1")
         .add("k-layout", "layout specifier", "0")
+        .add("min-size", "minimum size/block size in ij-scaling and blocksize-scan run-modes", "1")
         .add("halo", "halo size", "2")
         .add("alignment", "alignment in elements", "1")
         .add("precision", "single or double precision", "double")
