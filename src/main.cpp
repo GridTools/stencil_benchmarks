@@ -125,19 +125,19 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
         throw ERROR("invalid min-size < 1");
 
     int jsizes = 0;
-    for (int jblocksize = min_size; jblocksize <= jsize; jblocksize *= 2)
+    for (int jblocksize = min_size; jblocksize < 2 * jsize; jblocksize *= 2)
         ++jsizes;
     table t(jsizes + 1);
 
     t << "i\\j";
-    for (int jblocksize = min_size; jblocksize <= jsize; jblocksize *= 2)
+    for (int jblocksize = min_size; jblocksize < 2 * jsize; jblocksize *= 2)
         t << jblocksize;
 
-    for (int iblocksize = min_size; iblocksize <= isize; iblocksize *= 2) {
+    for (int iblocksize = min_size; iblocksize < 2 * isize; iblocksize *= 2) {
         t << iblocksize;
         std::stringstream ibs;
         ibs << iblocksize;
-        for (int jblocksize = min_size; jblocksize <= jsize; jblocksize *= 2) {
+        for (int jblocksize = min_size; jblocksize < 2 * jsize; jblocksize *= 2) {
             std::stringstream jbs;
             jbs << jblocksize;
             auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
