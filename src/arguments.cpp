@@ -137,7 +137,7 @@ arguments_map arguments::parse(int argc, char **argv) const {
     int index;
     while (true) {
         index = -1;
-        int c = getopt_long(subcommand_argc, argv, "h", options.data(), &index);
+        int c = getopt_long_only(subcommand_argc, argv, "h", options.data(), &index);
 
         if (c == -1)
             break;
@@ -153,7 +153,7 @@ arguments_map arguments::parse(int argc, char **argv) const {
             print_help();
             std::exit(0);
         case '?':
-            std::cerr << "Error: invalid argument '" << optopt << "' for command '" << m_command_name << "'"
+            std::cerr << "Error: invalid argument '" << argv[optind - 1] << "' for command '" << m_command_name << "'"
                       << std::endl;
         default:
             std::abort();
