@@ -35,5 +35,8 @@ stencil_bench_*
 # Temporary files
 *.swp
 
+# ICC optimization reports
+*.optrpt
+
 # User config
 Makefile.user
