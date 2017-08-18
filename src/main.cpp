@@ -27,17 +27,10 @@ void print_header(const arguments_map &args, std::ostream &out) {
     out << t;
 }
 
-std::vector<std::pair<std::string, result>> run_stencils(const arguments_map &args) {
+std::vector<result> run_stencils(const arguments_map &args) {
     auto variant = platform::create_variant(args);
     auto stencil = args.get("stencil");
-    std::vector<std::pair<std::string, result>> res;
-    if (stencil == "all") {
-        for (auto &s : variant->stencil_list())
-            res.emplace_back(s, variant->run(s));
-    } else {
-        res.emplace_back(stencil, variant->run(stencil));
-    }
-    return res;
+    return variant->run(stencil);
 }
 
 void run_single_size(const arguments_map &args, std::ostream &out) {
@@ -52,14 +45,14 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
       << "BW-min"
       << "BW-max";
 
-    auto print_result = [&t](const std::string s, const result &r) {
-        t << s << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
+    auto print_result = [&t](const result &r) {
+        t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
           << r.bandwidth.min() << r.bandwidth.max();
     };
 
     const auto res = run_stencils(args);
     for (auto &r : res)
-        print_result(r.first, r.second);
+        print_result(r);
 
     out << t;
 }
@@ -75,8 +68,6 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
     if (min_size <= 0)
         throw ERROR("invalid min-size < 1");
 
-    const auto stencils = platform::variant_base::stencil_list();
-
     std::string stencil = args.get("stencil");
     std::map<std::string, std::vector<double>> res_map;
 
@@ -88,7 +79,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
         auto res = run_stencils(args.with({{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
         for (auto &r : res)
-            res_map[r.first].push_back(r.second.bandwidth.max());
+            res_map[r.stencil].push_back(r.bandwidth.max());
         ++sizes;
     }
 
@@ -97,15 +88,19 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
     for (int size = min_size; size <= isize_max + 2 * halo; size *= 2)
         t << (size - 2 * halo);
 
+    std::set<std::string> stencils;
+    for (const auto &r : res_map)
+        stencils.insert(r.first);
+
     if (stencil == "all") {
-        for (auto &s : stencils) {
+        for (const auto &s : stencils) {
             t << s;
             for (auto &r : res_map[s])
                 t << r;
         }
     } else {
         t << stencil;
-        for (auto &r : res_map[stencil])
+        for (const auto &r : res_map[stencil])
             t << r;
     }
     out << t;
@@ -141,7 +136,7 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
             std::stringstream jbs;
             jbs << jblocksize;
             auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
-            t << res.front().second.bandwidth.max();
+            t << res.front().bandwidth.max();
         }
     }
     out << t;

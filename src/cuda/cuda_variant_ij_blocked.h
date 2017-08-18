@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cuda/cuda_variant.h"
+#include "basic_stencil_variant.h"
 
 namespace platform {
 
@@ -17,8 +17,7 @@ namespace platform {
         int ksize,                                             \
         int istride,                                           \
         int jstride,                                           \
-        int kstride,                                           \
-        int halo) {                                            \
+        int kstride) {                                         \
         const int i = blockIdx.x * blockDim.x + threadIdx.x;   \
         const int j = blockIdx.y * blockDim.y + threadIdx.y;   \
                                                                \
@@ -54,19 +53,18 @@ namespace platform {
             this->ksize(),                                    \
             this->istride(),                                  \
             this->jstride(),                                  \
-            this->kstride(),                                  \
-            this->halo());                                    \
+            this->kstride());                                 \
         if (cudaDeviceSynchronize() != cudaSuccess)           \
             throw ERROR("error in cudaDeviceSynchronize");    \
     }
 
         template <class Platform, class ValueType>
-        class variant_ij_blocked final : public cuda_variant<Platform, ValueType> {
+        class variant_ij_blocked final : public basic_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
             variant_ij_blocked(const arguments_map &args)
-                : cuda_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : basic_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");

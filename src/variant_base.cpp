@@ -70,86 +70,43 @@ namespace platform {
         m_storage_size = m_data_offset + s;
     }
 
-    result variant_base::run(const std::string &kernel, int runs) {
+    std::vector<result> variant_base::run(const std::string &stencil, int runs) {
         using clock = std::chrono::high_resolution_clock;
         constexpr int dry = 2;
 
-        stencil_fptr f = stencil_function(kernel);
+        std::vector<std::string> stencils;
+        if (stencil == "all")
+            stencils = stencil_list();
+        else
+            stencils = {stencil};
 
-        result res;
+        std::vector<result> results;
 
-        for (int i = 0; i < runs + dry; ++i) {
-            prerun();
+        for (const std::string &s : stencils) {
+            auto f = stencil_function(s);
+            result res(s);
 
-            auto tstart = clock::now();
-            (this->*f)();
-            auto tend = clock::now();
+            for (int i = 0; i < runs + dry; ++i) {
+                prerun();
 
-            postrun();
+                auto tstart = clock::now();
+                f();
+                auto tend = clock::now();
 
-            if (i == 0) {
-                if (!verify(kernel))
-                    throw ERROR("result of kernel '" + kernel + "' is wrong");
-            } else if (i >= dry) {
-                double t = std::chrono::duration<double>(tend - tstart).count();
-                res.push_back(t, touched_bytes(kernel) / (1024.0 * 1024.0 * 1024.0));
+                postrun();
+
+                if (i == 0) {
+                    if (!verify(s))
+                        throw ERROR("result of stencil '" + s + "' is wrong");
+                } else if (i >= dry) {
+                    double t = std::chrono::duration<double>(tend - tstart).count();
+                    res.push_back(t, touched_bytes(s) / (1024.0 * 1024.0 * 1024.0));
+                }
             }
+
+            results.push_back(res);
         }
-
-        return res;
-    }
-
-    std::vector<std::string> variant_base::stencil_list() {
-        return {"copy", "copyi", "copyj", "copyk", "avgi", "avgj", "avgk", "sumi", "sumj", "sumk", "lapij"};
-    }
-
-    variant_base::stencil_fptr variant_base::stencil_function(const std::string &kernel) {
-        if (kernel == "copy")
-            return &variant_base::copy;
-        if (kernel == "copyi")
-            return &variant_base::copyi;
-        if (kernel == "copyj")
-            return &variant_base::copyj;
-        if (kernel == "copyk")
-            return &variant_base::copyk;
-        if (kernel == "avgi")
-            return &variant_base::avgi;
-        if (kernel == "avgj")
-            return &variant_base::avgj;
-        if (kernel == "avgk")
-            return &variant_base::avgk;
-        if (kernel == "sumi")
-            return &variant_base::sumi;
-        if (kernel == "sumj")
-            return &variant_base::sumj;
-        if (kernel == "sumk")
-            return &variant_base::sumk;
-        if (kernel == "lapij")
-            return &variant_base::lapij;
-        throw ERROR("unknown stencil '" + kernel + "'");
-    }
-
-    std::size_t variant_base::touched_elements(const std::string &kernel) const {
-        std::size_t i = m_isize;
-        std::size_t j = m_jsize;
-        std::size_t k = m_ksize;
-        if (kernel == "copy" || kernel == "copyi" || kernel == "copyj" || kernel == "copyk")
-            return i * j * k * 2;
-        if (kernel == "avgi")
-            return i * j * k + (i + 2) * j * k;
-        if (kernel == "avgj")
-            return i * j * k + i * (j + 2) * k;
-        if (kernel == "avgk")
-            return i * j * k + i * j * (k + 2);
-        if (kernel == "sumi")
-            return i * j * k + (i + 1) * j * k;
-        if (kernel == "sumj")
-            return i * j * k + i * (j + 1) * k;
-        if (kernel == "sumk")
-            return i * j * k + i * j * (k + 1);
-        if (kernel == "lapij")
-            return i * j * k + (i + 2) * (j + 2) * (k + 2);
-        throw ERROR("unknown stencil '" + kernel + "'");
+        return results;
     }
 
 } // namespace platform

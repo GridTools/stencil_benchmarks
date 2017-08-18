@@ -2,26 +2,31 @@
 
 #include <thread>
 
-#include "variant.h"
+#include "basic_stencil_variant.h"
 
 namespace platform {
 
     namespace knl {
 
         template <class Platform, class ValueType>
-        class knl_variant : public variant<Platform, ValueType> {
+        class knl_basic_stencil_variant : public basic_stencil_variant<Platform, ValueType> {
           public:
-            knl_variant(const arguments_map &args) : variant<Platform, ValueType>(args) {}
-            virtual ~knl_variant() {}
+            knl_basic_stencil_variant(const arguments_map &args) : basic_stencil_variant<Platform, ValueType>(args) {
+                Platform::check_cache_conflicts("i-stride offsets", this->istride() * this->bytes_per_element());
+                Platform::check_cache_conflicts("j-stride offsets", this->jstride() * this->bytes_per_element());
+                Platform::check_cache_conflicts("k-stride offsets", this->kstride() * this->bytes_per_element());
+                Platform::check_cache_conflicts(
+                    "2 * i-stride offsets", 2 * this->istride() * this->bytes_per_element());
+                Platform::check_cache_conflicts(
+                    "2 * j-stride offsets", 2 * this->jstride() * this->bytes_per_element());
+                Platform::check_cache_conflicts(
+                    "2 * k-stride offsets", 2 * this->kstride() * this->bytes_per_element());
+            }
+            virtual ~knl_basic_stencil_variant() {}
 
-            void prerun() override { flush_cache(); }
-
-            void postrun() override {}
-
-          private:
-            void flush_cache() {
-#pragma omp parallel
-                { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }
+            void prerun() override {
+                basic_stencil_variant<Platform, ValueType>::prerun();
+                Platform::flush_cache();
             }
         };
 

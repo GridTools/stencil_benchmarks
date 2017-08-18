@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "knl/knl_platform.h"
 
 #include "knl/knl_variant_1d.h"
@@ -8,6 +10,36 @@
 namespace platform {
 
     namespace knl {
+
+        void knl_platform_base::flush_cache() {
+#pragma omp parallel
+            { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }
+        }
+
+        void knl_platform_base::check_cache_conflicts(const std::string &stride_name, std::ptrdiff_t byte_stride) {
+            // no conflicts if stride is smaller than cache line
+            auto line_diff = byte_stride & ~std::ptrdiff_t(0x3f);
+            if (line_diff != 0) {
+                // check bits 11:6 for L1 set conflicts
+                auto l1_set_diff = byte_stride & std::ptrdiff_t(0xfc0);
+                if (l1_set_diff == 0)
+                    std::cerr << "Warning: possible L1 set conflicts for " << stride_name << std::endl;
+
+                // check bits 16:6 for L2 set conflicts
+                auto l2_set_diff = byte_stride & std::ptrdiff_t(0xffc0);
+                if (l2_set_diff == 0)
+                    std::cerr << "Warning: possible L2 set conflicts for " << stride_name << std::endl;
+            }
+
+            // no TLB conflicts for byte_stride smaller than page size
+            auto page_diff = byte_stride & ~std::ptrdiff_t(0xfff);
+            if (page_diff != 0) {
+                // check bits 16:12 for 4KB page TLB conflicts
+                auto page_set_diff = byte_stride & std::ptrdiff_t(0x1f000);
+                if (page_set_diff == 0)
+                    std::cerr << "Warning: possible TLB set conflicts for " << stride_name << std::endl;
+            }
+        }
 
         namespace {
             template <class Platform>

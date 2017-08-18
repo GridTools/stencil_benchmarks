@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "knl/knl_variant.h"
+#include "knl/knl_basic_stencil_variant.h"
 
 #define KERNEL(name, stmt)                                                                                  \
     void name() override {                                                                                  \
@@ -41,12 +41,12 @@ namespace platform {
     namespace knl {
 
         template <class Platform, class ValueType>
-        class variant_ij_blocked final : public knl_variant<Platform, ValueType> {
+        class variant_ij_blocked final : public knl_basic_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
             variant_ij_blocked(const arguments_map &args)
-                : knl_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : knl_basic_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");

@@ -8,7 +8,12 @@ namespace platform {
 
     namespace knl {
 
-        struct flat {
+        struct knl_platform_base {
+            static void flush_cache();
+            static void check_cache_conflicts(const std::string &stride_name, std::ptrdiff_t byte_stride);
+        };
+
+        struct flat : knl_platform_base {
             static constexpr const char *name = "knl-flat";
 
             template <class ValueType>
@@ -19,7 +24,7 @@ namespace platform {
             static variant_base *create_variant(const arguments_map &args);
         };
 
-        struct cache {
+        struct cache : knl_platform_base {
             static constexpr const char *name = "knl-cache";
 
             template <class ValueType>

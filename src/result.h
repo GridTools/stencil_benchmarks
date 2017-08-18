@@ -1,6 +1,8 @@
 #pragma once
 
 #include <limits>
+#include <string>
+#include <vector>
 
 class result_array {
     using lim = std::numeric_limits<double>;
@@ -17,8 +19,12 @@ class result_array {
 };
 
 struct result {
+    result() = default;
+    explicit result(const std::string &stencil);
+
     void push_back(double t, double gb);
 
+    std::string stencil;
     result_array time, bandwidth;
 };
 
