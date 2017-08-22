@@ -6,8 +6,9 @@
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
 #include "knl/knl_variant_ijk_blocked.h"
-#include "knl/knl_hdiff_variant_ij_blocked.h"
-#include "knl/knl_hdiff_variant_k_outermost.h"
+#include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
+#include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
+#include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
 
 namespace platform {
 
@@ -56,10 +57,13 @@ namespace platform {
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8")
                     .add("k-blocksize", "block size in k-direction", "8");
-                pargs.command("hdiff-ij-blocked")
+                pargs.command("hdiff-ij-blocked-k-innermost")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
-                pargs.command("hdiff-k-outermost")
+                pargs.command("hdiff-ij-blocked-k-outermost")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("hdiff-ij-blocked-non-red")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
             }
@@ -81,10 +85,12 @@ namespace platform {
                         return new variant_ij_blocked<Platform, float>(args);
                     if (var == "ijk-blocked")
                         return new variant_ijk_blocked<Platform, float>(args);
-                    if (var == "hdiff-ij-blocked")
-                        return new hdiff_variant_ij_blocked<Platform, float>(args);
-                    if (var == "hdiff-k-outermost")
-                        return new hdiff_variant_k_outermost<Platform, float>(args);
+                    if (var == "hdiff-ij-blocked-k-innermost")
+                        return new knl_hdiff_variant_ij_blocked_k_innermost<Platform, float>(args);
+                    if (var == "hdiff-ij-blocked-k-outermost")
+                        return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, float>(args);
+                    if (var == "hdiff-ij-blocked-non-red")
+                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, float>(args);                        
                 } else if (prec == "double") {
                     if (var == "1d")
                         return new variant_1d<Platform, double>(args);
@@ -94,10 +100,12 @@ namespace platform {
                         return new variant_ij_blocked<Platform, double>(args);
                     if (var == "ijk-blocked")
                         return new variant_ijk_blocked<Platform, double>(args);
-                    if (var == "hdiff-ij-blocked")
-                        return new hdiff_variant_ij_blocked<Platform, double>(args);
-                    if (var == "hdiff-k-outermost")
-                        return new hdiff_variant_k_outermost<Platform, double>(args);
+                    if (var == "hdiff-ij-blocked-k-innermost")
+                        return new knl_hdiff_variant_ij_blocked_k_innermost<Platform, double>(args);
+                    if (var == "hdiff-ij-blocked-k-outermost")
+                        return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, double>(args);
+                    if (var == "hdiff-ij-blocked-non-red")
+                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, double>(args);
                 }
 
                 return nullptr;
