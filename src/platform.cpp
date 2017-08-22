@@ -10,6 +10,10 @@
 #include "cuda/cuda_platform.h"
 #endif
 
+#ifdef PLATFORM_X86
+#include "x86/x86_platform.h"
+#endif
+
 namespace platform {
 
     struct setuper {
@@ -27,6 +31,12 @@ namespace platform {
         }
     };
 
+#ifdef PLATFORM_X86
+    using x86_pls = platform_list<x86::x86_standard>;
+#else
+    using x86_pls = platform_list<>;
+#endif
+
 #ifdef PLATFORM_KNL
     using knl_pls = platform_list<knl::flat, knl::cache>;
 #else
@@ -39,7 +49,8 @@ namespace platform {
     using cuda_pls = platform_list<>;
 #endif
 
-    using pls = merge_platform_list<knl_pls, cuda_pls>::type;
+    using pls_tmp = merge_platform_list<knl_pls, cuda_pls>::type;
+    using pls = merge_platform_list<pls_tmp, x86_pls>::type;
 
     void setup(arguments &args) { pls::loop<setuper>(args); }
 
