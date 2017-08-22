@@ -52,9 +52,6 @@ namespace platform {
     template <class Platform, class ValueType>
     basic_stencil_variant<Platform, ValueType>::basic_stencil_variant(const arguments_map &args)
         : variant_base(args), m_src_data(storage_size()), m_dst_data(storage_size()) {
-        int imin = -halo(), imax = isize() + halo();
-        int jmin = -halo(), jmax = jsize() + halo();
-        int kmin = -halo(), kmax = ksize() + halo();
 #pragma omp parallel
         {
             std::minstd_rand eng;
@@ -106,12 +103,6 @@ namespace platform {
         std::function<bool(int, int, int)> f;
         auto s = [&](int i, int j, int k) { return (m_src_data.data() + zero_offset())[index(i, j, k)]; };
         auto d = [&](int i, int j, int k) { return (m_dst_data.data() + zero_offset())[index(i, j, k)]; };
-        auto eq = [](value_type a, value_type b) {
-            value_type diff = std::abs(a - b);
-            a = std::abs(a);
-            b = std::abs(b);
-            return diff <= (a > b ? a : b) * std::numeric_limits<value_type>::epsilon();
-        };
 
         if (stencil == "copy") {
             f = [&](int i, int j, int k) { return d(i, j, k) == s(i, j, k); };
