@@ -36,18 +36,21 @@ std::vector<result> run_stencils(const arguments_map &args) {
 void run_single_size(const arguments_map &args, std::ostream &out) {
     out << "# times are given in milliseconds, bandwidth in GB/s" << std::endl;
 
-    table t(7);
+    table t(10);
     t << "Stencil"
       << "Time-avg"
       << "Time-min"
       << "Time-max"
       << "BW-avg"
       << "BW-min"
-      << "BW-max";
+      << "BW-max"
+      << "CTR-avg"
+      << "CTR-min"
+      << "CTR-max";
 
     auto print_result = [&t](const result &r) {
         t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max();
+          << r.bandwidth.min() << r.bandwidth.max() << r.counter.avg() << r.counter.min() << r.counter.max();
     };
 
     const auto res = run_stencils(args);
@@ -58,7 +61,12 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
 }
 
 void run_ij_scaling(const arguments_map &args, std::ostream &out) {
-    out << "# shown is the estimated max. bandwidth in GB/s" << std::endl;
+    if (args.get("metric") == "time")
+        out << "# shown is the measured min. time in ms" << std::endl;
+    else if (args.get("metric") == "bandwidth")
+        out << "# shown is the estimated max. bandwidth in GB/s" << std::endl;
+    else
+        out << "# shown is the measured min. counter value" << std::endl;
 
     const int isize_max = args.get<int>("i-size");
     const int jsize_max = args.get<int>("j-size");
@@ -78,8 +86,14 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
         size_stream << (size - 2 * halo);
 
         auto res = run_stencils(args.with({{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
-        for (auto &r : res)
-            res_map[r.stencil].push_back(r.bandwidth.max());
+        for (auto &r : res) {
+            if (args.get("metric") == "time")
+                res_map[r.stencil].push_back(r.time.min());
+            else if (args.get("metric") == "bandwidth")
+                res_map[r.stencil].push_back(r.bandwidth.max());
+            else
+                res_map[r.stencil].push_back(r.counter.min());
+        }
         ++sizes;
     }
 
@@ -107,7 +121,12 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 }
 
 void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
-    out << "# shown is the estimated max. bandwidth in GB/s" << std::endl;
+    if (args.get("metric") == "time")
+        out << "# shown is the masured min. time in ms" << std::endl;
+    else if (args.get("metric") == "bandwidth")
+        out << "# shown is the estimated max. bandwidth in GB/s" << std::endl;
+    else
+        out << "# shown is the measured min. counter value" << std::endl;
 
     std::string stencil = args.get("stencil");
     if (stencil == "all")
@@ -136,7 +155,12 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
             std::stringstream jbs;
             jbs << jblocksize;
             auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
-            t << res.front().bandwidth.max();
+            if (args.get("metric") == "time")
+                t << res.front().time.min();
+            else if (args.get("metric") == "bandwidth")
+                t << res.front().bandwidth.max();
+            else
+                t << res.front().counter.min();
         }
     }
     out << t;
@@ -158,6 +182,10 @@ int main(int argc, char **argv) {
         .add("stencil", "stencil to run", "all")
         .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan)", "single-size")
         .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
+        .add("metric", "what to measure (time, bandwidth, PAPI)", "bandwidth")
+#ifdef WITH_PAPI
+        .add("papi-event", "PAPI event name", "PAPI_L2_TCM")
+#endif
         .add("output", "output file", "stdout")
         .add_flag("no-header", "do not print header");
 
