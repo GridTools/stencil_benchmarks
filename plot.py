@@ -37,6 +37,14 @@ def plot_title(args):
                     args['halo'],
                     args['i-layout'], args['j-layout'], args['k-layout'])
 
+def metric_info(args):
+    if args['metric'] == 'time':
+        return 'Measured Time [s]', None
+    elif args['metric'] == 'bandwidth':
+        return 'Estimated Bandwidth [GB/s]', [0, 500]
+    elif args['metric'] == 'PAPI':
+        return args['papi-event'], None
+
 def plot_ij_scaling(args, data):
     assert args['run-mode'] == 'ij-scaling'
     assert args['i-size'] == args['j-size']
@@ -45,10 +53,12 @@ def plot_ij_scaling(args, data):
     for row in data.itertuples(name=None):
         stencil, bw = row[0], row[1:]
         plt.semilogx(x, bw, basex=2, lw=2, ls='--', label=stencil)
+    mstr, mlim = metric_info(args)
     plt.xlabel('Domain Size (Including Halo)')
-    plt.ylabel('Estimated Bandwidth [GB/s]')
+    plt.ylabel(mstr)
     plt.xticks(x)
-    plt.ylim([0, 500])
+    if mlim:
+        plt.ylim(mlim)
     plt.xlim([np.amin(x), np.amax(x)])
     plt.gca().xaxis.set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda s, _: '{0}x{0}x{1}'.format(int(s),
@@ -59,7 +69,11 @@ def plot_ij_scaling(args, data):
 def plot_blocksize_scan(args, data):
     assert args['run-mode'] == 'blocksize-scan'
 
-    plt.imshow(data.values.T, origin='lower', vmin=0, vmax=500)
+    mstr, mlim = metric_info(args)
+    if mlim:
+        plt.imshow(data.values.T, origin='lower', vmin=mlim[0], vmax=mlim[1])
+    else:
+        plt.imshow(data.values.T, origin='lower')
     x = np.array(data.index, dtype=int)
     y = np.array(data.columns, dtype=int)
     plt.xticks(np.arange(x.size), x)
@@ -67,7 +81,7 @@ def plot_blocksize_scan(args, data):
     plt.xlabel('i-Blocksize')
     plt.ylabel('j-Blocksize')
     cbar = plt.colorbar()
-    cbar.ax.set_ylabel('Estimated Bandwidth [GB/s]')
+    cbar.ax.set_ylabel(mstr)
     for i in range(x.size):
         for j in range(y.size):
             plt.text(i, j, '{:.0f}'.format(data.values[i, j]),
