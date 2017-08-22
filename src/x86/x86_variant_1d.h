@@ -12,7 +12,6 @@
         const int kstride = this->kstride();                                                   \
         _Pragma("omp parallel for") for (int i = 0; i <= last; ++i) stmt;                      \
     }
-    //TODO: check for out of bounds access....
 
 namespace platform {
 
