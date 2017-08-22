@@ -6,6 +6,8 @@
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
 #include "knl/knl_variant_ijk_blocked.h"
+#include "knl/knl_hdiff_variant_ij_blocked.h"
+#include "knl/knl_hdiff_variant_k_outermost.h"
 
 namespace platform {
 
@@ -54,6 +56,12 @@ namespace platform {
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8")
                     .add("k-blocksize", "block size in k-direction", "8");
+                pargs.command("hdiff-ij-blocked")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("hdiff-k-outermost")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
             }
 
             template <class Platform>
@@ -73,6 +81,10 @@ namespace platform {
                         return new variant_ij_blocked<Platform, float>(args);
                     if (var == "ijk-blocked")
                         return new variant_ijk_blocked<Platform, float>(args);
+                    if (var == "hdiff-ij-blocked")
+                        return new hdiff_variant_ij_blocked<Platform, float>(args);
+                    if (var == "hdiff-k-outermost")
+                        return new hdiff_variant_k_outermost<Platform, float>(args);
                 } else if (prec == "double") {
                     if (var == "1d")
                         return new variant_1d<Platform, double>(args);
@@ -82,6 +94,10 @@ namespace platform {
                         return new variant_ij_blocked<Platform, double>(args);
                     if (var == "ijk-blocked")
                         return new variant_ijk_blocked<Platform, double>(args);
+                    if (var == "hdiff-ij-blocked")
+                        return new hdiff_variant_ij_blocked<Platform, double>(args);
+                    if (var == "hdiff-k-outermost")
+                        return new hdiff_variant_k_outermost<Platform, double>(args);
                 }
 
                 return nullptr;
