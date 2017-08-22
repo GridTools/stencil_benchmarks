@@ -199,6 +199,8 @@ int main(int argc, char **argv) {
         buf = std::cout.rdbuf();
     } else {
         outfile.open(argsmap.get("output"));
+        if (!outfile)
+            throw ERROR("could not open file '" + argsmap.get("output") + "'");
         buf = outfile.rdbuf();
     }
     std::ostream out(buf);
