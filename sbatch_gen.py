@@ -86,7 +86,7 @@ if __name__ == '__main__':
         else:
             idx = len(vs)
             vs.append(match.group(2))
-        return '$v{}'.format(idx)
+        return '${{v{}}}'.format(idx)
 
     p = re.compile(r'\[(\d+=)?([^\]]*)\]')
     nargs = p.sub(subf, args)

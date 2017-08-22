@@ -55,6 +55,9 @@ namespace platform {
         int m_ilayout, m_jlayout, m_klayout;
         int m_istride, m_jstride, m_kstride;
         int m_data_offset, m_storage_size;
+#ifdef WITH_PAPI
+        int m_papi_event_code;
+#endif
     };
 
 } // namespace platform

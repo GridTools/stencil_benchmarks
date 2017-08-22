@@ -2,6 +2,7 @@
 
 CCFLAGS=-std=c++11 -O3 -MMD -MP -Wall -fopenmp -DNDEBUG -Isrc $(USERFLAGS)
 NVCCFLAGS=-std=c++11 -arch=sm_60 -O3 -g -DNDEBUG -Isrc $(USERFLAGS_CUDA)
+LIBS=$(USERLIBS)
 
 SRCS=$(wildcard src/*.cpp)
 OBJS=$(SRCS:.cpp=.o)
@@ -39,15 +40,16 @@ x86: stencil_bench_x86
 
 stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding
 stencil_bench_knl: $(OBJS) $(OBJS_KNL)
-	CC $(CCFLAGS) $+ -o $@
+	CC $(CCFLAGS) $+ $(LIBS) -o $@
 
 stencil_bench_knl_pat: stencil_bench_knl
 	pat_build -f -T '/.*copy,/.*sum,/.*avg,/.*lap' -w $< -o $@
 
 stencil_bench_cuda: CCFLAGS+=-DPLATFORM_CUDA
 stencil_bench_cuda: CUFLAGS+=-DPLATFORM_CUDA
+stencil_bench_cuda: LIBS+=-lgomp
 stencil_bench_cuda: $(OBJS) $(OBJS_CUDA)
-	nvcc $(NVCCFLAGS) $+ -lgomp -o $@
+	nvcc $(NVCCFLAGS) $+ $(LIBS) -o $@
 
 stencil_bench_x86: CCFLAGS+=-DPLATFORM_X86
 stencil_bench_x86: $(OBJS) $(OBJS_X86)

@@ -3,6 +3,10 @@
 #include <chrono>
 #include <stdexcept>
 
+#ifdef WITH_PAPI
+#include <papi.h>
+#endif
+
 #include "arguments.h"
 #include "except.h"
 #include "result.h"
@@ -68,11 +72,29 @@ namespace platform {
         }
 
         m_storage_size = m_data_offset + s;
+
+#ifdef WITH_PAPI
+        if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT)
+            throw ERROR("PAPI error: initialization failed");
+        int ret = PAPI_event_name_to_code(const_cast<char *>(args.get("papi-event").c_str()), &m_papi_event_code);
+        if (ret != PAPI_OK) {
+            char *msg = PAPI_strerror(ret);
+            if (msg != nullptr)
+                throw ERROR("PAPI error, " + std::string(msg));
+            else
+                throw ERROR("unknown PAPI error");
+        }
+#endif
     }
 
     std::vector<result> variant_base::run(const std::string &stencil, int runs) {
         using clock = std::chrono::high_resolution_clock;
         constexpr int dry = 2;
+
+#ifdef WITH_PAPI
+        if (PAPI_num_counters() <= PAPI_OK)
+            throw ERROR("PAPI not available");
+#endif
 
         std::vector<std::string> stencils;
         if (stencil == "all")
@@ -89,9 +111,18 @@ namespace platform {
             for (int i = 0; i < runs + dry; ++i) {
                 prerun();
 
+#ifdef WITH_PAPI
+                if (PAPI_start_counters(&m_papi_event_code, 1) != PAPI_OK)
+                    throw ERROR("PAPI error, could not start counters");
+#endif
                 auto tstart = clock::now();
                 f();
                 auto tend = clock::now();
+#ifdef WITH_PAPI
+                long long ctr;
+                if (PAPI_stop_counters(&ctr, 1) != PAPI_OK)
+                    throw ERROR("PAPI error, could not start counters");
+#endif
 
                 postrun();
 
@@ -100,7 +131,12 @@ namespace platform {
                         throw ERROR("result of stencil '" + s + "' is wrong");
                 } else if (i >= dry) {
                     double t = std::chrono::duration<double>(tend - tstart).count();
-                    res.push_back(t, touched_bytes(s) / (1024.0 * 1024.0 * 1024.0));
+                    double gb = touched_bytes(s) / (1024.0 * 1024.0 * 1024.0);
+#ifdef WITH_PAPI
+                    res.push_back(t, gb, ctr);
+#else
+                    res.push_back(t, gb, 0);
+#endif
                 }
             }
 

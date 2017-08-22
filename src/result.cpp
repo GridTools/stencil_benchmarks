@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include <ostream>
-#include <numeric> 
 
 #include "result.h"
 #include "table.h"
@@ -20,9 +20,10 @@ double result_array::avg() const { return std::accumulate(m_data.begin(), m_data
 
 result::result(const std::string &stencil) : stencil(stencil) {}
 
-void result::push_back(double t, double gb) {
+void result::push_back(double t, double gb, double ctr) {
     time.m_data.push_back(t);
     bandwidth.m_data.push_back(gb / t);
+    counter.m_data.push_back(ctr);
 }
 
 std::ostream &operator<<(std::ostream &out, const result &r) {
@@ -31,7 +32,7 @@ std::ostream &operator<<(std::ostream &out, const result &r) {
         t << name << unit << (a.avg() * mul) << (a.min() * mul) << (a.max() * mul);
     };
 
-    out << "Result for stencil '" << r.stencil << "':" << std::endl;
+    out << "Result for stencil '" << r.stencil << "':\n";
     t << "Metric"
       << "Unit"
       << "Average"
@@ -39,6 +40,7 @@ std::ostream &operator<<(std::ostream &out, const result &r) {
       << "Maximum";
     tdata("Time", "ms", r.time, 1000);
     tdata("Bandwidth", "GB/s", r.bandwidth);
+    tdata("Counter", "", r.counter);
 
     out << t;
     return out;

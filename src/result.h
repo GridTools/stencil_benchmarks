@@ -22,10 +22,10 @@ struct result {
     result() = default;
     explicit result(const std::string &stencil);
 
-    void push_back(double t, double gb);
+    void push_back(double t, double gb, double ctr);
 
     std::string stencil;
-    result_array time, bandwidth;
+    result_array time, bandwidth, counter;
 };
 
 std::ostream &operator<<(std::ostream &out, const result &r);
