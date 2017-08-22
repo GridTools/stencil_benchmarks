@@ -14,7 +14,7 @@ namespace platform {
         }
 
         void x86_platform_base::check_cache_conflicts(const std::string &stride_name, std::ptrdiff_t byte_stride) {
-            //TODO: implement cache conflict check
+            // TODO: implement cache conflict check
         }
 
         void x86_standard::setup(arguments &args) {
@@ -25,7 +25,7 @@ namespace platform {
         variant_base *x86_standard::create_variant(const arguments_map &args) {
             if (args.get("platform") != name)
                 return nullptr;
-        
+
             std::string prec = args.get("precision");
             std::string var = args.get("variant");
 

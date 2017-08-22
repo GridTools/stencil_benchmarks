@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include <ostream>
-#include <numeric> 
 
 #include "result.h"
 #include "table.h"
