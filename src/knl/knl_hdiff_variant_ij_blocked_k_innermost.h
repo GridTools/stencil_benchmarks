@@ -7,11 +7,11 @@ namespace platform {
     namespace knl {
 
         template <class Platform, class ValueType>
-        class hdiff_variant_k_outermost final : public knl_hdiff_stencil_variant<Platform, ValueType> {
+        class knl_hdiff_variant_ij_blocked_k_innermost final : public knl_hdiff_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
-            hdiff_variant_k_outermost(const arguments_map &args)
+            knl_hdiff_variant_ij_blocked_k_innermost(const arguments_map &args)
                 : knl_hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
@@ -39,9 +39,9 @@ namespace platform {
                     throw ERROR("this variant is only compatible with unit i-stride layout");
 
                 #pragma omp parallel for collapse(3) 
-                for (int k = 0; k < ksize; ++k) {
-                    for (int jb = 0; jb < jsize; jb += m_jblocksize) {
-                        for (int ib = 0; ib < isize; ib += m_iblocksize) {
+                for (int jb = 0; jb < jsize; jb += m_jblocksize) {
+                    for (int ib = 0; ib < isize; ib += m_iblocksize) {
+                        for (int k = 0; k < ksize; ++k) {
                             const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
                             const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
                             int index_lap = (ib-1) * istride + (jb-1) * jstride + k * kstride;
@@ -87,12 +87,11 @@ namespace platform {
                 }
 
                 #pragma omp parallel for collapse(3) 
-                for (int k = 0; k < ksize; ++k) {
-                    for (int jb = 0; jb < jsize; jb += m_jblocksize) {
-                        for (int ib = 0; ib < isize; ib += m_iblocksize) {
+                for (int jb = 0; jb < jsize; jb += m_jblocksize) {
+                    for (int ib = 0; ib < isize; ib += m_iblocksize) {
+                        for (int k = 0; k < ksize; ++k) {
                             const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
                             const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
-
                             int index_out = ib * istride + jb * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
                                 #pragma omp simd
