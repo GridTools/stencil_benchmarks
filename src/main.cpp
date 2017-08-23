@@ -182,8 +182,6 @@ int main(int argc, char **argv) {
         .add("stencil", "stencil to run", "all")
         .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan)", "single-size")
         .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
-        .add("schedule", "OMP scheduling (static, dynamic, guided, auto)", "static")
-        .add("schedule-chunk", "OMP scheduling chunk size", "0")
         .add("metric", "what to measure (time, bandwidth, PAPI)", "bandwidth")
 #ifdef WITH_PAPI
         .add("papi-event", "PAPI event name", "PAPI_L2_TCM")
@@ -213,20 +211,6 @@ int main(int argc, char **argv) {
     omp_set_dynamic(0);
     if (int threads = argsmap.get<int>("threads"))
         omp_set_num_threads(threads);
-
-    omp_sched_t schedule;
-    if (argsmap.get("schedule") == "static")
-        schedule = omp_sched_static;
-    else if (argsmap.get("schedule") == "dynamic")
-        schedule = omp_sched_dynamic;
-    else if (argsmap.get("schedule") == "guided")
-        schedule = omp_sched_guided;
-    else if (argsmap.get("schedule") == "auto")
-        schedule = omp_sched_auto;
-    else
-        throw ERROR("invalid value '" + argsmap.get("schedule") + "' for argument --schedule");
-    int schedule_chunk = argsmap.get<int>("schedule-chunk");
-    omp_set_schedule(schedule, schedule_chunk);
 
     std::string run_mode = argsmap.get("run-mode");
     if (run_mode == "single-size")
