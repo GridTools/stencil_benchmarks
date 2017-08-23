@@ -66,34 +66,51 @@ def plot_ij_scaling(args, data):
     plt.grid()
     plt.legend()
 
-def plot_blocksize_scan(args, data):
+def plot_blocksize_scan(args, data, logcolors=False):
     assert args['run-mode'] == 'blocksize-scan'
 
+    mul = 1
+    vmax = np.amax(data.values)
+    while vmax >= 10000 * mul:
+        mul *= 10
+
     mstr, mlim = metric_info(args)
+    imargs = dict()
     if mlim:
-        plt.imshow(data.values.T, origin='lower', vmin=mlim[0], vmax=mlim[1])
-    else:
-        plt.imshow(data.values.T, origin='lower')
+        imargs['vmin'], imargs['vmax'] = mlim
+    if logcolors:
+        imargs['norm'] = matplotlib.colors.LogNorm()
+    plt.imshow(data.values.T / mul, origin='lower', **imargs)
     x = np.array(data.index, dtype=int)
     y = np.array(data.columns, dtype=int)
     plt.xticks(np.arange(x.size), x)
     plt.yticks(np.arange(y.size), y)
     plt.xlabel('i-Blocksize')
     plt.ylabel('j-Blocksize')
-    cbar = plt.colorbar()
-    cbar.ax.set_ylabel(mstr)
+    cbar = plt.colorbar(label=mstr + (' x {}'.format(mul) if mul > 1 else ''))
+    if logcolors:
+        if mlim:
+            ticks = np.logspace(np.log10(mlim[0] / mul),
+                                np.log10(mlim[1] / mul), 5)
+        else:
+            ticks = np.logspace(np.log10(int(round(np.amin(data.values) / mul))),
+                                np.log10(int(round(np.amax(data.values) / mul))), 5)
+        cbar.set_ticks(ticks)
+        cbar.set_ticklabels([int(round(t)) for t in ticks])
     for i in range(x.size):
         for j in range(y.size):
-            plt.text(i, j, '{:.0f}'.format(data.values[i, j]),
+            v = data.values[i, j]
+            plt.text(i, j, '{}'.format(int(round(data.values[i, j] / mul))),
                      horizontalalignment='center',
                      verticalalignment='center',
-                     fontsize='x-small', color='white')
+                     fontsize='xx-small', color='white')
 
 
 @click.command()
 @click.argument('outfile', type=click.Path())
 @click.argument('infile', type=click.Path(exists=True), nargs=-1)
-def cli(outfile, infile):
+@click.option('--logcolors/--no-logcolors', default=False)
+def cli(outfile, infile, logcolors):
     matplotlib.rcParams.update({'font.size': 25,
                                 'xtick.labelsize': 'small',
                                 'ytick.labelsize': 'small',
@@ -111,7 +128,7 @@ def cli(outfile, infile):
         if args['run-mode'] == 'ij-scaling':
             plot_ij_scaling(args, data)
         if args['run-mode'] == 'blocksize-scan':
-            plot_blocksize_scan(args, data)
+            plot_blocksize_scan(args, data, logcolors)
     plt.tight_layout()
     plt.savefig(outfile)
     plt.close()
