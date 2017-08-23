@@ -74,7 +74,7 @@ namespace platform {
             std::uniform_real_distribution<value_type> dist(-1, 1);
 
             int total_size = storage_size();
-#pragma omp for schedule(runtime)
+#pragma omp for
             for (int i = 0; i < total_size; ++i) {
                 m_ustage.at(i) = dist(eng);
                 m_upos.at(i) = dist(eng);
@@ -105,7 +105,7 @@ namespace platform {
     void vadv_stencil_variant<Platform, ValueType>::prerun() {
         variant_base::prerun();
         int total_size = storage_size();
-#pragma omp parallel for schedule(runtime)
+#pragma omp parallel for
         for (int i = 0; i < total_size; ++i) {
             m_utensstage_ref.at(i) = m_utensstage.at(i);
             m_vtensstage_ref.at(i) = m_vtensstage.at(i);
@@ -237,7 +237,7 @@ namespace platform {
         };
 
         int total_size = storage_size();
-#pragma omp parallel for schedule(runtime)
+#pragma omp parallel for
         for (int i = 0; i < total_size; ++i) {
             m_ccol.at(i) = -1;
             m_dcol.at(i) = -1;
@@ -245,7 +245,7 @@ namespace platform {
         }
 
 // generate u
-#pragma omp parallel for collapse(2) schedule(runtime)
+#pragma omp parallel for collapse(2)
         for (int j = 0; j < jsize; ++j)
             for (int i = 0; i < isize; ++i) {
                 forward_sweep(i, j, 1, 0, ccol(), dcol(), wcon(), ustage(), upos(), utens(), utensstage_ref());
@@ -253,7 +253,7 @@ namespace platform {
             }
 
 // generate v
-#pragma omp parallel for collapse(2) schedule(runtime)
+#pragma omp parallel for collapse(2)
         for (int j = 0; j < jsize; ++j)
             for (int i = 0; i < isize; ++i) {
                 forward_sweep(i, j, 1, 0, ccol(), dcol(), wcon(), vstage(), vpos(), vtens(), vtensstage_ref());
@@ -261,7 +261,7 @@ namespace platform {
             }
 
 // generate w
-#pragma omp parallel for collapse(2) schedule(runtime)
+#pragma omp parallel for collapse(2)
         for (int j = 0; j < jsize; ++j)
             for (int i = 0; i < isize; ++i) {
                 forward_sweep(i, j, 1, 0, ccol(), dcol(), wcon(), wstage(), wpos(), wtens(), wtensstage_ref());
@@ -276,7 +276,7 @@ namespace platform {
         };
 
         bool success = true;
-#pragma omp parallel for collapse(3) schedule(runtime) reduction(&& : success)
+#pragma omp parallel for collapse(3) reduction(&& : success)
         for (int k = 0; k < ksize; ++k)
             for (int j = 0; j < jsize; ++j)
                 for (int i = 0; i < isize; ++i) {

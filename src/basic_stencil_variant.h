@@ -58,7 +58,7 @@ namespace platform {
             std::uniform_real_distribution<value_type> dist(-100, 100);
 
             int total_size = storage_size();
-#pragma omp for schedule(runtime)
+#pragma omp for
             for (int i = 0; i < total_size; ++i) {
                 m_src_data.at(i) = dist(eng);
                 m_dst_data.at(i) = dist(eng);
@@ -136,7 +136,7 @@ namespace platform {
         const int jsize = this->jsize();
         const int ksize = this->ksize();
         bool success = true;
-#pragma omp parallel for collapse(3) schedule(runtime) reduction(&& : success)
+#pragma omp parallel for collapse(3) reduction(&& : success)
         for (int k = 0; k < ksize; ++k)
             for (int j = 0; j < jsize; ++j)
                 for (int i = 0; i < isize; ++i)
