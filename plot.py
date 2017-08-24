@@ -37,28 +37,31 @@ def plot_title(args):
                     args['halo'],
                     args['i-layout'], args['j-layout'], args['k-layout'])
 
-def metric_info(args):
+def metric_str(args):
     if args['metric'] == 'time':
-        return 'Measured Time [s]', None
+        return 'Measured Time [s]'
     elif args['metric'] == 'bandwidth':
-        return 'Estimated Bandwidth [GB/s]', [0, 500]
+        return 'Estimated Bandwidth [GB/s]'
     elif args['metric'] == 'PAPI':
-        return args['papi-event'], None
+        return args['papi-event']
 
-def plot_ij_scaling(args, data):
+def plot_ij_scaling(args, data, logscale=False, lim=None):
     assert args['run-mode'] == 'ij-scaling'
     assert args['i-size'] == args['j-size']
 
     x = np.array(data.columns, dtype=int) + 2 * int(args['halo'])
     for row in data.itertuples(name=None):
         stencil, bw = row[0], row[1:]
-        plt.semilogx(x, bw, basex=2, lw=2, ls='--', label=stencil)
-    mstr, mlim = metric_info(args)
+        if logscale:
+            plt.loglog(x, bw, basex=2, lw=2, ls='--', label=stencil)
+        else:
+            plt.semilogx(x, bw, basex=2, lw=2, ls='--', label=stencil)
+    mstr = metric_str(args)
     plt.xlabel('Domain Size (Including Halo)')
     plt.ylabel(mstr)
     plt.xticks(x)
-    if mlim:
-        plt.ylim(mlim)
+    if lim:
+        plt.ylim(lim)
     plt.xlim([np.amin(x), np.amax(x)])
     plt.gca().xaxis.set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda s, _: '{0}x{0}x{1}'.format(int(s),
@@ -66,19 +69,22 @@ def plot_ij_scaling(args, data):
     plt.grid()
     plt.legend()
 
-def plot_blocksize_scan(args, data, logcolors=False):
+def plot_blocksize_scan(args, data, logscale=False, lim=None):
     assert args['run-mode'] == 'blocksize-scan'
 
     mul = 1
-    vmax = np.amax(data.values)
+    vmax = lim[1] if lim is not None else np.amax(data.values)
+    vmax = int(round(vmax))
     while vmax >= 10000 * mul:
         mul *= 10
+    while vmax < 1000 * mul:
+        mul /= 10.0
 
-    mstr, mlim = metric_info(args)
+    mstr = metric_str(args)
     imargs = dict()
-    if mlim:
-        imargs['vmin'], imargs['vmax'] = mlim
-    if logcolors:
+    if lim:
+        imargs['vmin'], imargs['vmax'] = lim[0] / mul, lim[1] / mul
+    if logscale:
         imargs['norm'] = matplotlib.colors.LogNorm()
     plt.imshow(data.values.T / mul, origin='lower', **imargs)
     x = np.array(data.index, dtype=int)
@@ -87,11 +93,18 @@ def plot_blocksize_scan(args, data, logcolors=False):
     plt.yticks(np.arange(y.size), y)
     plt.xlabel('i-Blocksize')
     plt.ylabel('j-Blocksize')
-    cbar = plt.colorbar(label=mstr + (' x {}'.format(mul) if mul > 1 else ''))
-    if logcolors:
-        if mlim:
-            ticks = np.logspace(np.log10(mlim[0] / mul),
-                                np.log10(mlim[1] / mul), 5)
+    if mul == 1:
+        mulstr = ''
+    elif mul > 1:
+        mulstr = u' ∕ {}'.format(int(mul))
+    else:
+        mulstr = u' x {}'.format(int(1 / mul))
+    cbar = plt.colorbar(label=mstr + mulstr,
+                        fraction=0.046, pad=0.04)
+    if logscale:
+        if lim:
+            ticks = np.logspace(np.log10(lim[0] / mul),
+                                np.log10(lim[1] / mul), 5)
         else:
             ticks = np.logspace(np.log10(int(round(np.amin(data.values) / mul))),
                                 np.log10(int(round(np.amax(data.values) / mul))), 5)
@@ -109,8 +122,10 @@ def plot_blocksize_scan(args, data, logcolors=False):
 @click.command()
 @click.argument('outfile', type=click.Path())
 @click.argument('infile', type=click.Path(exists=True), nargs=-1)
-@click.option('--logcolors/--no-logcolors', default=False)
-def cli(outfile, infile, logcolors):
+@click.option('--logscale/--no-logscale', default=False)
+@click.option('--vmin')
+@click.option('--vmax')
+def cli(outfile, infile, logscale, vmin, vmax):
     matplotlib.rcParams.update({'font.size': 25,
                                 'xtick.labelsize': 'small',
                                 'ytick.labelsize': 'small',
@@ -119,16 +134,31 @@ def cli(outfile, infile, logcolors):
     nrows = int(np.sqrt(len(infile)))
     ncols = (len(infile) + nrows - 1) // nrows
 
+    indata = [read(f) for f in infile]
+
+    if vmin is None and vmax is None:
+        lim = None
+    else:
+        if vmin is None or vmin == 'common':
+            vmin = min(np.amin(data.values) for _, data in indata)
+        else:
+            vmin = float(vmin)
+        if vmax is None or vmax == 'common':
+            vmax = max(np.amax(data.values) for _, data in indata)
+        else:
+            vmax = float(vmax)
+        lim = [vmin, vmax]
+
     plt.figure(figsize=(12 * ncols, 10 * nrows))
-    for i, f in enumerate(infile):
+    for i, d in enumerate(indata):
         plt.subplot(nrows, ncols, i + 1)
-        args, data = read(f)
+        args, data = d
         plt.title(plot_title(args), y=1.05)
 
         if args['run-mode'] == 'ij-scaling':
-            plot_ij_scaling(args, data)
+            plot_ij_scaling(args, data, logscale, lim)
         if args['run-mode'] == 'blocksize-scan':
-            plot_blocksize_scan(args, data, logcolors)
+            plot_blocksize_scan(args, data, logscale, lim)
     plt.tight_layout()
     plt.savefig(outfile)
     plt.close()
