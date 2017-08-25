@@ -49,6 +49,9 @@ def plot_ij_scaling(args, data, logscale=False, lim=None):
     assert args['run-mode'] == 'ij-scaling'
     assert args['i-size'] == args['j-size']
 
+    if logscale and np.amax(data.values) <= 0:
+        logscale = False
+
     x = np.array(data.columns, dtype=int) + 2 * int(args['halo'])
     for row in data.itertuples(name=None):
         stencil, bw = row[0], row[1:]
@@ -72,14 +75,24 @@ def plot_ij_scaling(args, data, logscale=False, lim=None):
 def plot_blocksize_scan(args, data, logscale=False, lim=None, viewscale=True):
     assert args['run-mode'] == 'blocksize-scan'
 
+    if lim is not None:
+        vmin, vmax = lim
+    else:
+        vmin = np.amin(data.values)
+        vmax = np.amax(data.values)
+
+    if vmin <= 0 or vmax - vmin == 0:
+        logscale = False
+
     mul = 1
     if viewscale:
-        vmax = lim[1] if lim is not None else np.amax(data.values)
-        vmax = int(round(vmax))
-        while vmax >= 10000 * mul:
-            mul *= 10
-        while vmax < 1000 * mul:
-            mul /= 10.0
+        vabsmax = max(abs(int(round(vmin))), abs(int(round(vmax))))
+        if vabsmax != 0:
+            while vabsmax >= 10000 * mul:
+                mul *= 10
+            while vabsmax < 1000 * mul:
+                mul /= 10.0
+    assert mul > 0
 
     mstr = metric_str(args)
     imargs = dict()
