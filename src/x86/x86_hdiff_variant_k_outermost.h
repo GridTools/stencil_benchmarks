@@ -7,11 +7,11 @@ namespace platform {
     namespace x86 {
 
         template <class Platform, class ValueType>
-        class hdiff_variant_k_outermost final : public x86_hdiff_stencil_variant<Platform, ValueType> {
+        class x86_hdiff_variant_k_outermost final : public x86_hdiff_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
-            hdiff_variant_k_outermost(const arguments_map &args)
+            x86_hdiff_variant_k_outermost(const arguments_map &args)
                 : x86_hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)

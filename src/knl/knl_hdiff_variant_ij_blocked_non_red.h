@@ -47,7 +47,6 @@ namespace platform {
                             int index = (ib-1) * istride + (jb-1) * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
                                 #pragma omp simd
-                                #pragma vector nontemporal
                                 for (int i = ib; i < imax; ++i) {
                                     lap[index] = 4 * in[index] -
                                         (in[index - istride] + in[index + istride] + in[index - jstride] + in[index + jstride]);
@@ -66,7 +65,6 @@ namespace platform {
                             int index = (ib-1) * istride + jb * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
                                 #pragma omp simd
-                                #pragma vector nontemporal
                                 for (int i = ib; i < imax; ++i) {
                                     flx[index] = lap[index + istride] - lap[index];
                                     if (flx[index] * (in[index + istride] - in[index]) > 0)
@@ -86,7 +84,6 @@ namespace platform {
                             int index = ib * istride + (jb-1) * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
                                 #pragma omp simd
-                                #pragma vector nontemporal
                                 for (int i = ib; i < imax; ++i) {
                                     fly[index] = lap[index + jstride] - lap[index];
                                     if (fly[index] * (in[index + jstride] - in[index]) > 0)
@@ -107,7 +104,6 @@ namespace platform {
                             int index = ib * istride + jb * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
                                 #pragma omp simd
-                                #pragma vector nontemporal
                                 for (int i = ib; i < imax; ++i) {
                                     out[index] =
                                         in[index] - coeff[index] *

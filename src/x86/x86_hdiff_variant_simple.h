@@ -7,11 +7,11 @@ namespace platform {
     namespace x86 {
 
         template <class Platform, class ValueType>
-        class hdiff_variant_simple final : public x86_hdiff_stencil_variant<Platform, ValueType> {
+        class x86_hdiff_variant_simple final : public x86_hdiff_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
 
-            hdiff_variant_simple(const arguments_map &args) : x86_hdiff_stencil_variant<Platform, ValueType>(args) {}
+            x86_hdiff_variant_simple(const arguments_map &args) : x86_hdiff_stencil_variant<Platform, ValueType>(args) {}
 
             void hdiff() override {
 
