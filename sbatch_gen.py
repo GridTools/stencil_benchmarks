@@ -4,6 +4,7 @@ from __future__ import print_function
 import itertools
 import sys
 import re
+import hashlib
 
 def var_range(s):
     # range
@@ -103,11 +104,16 @@ if __name__ == '__main__':
         else:
             print('{} -> {}'.format(v, ', '.join(strr)), file=sys.stderr)
 
+    h = hashlib.md5()
+    h.update(args)
+    slurm_output = h.hexdigest()
+
     print('#!/bin/bash -l')
     print('#SBATCH --time=01:00:00')
     print('#SBATCH --constraint=flat,quad')
     print('#SBATCH --export=KMP_AFFINITY=balanced')
-    print('#SBATCH --array 0-{}%50'.format(tot_jobs - 1))
+    print('#SBATCH --array=0-{}%50'.format(tot_jobs - 1))
+    print('#SBATCH --output={}_%a.out'.format(slurm_output)) 
     print()
 
     print('# ' + args)
@@ -125,7 +131,10 @@ if __name__ == '__main__':
         print('v{0}=${{varray{0}[${{i{0}}}]}}'.format(i))
         print()
 
-    print('srun ' + nargs)
+    print('if [ ! -s "{0}_${{SLURM_ARRAY_TASK_ID}}.out" ] || [ -n "$(grep -l \'srun: error\' "{0}_${{SLURM_ARRAY_TASK_ID}}.out")" ]'.format(slurm_output))
+    print('then')
+    print('    srun ' + nargs)
+    print('fi')
 
 
 
