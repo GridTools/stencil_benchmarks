@@ -69,16 +69,17 @@ def plot_ij_scaling(args, data, logscale=False, lim=None):
     plt.grid()
     plt.legend()
 
-def plot_blocksize_scan(args, data, logscale=False, lim=None):
+def plot_blocksize_scan(args, data, logscale=False, lim=None, viewscale=True):
     assert args['run-mode'] == 'blocksize-scan'
 
     mul = 1
-    vmax = lim[1] if lim is not None else np.amax(data.values)
-    vmax = int(round(vmax))
-    while vmax >= 10000 * mul:
-        mul *= 10
-    while vmax < 1000 * mul:
-        mul /= 10.0
+    if viewscale:
+        vmax = lim[1] if lim is not None else np.amax(data.values)
+        vmax = int(round(vmax))
+        while vmax >= 10000 * mul:
+            mul *= 10
+        while vmax < 1000 * mul:
+            mul /= 10.0
 
     mstr = metric_str(args)
     imargs = dict()
@@ -86,7 +87,7 @@ def plot_blocksize_scan(args, data, logscale=False, lim=None):
         imargs['vmin'], imargs['vmax'] = lim[0] / mul, lim[1] / mul
     if logscale:
         imargs['norm'] = matplotlib.colors.LogNorm()
-    plt.imshow(data.values.T / mul, origin='lower', **imargs)
+    plt.imshow(data.values.T / mul, origin='lower', interpolation='nearest', **imargs)
     x = np.array(data.index, dtype=int)
     y = np.array(data.columns, dtype=int)
     plt.xticks(np.arange(x.size), x)
@@ -122,10 +123,15 @@ def plot_blocksize_scan(args, data, logscale=False, lim=None):
 @click.command()
 @click.argument('outfile', type=click.Path())
 @click.argument('infile', type=click.Path(exists=True), nargs=-1)
-@click.option('--logscale/--no-logscale', default=False)
-@click.option('--vmin')
-@click.option('--vmax')
-def cli(outfile, infile, logscale, vmin, vmax):
+@click.option('--logscale/--no-logscale', default=False,
+              help='Use logarithmic scaling for dependent variable.')
+@click.option('--vmin', metavar='[FLOAT|common]',
+              help='Minimum value of dependent variable used to define visible data range or "common" to use the minimum data value of all input files.')
+@click.option('--vmax', metavar='[FLOAT|common]',
+              help='Maximum value of dependent variable used to define visible data range or "common" to use the maximum data value of all input files.')
+@click.option('--viewscale/--no-viewscale', default=True,
+              help='Automatically scale numbers by a multiplier, for well readable value range.')
+def cli(outfile, infile, logscale, vmin, vmax, viewscale):
     matplotlib.rcParams.update({'font.size': 25,
                                 'xtick.labelsize': 'small',
                                 'ytick.labelsize': 'small',
@@ -158,7 +164,7 @@ def cli(outfile, infile, logscale, vmin, vmax):
         if args['run-mode'] == 'ij-scaling':
             plot_ij_scaling(args, data, logscale, lim)
         if args['run-mode'] == 'blocksize-scan':
-            plot_blocksize_scan(args, data, logscale, lim)
+            plot_blocksize_scan(args, data, logscale, lim, viewscale)
     plt.tight_layout()
     plt.savefig(outfile)
     plt.close()
