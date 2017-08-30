@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
     else if (run_mode == "blocksize-scan")
         run_blocksize_scan(argsmap, out);
     else
-        throw ERROR("unknown run-mode");
+        throw ERROR("invalid run-mode");
 
     return 0;
 }
