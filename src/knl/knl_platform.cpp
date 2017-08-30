@@ -2,13 +2,15 @@
 
 #include "knl/knl_platform.h"
 
+#include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
+#include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
+#include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
+#include "knl/knl_multifield_variant_1d_nontemporal.h"
+#include "knl/knl_multifield_variant_ij_blocked.h"
 #include "knl/knl_variant_1d.h"
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
 #include "knl/knl_variant_ijk_blocked.h"
-#include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
-#include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
-#include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
 
 namespace platform {
 
@@ -66,6 +68,11 @@ namespace platform {
                 pargs.command("hdiff-ij-blocked-non-red")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("multifield-1d-nontemporal").add("fields", "number of fields", "5");
+                pargs.command("multifield-ij-blocked")
+                    .add("fields", "number of fields", "5")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
             }
 
             template <class Platform>
@@ -90,7 +97,11 @@ namespace platform {
                     if (var == "hdiff-ij-blocked-k-outermost")
                         return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, float>(args);
                     if (var == "hdiff-ij-blocked-non-red")
-                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, float>(args);                        
+                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, float>(args);
+                    if (var == "multifield-1d-nontemporal")
+                        return new multifield_variant_1d_nontemporal<Platform, float>(args);
+                    if (var == "multifield-ij-blocked")
+                        return new multifield_variant_ij_blocked<Platform, float>(args);
                 } else if (prec == "double") {
                     if (var == "1d")
                         return new variant_1d<Platform, double>(args);
@@ -106,6 +117,10 @@ namespace platform {
                         return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, double>(args);
                     if (var == "hdiff-ij-blocked-non-red")
                         return new knl_hdiff_variant_ij_blocked_non_red<Platform, double>(args);
+                    if (var == "multifield-1d-nontemporal")
+                        return new multifield_variant_1d_nontemporal<Platform, double>(args);
+                    if (var == "multifield-ij-blocked")
+                        return new multifield_variant_ij_blocked<Platform, double>(args);
                 }
 
                 return nullptr;
