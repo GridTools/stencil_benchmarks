@@ -20,10 +20,11 @@ double result_array::avg() const { return std::accumulate(m_data.begin(), m_data
 
 result::result(const std::string &stencil) : stencil(stencil) {}
 
-void result::push_back(double t, double gb, double ctr) {
+void result::push_back(double t, double gb, double ctr, double ctr_imb) {
     time.m_data.push_back(t);
     bandwidth.m_data.push_back(gb / t);
     counter.m_data.push_back(ctr);
+    counter_imbalance.m_data.push_back(ctr_imb);
 }
 
 std::ostream &operator<<(std::ostream &out, const result &r) {
@@ -41,6 +42,7 @@ std::ostream &operator<<(std::ostream &out, const result &r) {
     tdata("Time", "ms", r.time, 1000);
     tdata("Bandwidth", "GB/s", r.bandwidth);
     tdata("Counter", "", r.counter);
+    tdata("Ctr. Imbalance", "", r.counter_imbalance);
 
     out << t;
     return out;

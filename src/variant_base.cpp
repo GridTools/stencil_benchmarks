@@ -1,9 +1,11 @@
 #include "variant_base.h"
 
+#include <algorithm>
 #include <chrono>
 #include <stdexcept>
 
 #ifdef WITH_PAPI
+#include <omp.h>
 #include <papi.h>
 #endif
 
@@ -94,6 +96,9 @@ namespace platform {
 #ifdef WITH_PAPI
         if (PAPI_num_counters() <= PAPI_OK)
             throw ERROR("PAPI not available");
+
+        if (PAPI_thread_init(reinterpret_cast<unsigned long (*)()>(omp_get_thread_num)) != PAPI_OK)
+            throw ERROR("PAPI thread init error");
 #endif
 
         std::vector<std::string> stencils;
@@ -112,16 +117,27 @@ namespace platform {
                 prerun();
 
 #ifdef WITH_PAPI
-                if (PAPI_start_counters(&m_papi_event_code, 1) != PAPI_OK)
-                    throw ERROR("PAPI error, could not start counters");
+#pragma omp parallel
+                {
+                    if (PAPI_start_counters(&m_papi_event_code, 1) != PAPI_OK)
+                        throw ERROR("PAPI error, could not start counters");
+                }
 #endif
                 auto tstart = clock::now();
                 f();
                 auto tend = clock::now();
 #ifdef WITH_PAPI
-                long long ctr;
-                if (PAPI_stop_counters(&ctr, 1) != PAPI_OK)
-                    throw ERROR("PAPI error, could not start counters");
+                std::vector<long long> ctrs;
+#pragma omp parallel shared(ctrs)
+                {
+                    long long ctr;
+                    if (PAPI_stop_counters(&ctr, 1) != PAPI_OK)
+                        throw ERROR("PAPI error, could not stop counters");
+#pragma omp single
+                    ctrs.resize(omp_get_num_threads());
+#pragma omp barrier
+                    ctrs[omp_get_thread_num()] = ctr;
+                }
 #endif
 
                 postrun();
@@ -132,10 +148,15 @@ namespace platform {
                 } else if (i >= dry) {
                     double t = std::chrono::duration<double>(tend - tstart).count();
                     double gb = touched_bytes(s) / (1024.0 * 1024.0 * 1024.0);
+
 #ifdef WITH_PAPI
-                    res.push_back(t, gb, ctr);
+                    double ctrs_sum = std::accumulate(ctrs.begin(), ctrs.end(), 0ll);
+                    double ctr = ctrs_sum / ctrs.size();
+                    double ctr_imb = *std::max_element(ctrs.begin(), ctrs.end()) / (ctrs_sum / ctrs.size()) - 1.0;
+
+                    res.push_back(t, gb, ctr, ctr_imb);
 #else
-                    res.push_back(t, gb, 0);
+                    res.push_back(t, gb, 0, 0);
 #endif
                 }
             }
