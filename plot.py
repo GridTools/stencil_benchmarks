@@ -38,12 +38,14 @@ def plot_title(args):
                     args['i-layout'], args['j-layout'], args['k-layout'])
 
 def metric_str(args):
-    if args['metric'] == 'time':
+    if args['metric'].lower() == 'time':
         return 'Measured Time [s]'
-    elif args['metric'] == 'bandwidth':
+    elif args['metric'].lower() == 'bandwidth':
         return 'Estimated Bandwidth [GB/s]'
-    elif args['metric'] == 'PAPI':
+    elif args['metric'].lower() == 'papi':
         return args['papi-event']
+    elif args['metric'].lower() == 'papi-imbalance':
+        return 'Imbalance of ' + args['papi-event']
 
 def plot_ij_scaling(args, data, logscale=False, lim=None):
     assert args['run-mode'] == 'ij-scaling'
@@ -86,11 +88,11 @@ def plot_blocksize_scan(args, data, logscale=False, lim=None, viewscale=True):
 
     mul = 1
     if viewscale:
-        vabsmax = max(abs(int(round(vmin))), abs(int(round(vmax))))
+        vabsmax = max(abs(vmin), abs(vmax))
         if vabsmax != 0:
-            while vabsmax >= 10000 * mul:
+            while round(vabsmax / mul) >= 10000:
                 mul *= 10
-            while vabsmax < 1000 * mul:
+            while round(vabsmax / mul) < 1000:
                 mul /= 10.0
     assert mul > 0
 
