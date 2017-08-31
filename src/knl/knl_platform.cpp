@@ -10,6 +10,7 @@
 #include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
 #include "knl/knl_hdiff_variant_ij_blocked_private_halo.h"
+#include "knl/knl_hdiff_variant_ij_blocked_stacked_layout.h"
 
 namespace platform {
 
@@ -70,6 +71,9 @@ namespace platform {
                 pargs.command("hdiff-ij-blocked-private-halo")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("hdiff-ij-blocked-stacked-layout")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
             }
 
             template <class Platform>
@@ -94,9 +98,11 @@ namespace platform {
                     if (var == "hdiff-ij-blocked-k-outermost")
                         return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, float>(args);
                     if (var == "hdiff-ij-blocked-non-red")
-                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, float>(args);                        
+                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, float>(args);
                     if (var == "hdiff-ij-blocked-private-halo")
-                        return new knl_hdiff_variant_ij_blocked_private_halo<Platform, float>(args);                        
+                        return new knl_hdiff_variant_ij_blocked_private_halo<Platform, float>(args);
+                    if (var == "hdiff-ij-blocked-stacked-layout")
+                        return new knl_hdiff_variant_ij_blocked_stacked_layout<Platform, float>(args);
                 } else if (prec == "double") {
                     if (var == "1d")
                         return new variant_1d<Platform, double>(args);
@@ -114,6 +120,8 @@ namespace platform {
                         return new knl_hdiff_variant_ij_blocked_non_red<Platform, double>(args);
                     if (var == "hdiff-ij-blocked-private-halo")
                         return new knl_hdiff_variant_ij_blocked_private_halo<Platform, double>(args);
+                    if (var == "hdiff-ij-blocked-stacked-layout")
+                        return new knl_hdiff_variant_ij_blocked_stacked_layout<Platform, double>(args);
                 }
 
                 return nullptr;
