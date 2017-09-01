@@ -30,6 +30,9 @@ namespace platform {
                 const int jsize = this->jsize();
                 const int ksize = this->ksize();
 
+                if (this->halo() < 2)
+                    throw ERROR("Minimum required halo is 2");
+
                 for (int k = 0; k < ksize; ++k) {
                     for (int j = -1; j < jsize+1; ++j) {
                         for (int i = -1; i < isize+1; ++i) {

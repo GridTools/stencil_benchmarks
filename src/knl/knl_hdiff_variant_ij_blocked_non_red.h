@@ -37,6 +37,8 @@ namespace platform {
 
                 if (this->istride() != 1)
                     throw ERROR("this variant is only compatible with unit i-stride layout");
+                if (this->halo() < 2)
+                    throw ERROR("Minimum required halo is 2");
 
                 for (int k = 0; k < ksize; ++k) {
                     #pragma omp parallel for collapse(2) 
