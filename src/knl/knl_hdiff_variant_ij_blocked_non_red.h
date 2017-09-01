@@ -25,7 +25,7 @@ namespace platform {
                 value_type *__restrict__ lap = this->lap();
                 value_type *__restrict__ flx = this->flx();
                 value_type *__restrict__ fly = this->fly();
-                value_type *__restrict__ out = this->out();  
+                value_type *__restrict__ out = this->out();
 
                 constexpr int istride = 1;
                 const int jstride = this->jstride();
@@ -41,17 +41,17 @@ namespace platform {
                     throw ERROR("Minimum required halo is 2");
 
                 for (int k = 0; k < ksize; ++k) {
-                    #pragma omp parallel for collapse(2) 
-                    for (int jb = 0; jb < jsize+2; jb += m_jblocksize) {
-                        for (int ib = 0; ib < isize+2; ib += m_iblocksize) {
-                            const int imax = ib + m_iblocksize <= isize+2 ? ib + m_iblocksize : isize+2;
-                            const int jmax = jb + m_jblocksize <= jsize+2 ? jb + m_jblocksize : jsize+2;
-                            int index = (ib-1) * istride + (jb-1) * jstride + k * kstride;
+#pragma omp parallel for collapse(2)
+                    for (int jb = 0; jb < jsize + 2; jb += m_jblocksize) {
+                        for (int ib = 0; ib < isize + 2; ib += m_iblocksize) {
+                            const int imax = ib + m_iblocksize <= isize + 2 ? ib + m_iblocksize : isize + 2;
+                            const int jmax = jb + m_jblocksize <= jsize + 2 ? jb + m_jblocksize : jsize + 2;
+                            int index = (ib - 1) * istride + (jb - 1) * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
-                                #pragma omp simd
+#pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
-                                    lap[index] = 4 * in[index] -
-                                        (in[index - istride] + in[index + istride] + in[index - jstride] + in[index + jstride]);
+                                    lap[index] = 4 * in[index] - (in[index - istride] + in[index + istride] +
+                                                                     in[index - jstride] + in[index + jstride]);
                                     index += istride;
                                 }
                                 index += jstride - (imax - ib) * istride;
@@ -59,14 +59,14 @@ namespace platform {
                         }
                     }
 
-                    #pragma omp parallel for collapse(2) 
+#pragma omp parallel for collapse(2)
                     for (int jb = 0; jb < jsize; jb += m_jblocksize) {
-                        for (int ib = 0; ib < isize+1; ib += m_iblocksize) {
-                            const int imax = ib + m_iblocksize <= isize+1 ? ib + m_iblocksize : isize+1;
+                        for (int ib = 0; ib < isize + 1; ib += m_iblocksize) {
+                            const int imax = ib + m_iblocksize <= isize + 1 ? ib + m_iblocksize : isize + 1;
                             const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
-                            int index = (ib-1) * istride + jb * jstride + k * kstride;
+                            int index = (ib - 1) * istride + jb * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
-                                #pragma omp simd
+#pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
                                     flx[index] = lap[index + istride] - lap[index];
                                     if (flx[index] * (in[index + istride] - in[index]) > 0)
@@ -78,14 +78,14 @@ namespace platform {
                         }
                     }
 
-                    #pragma omp parallel for collapse(2) 
-                    for (int jb = 0; jb < jsize+1; jb += m_jblocksize) {
+#pragma omp parallel for collapse(2)
+                    for (int jb = 0; jb < jsize + 1; jb += m_jblocksize) {
                         for (int ib = 0; ib < isize; ib += m_iblocksize) {
                             const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
-                            const int jmax = jb + m_jblocksize <= jsize+1 ? jb + m_jblocksize : jsize+1;
-                            int index = ib * istride + (jb-1) * jstride + k * kstride;
+                            const int jmax = jb + m_jblocksize <= jsize + 1 ? jb + m_jblocksize : jsize + 1;
+                            int index = ib * istride + (jb - 1) * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
-                                #pragma omp simd
+#pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
                                     fly[index] = lap[index + jstride] - lap[index];
                                     if (fly[index] * (in[index + jstride] - in[index]) > 0)
@@ -97,7 +97,7 @@ namespace platform {
                         }
                     }
 
-                    #pragma omp parallel for collapse(2) 
+#pragma omp parallel for collapse(2)
                     for (int jb = 0; jb < jsize; jb += m_jblocksize) {
                         for (int ib = 0; ib < isize; ib += m_iblocksize) {
                             const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
@@ -105,14 +105,14 @@ namespace platform {
 
                             int index = ib * istride + jb * jstride + k * kstride;
                             for (int j = jb; j < jmax; ++j) {
-                                #pragma omp simd
+#pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
-                                    out[index] =
-                                        in[index] - coeff[index] *
-                                            (flx[index] - flx[index - istride] + fly[index] - fly[index - jstride]);
+                                    out[index] = in[index] -
+                                                 coeff[index] * (flx[index] - flx[index - istride] + fly[index] -
+                                                                    fly[index - jstride]);
                                     index += istride;
                                 }
-                                index += jstride - (imax - ib) * istride;                            
+                                index += jstride - (imax - ib) * istride;
                             }
                         }
                     }

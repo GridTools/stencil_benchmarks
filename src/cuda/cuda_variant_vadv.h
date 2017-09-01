@@ -7,11 +7,11 @@ namespace platform {
     namespace cuda {
 
         template <class ValueType>
-        __inline__ __device__ void backward_sweep(ValueType *ccol,
-            const ValueType *dcol,
-            ValueType *datacol,
-            const ValueType *upos,
-            ValueType *utensstage,
+        __forceinline__ __device__ void backward_sweep(ValueType *ccol,
+            const ValueType *__restrict__ dcol,
+            ValueType *__restrict__ datacol,
+            const ValueType *__restrict__ upos,
+            ValueType *__restrict__ utensstage,
             const int isize,
             const int jsize,
             const int ksize,
@@ -43,15 +43,15 @@ namespace platform {
         }
 
         template <class ValueType>
-        __inline__ __device__ void forward_sweep(const int ishift,
+        __forceinline__ __device__ void forward_sweep(const int ishift,
             const int jshift,
-            ValueType *ccol,
-            ValueType *dcol,
-            const ValueType *wcon,
-            const ValueType *ustage,
-            const ValueType *upos,
-            const ValueType *utens,
-            const ValueType *utensstage,
+            ValueType *__restrict__ ccol,
+            ValueType *__restrict__ dcol,
+            const ValueType *__restrict__ wcon,
+            const ValueType *__restrict__ ustage,
+            const ValueType *__restrict__ upos,
+            const ValueType *__restrict__ utens,
+            const ValueType *__restrict__ utensstage,
             const int isize,
             const int jsize,
             const int ksize,
@@ -132,21 +132,21 @@ namespace platform {
 
         template <class ValueType>
         __global__ void kernel_vadv(const ValueType *ustage,
-            const ValueType *upos,
-            const ValueType *utens,
-            ValueType *utensstage,
-            const ValueType *vstage,
-            const ValueType *vpos,
-            const ValueType *vtens,
-            ValueType *vtensstage,
-            const ValueType *wstage,
-            const ValueType *wpos,
-            const ValueType *wtens,
-            ValueType *wtensstage,
-            ValueType *ccol,
-            ValueType *dcol,
-            const ValueType *wcon,
-            ValueType *datacol,
+            const ValueType *__restrict__ upos,
+            const ValueType *__restrict__ utens,
+            ValueType *__restrict__ utensstage,
+            const ValueType *__restrict__ vstage,
+            const ValueType *__restrict__ vpos,
+            const ValueType *__restrict__ vtens,
+            ValueType *__restrict__ vtensstage,
+            const ValueType *__restrict__ wstage,
+            const ValueType *__restrict__ wpos,
+            const ValueType *__restrict__ wtens,
+            ValueType *__restrict__ wtensstage,
+            ValueType *__restrict__ ccol,
+            ValueType *__restrict__ dcol,
+            const ValueType *__restrict__ wcon,
+            ValueType *__restrict__ datacol,
             const int isize,
             const int jsize,
             const int ksize,
@@ -219,6 +219,35 @@ namespace platform {
                     throw ERROR("invalid block size");
             }
             ~variant_vadv() {}
+
+            void prerun() override {
+                vadv_stencil_variant<platform, value_type>::prerun();
+
+                auto prefetch = [&](const value_type *ptr) {
+                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
+                        cudaSuccess)
+                        throw ERROR("error in cudaMemPrefetchAsync");
+                };
+                prefetch(this->ustage());
+                prefetch(this->upos());
+                prefetch(this->utens());
+                prefetch(this->utensstage());
+                prefetch(this->vstage());
+                prefetch(this->vpos());
+                prefetch(this->vtens());
+                prefetch(this->vtensstage());
+                prefetch(this->wstage());
+                prefetch(this->wpos());
+                prefetch(this->wtens());
+                prefetch(this->wtensstage());
+                prefetch(this->ccol());
+                prefetch(this->dcol());
+                prefetch(this->wcon());
+                prefetch(this->datacol());
+
+                if (cudaDeviceSynchronize() != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize");
+            }
 
             void vadv() override {
                 kernel_vadv<<<blocks(), blocksize()>>>(this->ustage(),

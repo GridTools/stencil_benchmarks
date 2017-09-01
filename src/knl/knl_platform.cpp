@@ -1,4 +1,5 @@
 #include <chrono>
+#include <thread>
 
 #include "knl/knl_platform.h"
 
@@ -9,6 +10,7 @@
 #include "knl/knl_hdiff_variant_ij_blocked_stacked_layout.h"
 #include "knl/knl_multifield_variant_1d_nontemporal.h"
 #include "knl/knl_multifield_variant_ij_blocked.h"
+#include "knl/knl_vadv_variant_2d.h"
 #include "knl/knl_variant_1d.h"
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
@@ -81,6 +83,7 @@ namespace platform {
                     .add("fields", "number of fields", "5")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("vadv-2d");
             }
 
             template <class Platform>
@@ -114,6 +117,8 @@ namespace platform {
                         return new multifield_variant_1d_nontemporal<Platform, float>(args);
                     if (var == "multifield-ij-blocked")
                         return new multifield_variant_ij_blocked<Platform, float>(args);
+                    if (var == "vadv-2d")
+                        return new variant_vadv_2d<Platform, float>(args);
                 } else if (prec == "double") {
                     if (var == "1d")
                         return new variant_1d<Platform, double>(args);
@@ -137,6 +142,8 @@ namespace platform {
                         return new multifield_variant_1d_nontemporal<Platform, double>(args);
                     if (var == "multifield-ij-blocked")
                         return new multifield_variant_ij_blocked<Platform, double>(args);
+                    if (var == "vadv-2d")
+                        return new variant_vadv_2d<Platform, double>(args);
                 }
 
                 return nullptr;

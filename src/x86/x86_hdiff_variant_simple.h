@@ -34,8 +34,8 @@ namespace platform {
                     throw ERROR("Minimum required halo is 2");
 
                 for (int k = 0; k < ksize; ++k) {
-                    for (int j = -1; j < jsize+1; ++j) {
-                        for (int i = -1; i < isize+1; ++i) {
+                    for (int j = -1; j < jsize + 1; ++j) {
+                        for (int i = -1; i < isize + 1; ++i) {
                             lap[this->index(i, j, k)] =
                                 4 * in[this->index(i, j, k)] -
                                 (in[this->index(i - 1, j, k)] + in[this->index(i + 1, j, k)] +
@@ -77,4 +77,3 @@ namespace platform {
     } // namespace x86
 
 } // namespace platform
-
