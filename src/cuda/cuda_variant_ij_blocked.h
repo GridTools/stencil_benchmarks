@@ -61,6 +61,7 @@ namespace platform {
         template <class Platform, class ValueType>
         class variant_ij_blocked final : public basic_stencil_variant<Platform, ValueType> {
           public:
+            using platform = Platform;
             using value_type = ValueType;
 
             variant_ij_blocked(const arguments_map &args)
@@ -71,6 +72,21 @@ namespace platform {
             }
 
             ~variant_ij_blocked() {}
+
+            void prerun() override {
+                basic_stencil_variant<platform, value_type>::prerun();
+
+                auto prefetch = [&](const value_type *ptr) {
+                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
+                        cudaSuccess)
+                        throw ERROR("error in cudaMemPrefetchAsync");
+                };
+                prefetch(this->src());
+                prefetch(this->dst());
+
+                if (cudaDeviceSynchronize() != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize");
+            }
 
             KERNEL_CALL(copy)
             KERNEL_CALL(copyi)
