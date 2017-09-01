@@ -47,6 +47,34 @@ def metric_str(args):
     elif args['metric'].lower() == 'papi-imbalance':
         return 'Imbalance of ' + args['papi-event']
 
+def metric_abbr(args):
+    if args['metric'].lower() == 'time':
+        return 'Time'
+    elif args['metric'].lower() == 'bandwidth':
+        return 'BW'
+    elif args['metric'].lower() == 'papi':
+        return 'CTR'
+    elif args['metric'].lower() == 'papi-imbalance':
+        return 'CTR-IMB'
+
+def plot_single_size(args, data, logscale=False, lim=None):
+    assert args['run-mode'] == 'single-size'
+
+    x = np.arange(len(data.index))
+    m = metric_abbr(args)
+    mavg = data[m + '-avg'].values
+    mmin = data[m + '-min'].values
+    mmax = data[m + '-max'].values
+    plt.bar(x, mavg, 0.6, yerr=[mavg - mmin, mmax - mavg])
+    plt.xticks(x, rotation=45)
+    plt.gca().set_xticklabels(data.index)
+    plt.grid(axis='y')
+    plt.gca().set_axisbelow(True)
+    plt.xlabel('Stencil')
+    plt.ylabel(metric_str(args))
+    if lim:
+        plt.ylim(lim)
+
 def plot_ij_scaling(args, data, logscale=False, lim=None):
     assert args['run-mode'] == 'ij-scaling'
     assert args['i-size'] == args['j-size']
@@ -176,6 +204,8 @@ def cli(outfile, infile, logscale, vmin, vmax, viewscale):
         args, data = d
         plt.title(plot_title(args), y=1.05)
 
+        if args['run-mode'] == 'single-size':
+            plot_single_size(args, data, logscale, lim)
         if args['run-mode'] == 'ij-scaling':
             plot_ij_scaling(args, data, logscale, lim)
         if args['run-mode'] == 'blocksize-scan':
