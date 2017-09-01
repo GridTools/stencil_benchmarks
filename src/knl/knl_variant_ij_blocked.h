@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "knl/knl_basic_stencil_variant.h"

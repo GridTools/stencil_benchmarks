@@ -53,9 +53,9 @@ namespace platform {
 
     template <class Platform, class ValueType>
     hdiff_stencil_variant<Platform, ValueType>::hdiff_stencil_variant(const arguments_map &args)
-        : variant_base(args), m_in(storage_size()), m_coeff(storage_size()),
-          m_lap(storage_size()), m_flx(storage_size()), m_fly(storage_size()), m_out(storage_size()),
-          m_lap_ref(storage_size()), m_flx_ref(storage_size()), m_fly_ref(storage_size()), m_out_ref(storage_size()) {
+        : variant_base(args), m_in(storage_size()), m_coeff(storage_size()), m_lap(storage_size()),
+          m_flx(storage_size()), m_fly(storage_size()), m_out(storage_size()), m_lap_ref(storage_size()),
+          m_flx_ref(storage_size()), m_fly_ref(storage_size()), m_out_ref(storage_size()) {
 #pragma omp parallel
         {
             std::minstd_rand eng;
@@ -98,12 +98,14 @@ namespace platform {
                 for (int k = 0; k < ksize(); k++) {
                     double z = dz * (double)(k);
                     // u values between 5 and 9
-                    m_in[cnt] = 3.0 + 
-                        1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
-                        0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) / 4.;
-                    m_coeff[cnt] = 1.4 + 
-                        0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
-                        1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) / 4.;
+                    m_in[cnt] = 3.0 +
+                                1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
+                                           0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
+                                    4.;
+                    m_coeff[cnt] = 1.4 +
+                                   0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
+                                              1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
+                                       4.;
                     m_out[cnt] = 5.4;
                     m_out_ref[cnt] = 5.4;
                     m_flx[cnt] = 0.0;
@@ -139,14 +141,14 @@ namespace platform {
         const int ksize = this->ksize();
 
         for (int k = 0; k < ksize; ++k) {
-            for (int j = -1; j < jsize+1; ++j) {
-                for (int i = -1; i < isize+1; ++i) {
+            for (int j = -1; j < jsize + 1; ++j) {
+                for (int i = -1; i < isize + 1; ++i) {
                     lap_ref()[index(i, j, k)] =
-                        4 * in()[index(i, j, k)] -
-                        (in()[index(i - 1, j, k)] + in()[index(i + 1, j, k)] + in()[index(i, j - 1, k)] + in()[index(i, j + 1, k)]);
+                        4 * in()[index(i, j, k)] - (in()[index(i - 1, j, k)] + in()[index(i + 1, j, k)] +
+                                                       in()[index(i, j - 1, k)] + in()[index(i, j + 1, k)]);
                 }
             }
-            
+
             for (int j = 0; j < jsize; ++j) {
                 for (int i = -1; i < isize; ++i) {
                     flx_ref()[index(i, j, k)] = lap_ref()[index(i + 1, j, k)] - lap_ref()[index(i, j, k)];
@@ -162,12 +164,13 @@ namespace platform {
                         fly_ref()[index(i, j, k)] = 0.;
                 }
             }
-           
+
             for (int i = 0; i < isize; ++i) {
                 for (int j = 0; j < jsize; ++j) {
                     out_ref()[index(i, j, k)] =
-                        in()[index(i, j, k)] - coeff()[index(i, j, k)] *
-                            (flx_ref()[index(i, j, k)] - flx_ref()[index(i - 1, j, k)] + fly_ref()[index(i, j, k)] - fly_ref()[index(i, j - 1, k)]);
+                        in()[index(i, j, k)] -
+                        coeff()[index(i, j, k)] * (flx_ref()[index(i, j, k)] - flx_ref()[index(i - 1, j, k)] +
+                                                      fly_ref()[index(i, j, k)] - fly_ref()[index(i, j - 1, k)]);
                 }
             }
         }

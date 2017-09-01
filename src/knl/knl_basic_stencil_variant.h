@@ -1,7 +1,5 @@
 #pragma once
 
-#include <thread>
-
 #include "basic_stencil_variant.h"
 
 namespace platform {

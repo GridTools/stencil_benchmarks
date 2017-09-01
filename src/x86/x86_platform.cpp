@@ -2,10 +2,10 @@
 
 #include "x86/x86_platform.h"
 
-#include "x86/x86_variant_1d.h"
-#include "x86/x86_hdiff_variant_simple.h"
 #include "x86/x86_hdiff_variant_ij_blocked.h"
 #include "x86/x86_hdiff_variant_k_outermost.h"
+#include "x86/x86_hdiff_variant_simple.h"
+#include "x86/x86_variant_1d.h"
 
 namespace platform {
 
