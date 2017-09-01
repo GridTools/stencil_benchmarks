@@ -220,6 +220,35 @@ namespace platform {
             }
             ~variant_vadv() {}
 
+            void prerun() override {
+                vadv_stencil_variant<platform, value_type>::prerun();
+
+                auto prefetch = [&](const value_type *ptr) {
+                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
+                        cudaSuccess)
+                        throw ERROR("error in cudaMemPrefetchAsync");
+                };
+                prefetch(this->ustage());
+                prefetch(this->upos());
+                prefetch(this->utens());
+                prefetch(this->utensstage());
+                prefetch(this->vstage());
+                prefetch(this->vpos());
+                prefetch(this->vtens());
+                prefetch(this->vtensstage());
+                prefetch(this->wstage());
+                prefetch(this->wpos());
+                prefetch(this->wtens());
+                prefetch(this->wtensstage());
+                prefetch(this->ccol());
+                prefetch(this->dcol());
+                prefetch(this->wcon());
+                prefetch(this->datacol());
+
+                if (cudaDeviceSynchronize() != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize");
+            }
+
             void vadv() override {
                 kernel_vadv<<<blocks(), blocksize()>>>(this->ustage(),
                     this->upos(),
