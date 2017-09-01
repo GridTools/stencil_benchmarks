@@ -30,10 +30,17 @@
 *.exe
 *.out
 *.app
-stencil_bench
+stencil_bench_*
 
 # Temporary files
 *.swp
+*.evt
+
+# ICC optimization reports
+*.optrpt
 
 # User config
 Makefile.user
+
+# Output files
+*.dat

@@ -1,128 +1,219 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import click
+import itertools
+import pandas as pd
 import numpy as np
+import sys
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-import glob
-import itertools
-import subprocess
-import sys
-import json
-from pprint import pprint
-import os.path
+from matplotlib import pyplot as plt
 
-def subprocess_cmd(command):
-    process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True)
-    proc_stdout = process.communicate()[0].strip()
+def read_header(filename):
+    args = dict()
+    with open(filename, 'r') as f:
+        for line in f:
+            l = line.split()
+            if l[0] == '#':
+                for k, v in zip(l[1::2], l[2::2]):
+                    if k[-1] == ':':
+                        args[k[:-1]] = v
+    return args
 
-alignments = [1,32]
-threads = [32,64,128,256]
-execution = ["benchmark_ij_parallel"]
-mode = ["CACHE_MODE", "FLAT_MODE"]
-block_size_x = [1,2,8,16,32,64,128,256,512,1024]
-block_size_y = [1,2,8,16,32,64,128,256,512,1024]
-size = ["64x64x80", "128x128x80", "256x256x80", "512x512x80", "1024x1024x80"]
-layout = ["2,1,0"] #, "2,0,1", "1,0,2", "1,2,0", "0,1,2", "0,2,1"]
-prec = ["float", "double"]
+def read_data(filename):
+    return pd.read_csv(filename, comment='#', sep='\s+', index_col=0)
 
-dire = "./test/benchmark_ij_ifirst_plots"
-subprocess_cmd("mkdir "+dire)
+def read(filename):
+    return read_header(filename), read_data(filename)
 
-# create combinatorial of mode, alignment, layout
-combinations = list(itertools.product(mode, alignments, layout, prec, block_size_x, block_size_y))
-for e in combinations:
-    m = e[0].lower()
-    a = e[1]
-    l = e[2].replace(",","-")
-    p = e[3]
-    bsx = e[4]
-    bsy = e[5]
-    outname = dire+"/"+p+"_m"+m+"_bsx"+str(bsx)+"_bsy"+str(bsy)+"_a"+str(a)+".svg"
-    if os.path.isfile(outname):
-        print("already exists " + outname)
-        continue  
-    if int(bsx) < int(8) and int(bsy) < int(8):
-        continue
+def plot_title(args):
+    return (u'Variant: {} — Stencil: {} — Prec: {} — Align: {}\n'
+            u'Threads: {} — Domain: {}×{}×{} — Halo: {} — Layout: {}-{}-{}').format(
+                    args['platform'] + ' ' + args['variant'], args['stencil'],
+                    args['precision'].title(), args['alignment'],
+                    args['threads'],
+                    args['i-size'], args['j-size'], args['k-size'],
+                    args['halo'],
+                    args['i-layout'], args['j-layout'], args['k-layout'])
 
-    #create plot figure
-    plt.figure(figsize=(30, 15))
-    plt.suptitle(str(execution) + " BSX " + str(bsx) + " BSY " + str(bsy) + " Alignment " + str(a) + " Mode " + str(m) + " " + p, fontsize=25)
-    x = np.array([0,1,2,3,4])
-    # iterate through threads
-    gs = gridspec.GridSpec(2, 4)     
-    i = 0
-    for t in threads:
-        #iterate through domain sizes
-        copy = []
-        copyi1 = []
-        sumi1 = []
-        sumj1 = []
-        sumk1 = []
-        avgi = []
-        avgj = []
-        avgk = []
-        lap = []
+def metric_str(args):
+    if args['metric'].lower() == 'time':
+        return 'Measured Time [s]'
+    elif args['metric'].lower() == 'bandwidth':
+        return 'Estimated Bandwidth [GB/s]'
+    elif args['metric'].lower() == 'papi':
+        return args['papi-event']
+    elif args['metric'].lower() == 'papi-imbalance':
+        return 'Imbalance of ' + args['papi-event']
 
-        for s in size:
-            # get data for given size, and number of threads, and config
-            filename = "./test/benchmark_ij_"+s+"/res_benchmark_ij_m"+m+"_a"+str(a)+"_l"+l+"_t"+str(t)+"_bsx"+str(bsx)+"_bsy"+str(bsy)+".json"
-            if os.path.isfile(filename):
-                json_data = open(filename, "r")
-                data = json.load(json_data)
-                all_stencils = data[0][p]["stencils"]
-                copy.append(all_stencils["copy"]["bw"])
-                copyi1.append(all_stencils["copyi1"]["bw"])
-                sumi1.append(all_stencils["sumi1"]["bw"])
-                sumj1.append(all_stencils["sumj1"]["bw"])
-                sumk1.append(all_stencils["sumk1"]["bw"])
-                avgi.append(all_stencils["avgi"]["bw"])
-                avgj.append(all_stencils["avgj"]["bw"])
-                avgk.append(all_stencils["avgk"]["bw"])
-                lap.append(all_stencils["lap"]["bw"])
-                json_data.close()
-            else:
-                copy.append(0)
-                copyi1.append(0)
-                sumi1.append(0)
-                sumj1.append(0)
-                sumk1.append(0)
-                avgi.append(0)
-                avgj.append(0)
-                avgk.append(0)
-                lap.append(0)
+def metric_abbr(args):
+    if args['metric'].lower() == 'time':
+        return 'Time'
+    elif args['metric'].lower() == 'bandwidth':
+        return 'BW'
+    elif args['metric'].lower() == 'papi':
+        return 'CTR'
+    elif args['metric'].lower() == 'papi-imbalance':
+        return 'CTR-IMB'
 
+def plot_single_size(args, data, logscale=False, lim=None):
+    assert args['run-mode'] == 'single-size'
 
-        plt.subplot(gs[i])
-        i = i+1
-        plt.ylim([0,500])
-        plt.title('Threads '+str(t))
-        plt.xticks(x, ["64","128","256","512","1024"])
-        plt.plot(x, copy,'r-', label="copy", linewidth=2)
-        plt.plot(x, copyi1,'g-', label="copyi1", linewidth=2)
-        plt.plot(x, sumi1,'r-.', label="sumi1", linewidth=2)
-        plt.plot(x, sumj1,'g-.', label="sumj1", linewidth=2)
-        plt.plot(x, sumk1,'b-.', label="sumk1", linewidth=2)
-        plt.plot(x, avgi,'r--', label="avgi", linewidth=2)
-        plt.plot(x, avgj,'g--', label="avgj", linewidth=2)
-        plt.plot(x, avgk,'b--', label="avgk", linewidth=2)
-        plt.plot(x, lap,'k-', label="lap", linewidth=2)
-        plt.ylabel('GB/s')
-        plt.xlabel('Domain size')
-        plt.grid(True)
+    x = np.arange(len(data.index))
+    m = metric_abbr(args)
+    mavg = data[m + '-avg'].values
+    mmin = data[m + '-min'].values
+    mmax = data[m + '-max'].values
+    plt.bar(x, mavg, 0.6, yerr=[mavg - mmin, mmax - mavg])
+    plt.xticks(x, rotation=45)
+    plt.gca().set_xticklabels(data.index)
+    plt.grid(axis='y')
+    plt.gca().set_axisbelow(True)
+    plt.xlabel('Stencil')
+    plt.ylabel(metric_str(args))
+    if lim:
+        plt.ylim(lim)
 
-    plt.subplot(gs[i])
-    plt.title('Legend')
-    plt.plot([], [],'r-', label="copy")
-    plt.plot([], [],'g-', label="copyi1")
-    plt.plot([], [],'r-.', label="sumi1")
-    plt.plot([], [],'g-.', label="sumj1")
-    plt.plot([], [],'b-.', label="sumk1")
-    plt.plot([], [],'r--', label="avgi")
-    plt.plot([], [],'g--', label="avgj")
-    plt.plot([], [],'b--', label="avgk")
-    plt.plot([], [],'k-', label="lap")
+def plot_ij_scaling(args, data, logscale=False, lim=None):
+    assert args['run-mode'] == 'ij-scaling'
+    assert args['i-size'] == args['j-size']
+
+    if logscale and np.amax(data.values) <= 0:
+        logscale = False
+
+    x = np.array(data.columns, dtype=int) + 2 * int(args['halo'])
+    for row in data.itertuples(name=None):
+        stencil, bw = row[0], row[1:]
+        if logscale:
+            plt.loglog(x, bw, basex=2, lw=2, ls='--', label=stencil)
+        else:
+            plt.semilogx(x, bw, basex=2, lw=2, ls='--', label=stencil)
+    mstr = metric_str(args)
+    plt.xlabel('Domain Size (Including Halo)')
+    plt.ylabel(mstr)
+    plt.xticks(x)
+    if lim:
+        plt.ylim(lim)
+    plt.xlim([np.amin(x), np.amax(x)])
+    plt.gca().xaxis.set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda s, _: '{0}x{0}x{1}'.format(int(s),
+                int(args['k-size']) + 2 * int(args['halo']))))
+    plt.grid()
     plt.legend()
 
-    plt.savefig(outname)
+def plot_blocksize_scan(args, data, logscale=False, lim=None, viewscale=True):
+    assert args['run-mode'] == 'blocksize-scan'
+
+    if lim is not None:
+        vmin, vmax = lim
+    else:
+        vmin = np.amin(data.values)
+        vmax = np.amax(data.values)
+
+    if vmin <= 0 or vmax - vmin == 0:
+        logscale = False
+
+    mul = 1
+    if viewscale:
+        vabsmax = max(abs(vmin), abs(vmax))
+        if vabsmax != 0:
+            while round(vabsmax / mul) >= 10000:
+                mul *= 10
+            while round(vabsmax / mul) < 1000:
+                mul /= 10.0
+    assert mul > 0
+
+    mstr = metric_str(args)
+    imargs = dict()
+    if lim:
+        imargs['vmin'], imargs['vmax'] = lim[0] / mul, lim[1] / mul
+    if logscale:
+        imargs['norm'] = matplotlib.colors.LogNorm()
+    plt.imshow(data.values.T / mul, origin='lower', interpolation='nearest', **imargs)
+    x = np.array(data.index, dtype=int)
+    y = np.array(data.columns, dtype=int)
+    plt.xticks(np.arange(x.size), x)
+    plt.yticks(np.arange(y.size), y)
+    plt.xlabel('i-Blocksize')
+    plt.ylabel('j-Blocksize')
+    if mul == 1:
+        mulstr = ''
+    elif mul > 1:
+        mulstr = u' ∕ {}'.format(int(mul))
+    else:
+        mulstr = u' x {}'.format(int(1 / mul))
+    cbar = plt.colorbar(label=mstr + mulstr,
+                        fraction=0.046, pad=0.04)
+    if logscale:
+        if lim:
+            ticks = np.logspace(np.log10(lim[0] / mul),
+                                np.log10(lim[1] / mul), 5)
+        else:
+            ticks = np.logspace(np.log10(int(round(np.amin(data.values) / mul))),
+                                np.log10(int(round(np.amax(data.values) / mul))), 5)
+        cbar.set_ticks(ticks)
+        cbar.set_ticklabels([int(round(t)) for t in ticks])
+    for i in range(x.size):
+        for j in range(y.size):
+            v = data.values[i, j]
+            plt.text(i, j, '{}'.format(int(round(data.values[i, j] / mul))),
+                     horizontalalignment='center',
+                     verticalalignment='center',
+                     fontsize='xx-small', color='white')
+
+
+@click.command()
+@click.argument('outfile', type=click.Path())
+@click.argument('infile', type=click.Path(exists=True), nargs=-1)
+@click.option('--logscale/--no-logscale', default=False,
+              help='Use logarithmic scaling for dependent variable.')
+@click.option('--vmin', metavar='[FLOAT|common]',
+              help='Minimum value of dependent variable used to define visible data range or "common" to use the minimum data value of all input files.')
+@click.option('--vmax', metavar='[FLOAT|common]',
+              help='Maximum value of dependent variable used to define visible data range or "common" to use the maximum data value of all input files.')
+@click.option('--viewscale/--no-viewscale', default=True,
+              help='Automatically scale numbers by a multiplier, for well readable value range.')
+def cli(outfile, infile, logscale, vmin, vmax, viewscale):
+    matplotlib.rcParams.update({'font.size': 25,
+                                'xtick.labelsize': 'small',
+                                'ytick.labelsize': 'small',
+                                'axes.titlesize': 'small'})
+
+    nrows = int(np.sqrt(len(infile)))
+    ncols = (len(infile) + nrows - 1) // nrows
+
+    indata = [read(f) for f in infile]
+
+    if vmin is None and vmax is None:
+        lim = None
+    else:
+        if vmin is None or vmin == 'common':
+            vmin = min(np.amin(data.values) for _, data in indata)
+        else:
+            vmin = float(vmin)
+        if vmax is None or vmax == 'common':
+            vmax = max(np.amax(data.values) for _, data in indata)
+        else:
+            vmax = float(vmax)
+        lim = [vmin, vmax]
+
+    plt.figure(figsize=(12 * ncols, 10 * nrows))
+    for i, d in enumerate(indata):
+        plt.subplot(nrows, ncols, i + 1)
+        args, data = d
+        plt.title(plot_title(args), y=1.05)
+
+        if args['run-mode'] == 'single-size':
+            plot_single_size(args, data, logscale, lim)
+        if args['run-mode'] == 'ij-scaling':
+            plot_ij_scaling(args, data, logscale, lim)
+        if args['run-mode'] == 'blocksize-scan':
+            plot_blocksize_scan(args, data, logscale, lim, viewscale)
+    plt.tight_layout()
+    plt.savefig(outfile)
     plt.close()
-    print("wrote " + outname)
+
+if __name__ == '__main__':
+    cli()
+

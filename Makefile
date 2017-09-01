@@ -1,29 +1,66 @@
-include Makefile.user
-include Makefile.config
+-include Makefile.user
 
-STENCIL_KERNELS_FILE=stencil_kernels_$(STENCIL).h
-STENCIL_KERNELS_FLAG=-DSTENCIL_KERNELS_H=\"$(STENCIL_KERNELS_FILE)\" -DSTENCIL=\"$(STENCIL)\"
-ifneq ($(BLOCKSIZEX),)
-BLOCKSIZEX_FLAG=-DBLOCKSIZEX=$(BLOCKSIZEX)
-endif
-ifneq ($(BLOCKSIZEY),)
-BLOCKSIZEY_FLAG=-DBLOCKSIZEY=$(BLOCKSIZEY)
-endif
-ALIGN_FLAG=-DALIGN=$(ALIGN)
-LAYOUT_FLAG=-DLAYOUT=$(LAYOUT)
-ifeq ($(MCDRAM),CACHE)
-MCDRAM_FLAG=-DCACHE_MODE
-else
-MCDRAM_FLAG=-DFLAT_MODE
-endif
+CCFLAGS=-std=c++11 -O3 -MMD -MP -Wall -fopenmp -DNDEBUG -Isrc $(USERFLAGS)
+NVCCFLAGS=-std=c++11 -arch=sm_60 -O3 -g -DNDEBUG -Isrc $(USERFLAGS_CUDA)
+LIBS=$(USERLIBS)
 
-CONFIG_FLAGS=$(STENCIL_KERNELS_FLAG) $(BLOCKSIZEX_FLAG) $(BLOCKSIZEY_FLAG) $(ALIGN_FLAG) $(LAYOUT_FLAG) $(MCDRAM_FLAG)
+SRCS=$(wildcard src/*.cpp)
+OBJS=$(SRCS:.cpp=.o)
+DEPS=$(SRCS:.cpp=.d)
 
-stencil_bench: main.cpp tools.h $(STENCIL_KERNELS_FILE)
-	CC $(CONFIG_FLAGS) -std=c++11 -O3 -qopenmp -ffreestanding -DNDEBUG -DJSON_ISO_STRICT $(USERFLAGS) -Igridtools_storage/include -Ilibjson -Llibjson $< -ljson -lmemkind -o $@
+SRCS_X86=$(wildcard src/x86/*.cpp)
+OBJS_X86=$(SRCS_X86:.cpp=.o)
+DEPS_X86=$(SRCS_X86:.cpp=.d)
+
+SRCS_KNL=$(wildcard src/knl/*.cpp)
+OBJS_KNL=$(SRCS_KNL:.cpp=.o)
+DEPS_KNL=$(SRCS_KNL:.cpp=.d)
+
+SRCS_CUDA=$(wildcard src/cuda/*.cu)
+OBJS_CUDA=$(SRCS_CUDA:.cu=.o)	
+
+%.o: %.cpp
+	$(CC) $(CCFLAGS) -c $< -o $@
+
+%.o: %.cu
+	nvcc $(NVCCFLAGS) -c $< -o $@
+
+.PHONY: default
+default:
+	$(error Please specify the target platform, i.e. use 'make knl' for Intel KNL or 'make cuda' for NVIDIA CUDA GPUs)
+
+.PHONY: knl
+knl: stencil_bench_knl
+
+.PHONY: cuda
+cuda: stencil_bench_cuda
+
+.PHONY: x86
+x86: stencil_bench_x86
+
+stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding
+stencil_bench_knl: $(OBJS) $(OBJS_KNL)
+	CC $(CCFLAGS) $+ $(LIBS) -o $@
+
+stencil_bench_knl_pat: stencil_bench_knl
+	pat_build -f -T '/.*copy,/.*sum,/.*avg,/.*lap' -w $< -o $@
+
+stencil_bench_cuda: CCFLAGS+=-DPLATFORM_CUDA
+stencil_bench_cuda: CUFLAGS+=-DPLATFORM_CUDA
+stencil_bench_cuda: LIBS+=-lgomp
+stencil_bench_cuda: $(OBJS) $(OBJS_CUDA)
+	nvcc $(NVCCFLAGS) $+ $(LIBS) -o $@
+
+stencil_bench_x86: CCFLAGS+=-DPLATFORM_X86
+stencil_bench_x86: $(OBJS) $(OBJS_X86)
+	g++ $(CCFLAGS) $+ -fopenmp -o $@
+
+-include $(DEPS) $(DEPS_KNL)
 
 .PHONY: clean
-
 clean:
-	rm -f stencil_bench
+	rm -f $(OBJS) $(DEPS) $(OBJS_KNL) $(DEPS_KNL) $(OBJS_CUDA) $(DEPS_CUDA) $(OBJS_X86) $(DEPS_X86) stencil_bench_*
 
+.PHONY: format
+format:
+	clang-format -i src/*.cpp src/*.h src/*/*.cpp src/*/*.h src/*/*.cu
