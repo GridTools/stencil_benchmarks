@@ -34,9 +34,9 @@ namespace platform {
                 m_fly_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * (this->ksize()+2*this->halo()));
             }
 
-            value_type *lap_tmp() { return m_lap_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
-            value_type *flx_tmp() { return m_flx_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
-            value_type *fly_tmp() { return m_fly_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
+            value_type *lap_tmp() { constexpr int m_istride_tmp = 1; return m_lap_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
+            value_type *flx_tmp() { constexpr int m_istride_tmp = 1; return m_flx_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
+            value_type *fly_tmp() { constexpr int m_istride_tmp = 1; return m_fly_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
 
             void hdiff() override {
 
@@ -48,6 +48,7 @@ namespace platform {
                 value_type *__restrict__ out = this->out();  
 
                 constexpr int istride = 1;
+                constexpr int m_istride_tmp = 1;                
                 const int jstride = this->jstride();
                 const int kstride = this->kstride();
                 const int h = this->halo();
@@ -135,7 +136,6 @@ namespace platform {
           private:
             int m_nbi, m_nbj, m_iblocksize, m_jblocksize;
             int m_jsize_tmp, m_isize_tmp;
-            constexpr static int m_istride_tmp = 1;
             int m_jstride_tmp, m_kstride_tmp;
             int m_padding_tmp;
             std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp;        
