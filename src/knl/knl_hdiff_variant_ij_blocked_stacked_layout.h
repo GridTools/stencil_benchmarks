@@ -23,7 +23,7 @@ namespace platform {
                 // compute size of complete domain including halo
                 m_isize_tmp = (this->halo() * 2 + m_iblocksize);
                 m_jsize_tmp = (this->halo() * 2 + m_jblocksize);
-                m_ksize_tmp = (this->ksize()+2*this->halo())*m_nbi*m_nbj;
+                m_ksize_tmp = (this->ksize() + 2 * this->halo()) * m_nbi * m_nbj;
                 // compute padding in order to make the temporary fields aligned
                 m_padding_tmp = std::ceil((double)m_isize_tmp/(double)this->alignment()) * this->alignment() - m_isize_tmp;
                 // strides
@@ -33,11 +33,15 @@ namespace platform {
                 m_lap_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
                 m_flx_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
                 m_fly_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
+                m_in_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
+                m_coeff_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
             }
 
             value_type *lap_tmp() { return m_lap_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
             value_type *flx_tmp() { return m_flx_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
             value_type *fly_tmp() { return m_fly_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
+            value_type *in_tmp() { return m_in_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
+            value_type *coeff_tmp() { return m_coeff_tmp.data() + this->data_offset() + this->halo()*m_istride_tmp + this->halo()*m_kstride_tmp + this->halo()*m_jstride_tmp; }
 
             void prerun() override {
                 knl_hdiff_stencil_variant<Platform, ValueType>::prerun();
@@ -50,6 +54,7 @@ namespace platform {
                 const int jsize = this->jsize();
                 const int ksize = this->ksize();
 
+                #pragma omp parallel for collapse(2) schedule(static, 1)
                 for (int jb = 0; jb < m_nbj; ++jb) {
                     for (int ib = 0; ib < m_nbi; ++ib) {
                         const int bn = (jb*m_nbi + ib);
@@ -73,8 +78,8 @@ namespace platform {
 
             void hdiff() override {
 
-                const value_type *__restrict__ in = this->in();
-                const value_type *__restrict__ coeff = this->coeff();
+                const value_type *__restrict__ in = this->in_tmp();
+                const value_type *__restrict__ coeff = this->coeff_tmp();
                 value_type *__restrict__ lap = this->lap_tmp();
                 value_type *__restrict__ flx = this->flx_tmp();
                 value_type *__restrict__ fly = this->fly_tmp();
@@ -93,10 +98,10 @@ namespace platform {
                 if (this->halo() < 2)
                     throw ERROR("Minimum required halo is 2");
                     
-                #pragma omp parallel for collapse(3) schedule(static, 1)
-                for (int k = 0; k < ksize; ++k) {
-                    for (int jb = 0; jb < m_nbj; ++jb) {
-                        for (int ib = 0; ib < m_nbi; ++ib) {
+                #pragma omp parallel for collapse(2) schedule(static, 1)
+                for (int jb = 0; jb < m_nbj; ++jb) {
+                    for (int ib = 0; ib < m_nbi; ++ib) {
+                        for (int k = 0; k < ksize; ++k) {
                             const int imax = (ib+1)*m_iblocksize <= isize ? m_iblocksize : (isize - ib*m_iblocksize);
                             const int jmax = (jb+1)*m_jblocksize <= jsize ? m_jblocksize : (jsize - jb*m_jblocksize);
 
@@ -143,6 +148,7 @@ namespace platform {
             
                             for (int j = 0; j < jmax; ++j) {
                                 #pragma omp simd
+                                #pragma vector nontemporal
                                 for (int i = 0; i < imax; ++i) {
                                     out[index_out] =
                                         in[index_out_tmp] - coeff[index_out_tmp] *
@@ -165,7 +171,7 @@ namespace platform {
             constexpr static int m_istride_tmp = 1;
             int m_jstride_tmp, m_kstride_tmp;
             int m_padding_tmp;
-            std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp;        
+            std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp, m_in_tmp, m_coeff_tmp;        
         };
 
     } // namespace knl
