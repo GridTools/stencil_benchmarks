@@ -1,4 +1,5 @@
 #include <chrono>
+#include <thread>
 
 #include "knl/knl_platform.h"
 
