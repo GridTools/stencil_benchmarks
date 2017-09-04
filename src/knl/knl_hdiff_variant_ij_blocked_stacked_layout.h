@@ -98,10 +98,10 @@ namespace platform {
                 if (this->halo() < 2)
                     throw ERROR("Minimum required halo is 2");
 
-                for (int k = 0; k < ksize; ++k) {
-                    #pragma omp for collapse(2) schedule(static,1)
-                    for (int jb = 0; jb < m_nbj; ++jb) {
-                        for (int ib = 0; ib < m_nbi; ++ib) {
+                #pragma omp for collapse(3) schedule(static,1) 
+                for (int jb = 0; jb < m_nbj; ++jb) {
+                    for (int ib = 0; ib < m_nbi; ++ib) {
+                        for (int k = 0; k < ksize; ++k) {
                             const int imax = (ib+1)*m_iblocksize <= isize ? m_iblocksize : (isize - ib*m_iblocksize);
                             const int jmax = (jb+1)*m_jblocksize <= jsize ? m_jblocksize : (jsize - jb*m_jblocksize);
 
