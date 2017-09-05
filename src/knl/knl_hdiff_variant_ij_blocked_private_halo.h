@@ -59,9 +59,10 @@ namespace platform {
                     throw ERROR("this variant is only compatible with unit i-stride layout");
                 if (this->halo() < 2)
                     throw ERROR("Minimum required halo is 2");
-
+#pragma omp parallel
+{
                 for (int k = 0; k < ksize; ++k) {
-                    #pragma omp parallel for collapse(2) schedule(static, 1)
+                    #pragma omp for collapse(2) schedule(static, 1) nowait
                     for (int jb = 0; jb < m_nbj; ++jb) {
                         for (int ib = 0; ib < m_nbi; ++ib) {
                             const int imax = (ib+1)*m_iblocksize <= isize ? m_iblocksize : (isize - ib*m_iblocksize);
@@ -130,6 +131,7 @@ namespace platform {
                         }
                     }
                 }
+}
             }
 
           private:
