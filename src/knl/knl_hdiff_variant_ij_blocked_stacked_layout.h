@@ -98,7 +98,7 @@ namespace platform {
                 if (this->halo() < 2)
                     throw ERROR("Minimum required halo is 2");
 
-                #pragma omp for collapse(2) schedule(static,1) 
+                #pragma omp parallel for collapse(2) schedule(static,1) 
                 for (int jb = 0; jb < m_nbj; ++jb) {
                     for (int ib = 0; ib < m_nbi; ++ib) {
                         for (int k = 0; k < ksize; ++k) {
