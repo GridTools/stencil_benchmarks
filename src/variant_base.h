@@ -35,6 +35,8 @@ namespace platform {
         inline int jstride() const { return m_jstride; }
         inline int kstride() const { return m_kstride; }
         inline int storage_size() const { return m_storage_size; }
+        inline int data_offset() const { return m_data_offset; }
+        inline int alignment() const { return m_alignment; }
 
         virtual std::function<void()> stencil_function(const std::string &kernel) = 0;
 
