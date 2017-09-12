@@ -9,6 +9,9 @@
 #include "knl/knl_multifield_variant_1d_nontemporal.h"
 #include "knl/knl_multifield_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_2d.h"
+#include "knl/knl_vadv_variant_ij_blocked.h"
+#include "knl/knl_vadv_variant_ij_blocked_colopt.h"
+#include "knl/knl_vadv_variant_ij_blocked_split.h"
 #include "knl/knl_variant_1d.h"
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
@@ -76,6 +79,47 @@ namespace platform {
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
                 pargs.command("vadv-2d");
+                pargs.command("vadv-ij-blocked")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("vadv-ij-blocked-split")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("vadv-ij-blocked-colopt")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
+            }
+
+            template <class Platform, class ValueType>
+            variant_base *common_create_variant_by_prec(const arguments_map &args) {
+                std::string var = args.get("variant");
+                if (var == "1d")
+                    return new variant_1d<Platform, ValueType>(args);
+                if (var == "1d-nontemporal")
+                    return new variant_1d_nontemporal<Platform, ValueType>(args);
+                if (var == "ij-blocked")
+                    return new variant_ij_blocked<Platform, ValueType>(args);
+                if (var == "ijk-blocked")
+                    return new variant_ijk_blocked<Platform, ValueType>(args);
+                if (var == "hdiff-ij-blocked-k-innermost")
+                    return new knl_hdiff_variant_ij_blocked_k_innermost<Platform, ValueType>(args);
+                if (var == "hdiff-ij-blocked-k-outermost")
+                    return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, ValueType>(args);
+                if (var == "hdiff-ij-blocked-non-red")
+                    return new knl_hdiff_variant_ij_blocked_non_red<Platform, ValueType>(args);
+                if (var == "multifield-1d-nontemporal")
+                    return new multifield_variant_1d_nontemporal<Platform, ValueType>(args);
+                if (var == "multifield-ij-blocked")
+                    return new multifield_variant_ij_blocked<Platform, ValueType>(args);
+                if (var == "vadv-2d")
+                    return new variant_vadv_2d<Platform, ValueType>(args);
+                if (var == "vadv-ij-blocked")
+                    return new variant_vadv_ij_blocked<Platform, ValueType>(args);
+                if (var == "vadv-ij-blocked-split")
+                    return new variant_vadv_ij_blocked_split<Platform, ValueType>(args);
+                if (var == "vadv-ij-blocked-colopt")
+                    return new variant_vadv_ij_blocked_colopt<Platform, ValueType>(args);
+                return nullptr;
             }
 
             template <class Platform>
@@ -84,50 +128,11 @@ namespace platform {
                     return nullptr;
 
                 std::string prec = args.get("precision");
-                std::string var = args.get("variant");
 
                 if (prec == "single") {
-                    if (var == "1d")
-                        return new variant_1d<Platform, float>(args);
-                    if (var == "1d-nontemporal")
-                        return new variant_1d_nontemporal<Platform, float>(args);
-                    if (var == "ij-blocked")
-                        return new variant_ij_blocked<Platform, float>(args);
-                    if (var == "ijk-blocked")
-                        return new variant_ijk_blocked<Platform, float>(args);
-                    if (var == "hdiff-ij-blocked-k-innermost")
-                        return new knl_hdiff_variant_ij_blocked_k_innermost<Platform, float>(args);
-                    if (var == "hdiff-ij-blocked-k-outermost")
-                        return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, float>(args);
-                    if (var == "hdiff-ij-blocked-non-red")
-                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, float>(args);
-                    if (var == "multifield-1d-nontemporal")
-                        return new multifield_variant_1d_nontemporal<Platform, float>(args);
-                    if (var == "multifield-ij-blocked")
-                        return new multifield_variant_ij_blocked<Platform, float>(args);
-                    if (var == "vadv-2d")
-                        return new variant_vadv_2d<Platform, float>(args);
+                    return common_create_variant_by_prec<Platform, float>(args);
                 } else if (prec == "double") {
-                    if (var == "1d")
-                        return new variant_1d<Platform, double>(args);
-                    if (var == "1d-nontemporal")
-                        return new variant_1d_nontemporal<Platform, double>(args);
-                    if (var == "ij-blocked")
-                        return new variant_ij_blocked<Platform, double>(args);
-                    if (var == "ijk-blocked")
-                        return new variant_ijk_blocked<Platform, double>(args);
-                    if (var == "hdiff-ij-blocked-k-innermost")
-                        return new knl_hdiff_variant_ij_blocked_k_innermost<Platform, double>(args);
-                    if (var == "hdiff-ij-blocked-k-outermost")
-                        return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, double>(args);
-                    if (var == "hdiff-ij-blocked-non-red")
-                        return new knl_hdiff_variant_ij_blocked_non_red<Platform, double>(args);
-                    if (var == "multifield-1d-nontemporal")
-                        return new multifield_variant_1d_nontemporal<Platform, double>(args);
-                    if (var == "multifield-ij-blocked")
-                        return new multifield_variant_ij_blocked<Platform, double>(args);
-                    if (var == "vadv-2d")
-                        return new variant_vadv_2d<Platform, double>(args);
+                    return common_create_variant_by_prec<Platform, double>(args);
                 }
 
                 return nullptr;
