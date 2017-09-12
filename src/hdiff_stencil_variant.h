@@ -45,7 +45,6 @@ namespace platform {
         std::size_t touched_elements(const std::string &stencil) const override;
         std::size_t bytes_per_element() const override { return sizeof(value_type); }
 
-      private:
         std::vector<value_type, allocator> m_in, m_coeff;
         std::vector<value_type, allocator> m_lap, m_flx, m_fly, m_out;
         std::vector<value_type> m_lap_ref, m_flx_ref, m_fly_ref, m_out_ref;
