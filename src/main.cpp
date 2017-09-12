@@ -44,7 +44,7 @@ std::string metric_info(const arguments_map &args) {
 double get_metric(const arguments_map &args, const result &r) {
     std::string m = args.get("metric");
     if (m == "time")
-        return r.time.min();
+        return r.time.min() * 1000;
     else if (m == "bandwidth")
         return r.bandwidth.max();
     else if (m == "papi")
