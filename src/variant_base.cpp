@@ -19,13 +19,16 @@ namespace platform {
         : m_halo(args.get<int>("halo")), m_alignment(args.get<int>("alignment")), m_isize(args.get<int>("i-size")),
           m_jsize(args.get<int>("j-size")), m_ksize(args.get<int>("k-size")), m_ilayout(args.get<int>("i-layout")),
           m_jlayout(args.get<int>("j-layout")), m_klayout(args.get<int>("k-layout")),
-          m_data_offset(((m_halo + m_alignment - 1) / m_alignment) * m_alignment - m_halo) {
+          m_data_offset(((m_halo + m_alignment - 1) / m_alignment) * m_alignment - m_halo),
+          m_runs(args.get<int>("runs")) {
         if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
             throw ERROR("invalid domain size");
         if (m_halo <= 0)
             throw ERROR("invalid m_halo size");
         if (m_alignment <= 0)
             throw ERROR("invalid alignment");
+        if (m_runs <= 0)
+            throw ERROR("invalid number of runs");
 
         int ish = m_isize + 2 * m_halo;
         int jsh = m_jsize + 2 * m_halo;
@@ -89,7 +92,7 @@ namespace platform {
 #endif
     }
 
-    std::vector<result> variant_base::run(const std::string &stencil, int runs) {
+    std::vector<result> variant_base::run(const std::string &stencil) {
         using clock = std::chrono::high_resolution_clock;
         constexpr int dry = 2;
 
@@ -113,7 +116,7 @@ namespace platform {
             auto f = stencil_function(s);
             result res(s);
 
-            for (int i = 0; i < runs + dry; ++i) {
+            for (int i = 0; i < m_runs + dry; ++i) {
                 prerun();
 
 #ifdef WITH_PAPI

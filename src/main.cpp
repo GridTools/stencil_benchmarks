@@ -199,6 +199,7 @@ int main(int argc, char **argv) {
         .add("papi-event", "PAPI event name", "PAPI_L2_TCM")
 #endif
         .add("output", "output file", "stdout")
+        .add("runs", "number of runs", "20")
         .add_flag("no-header", "do not print header");
 
     platform::setup(args);

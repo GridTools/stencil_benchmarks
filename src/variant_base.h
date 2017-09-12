@@ -15,7 +15,7 @@ namespace platform {
         virtual ~variant_base() {}
 
         virtual std::vector<std::string> stencil_list() const = 0;
-        std::vector<result> run(const std::string &kernel, int runs = 20);
+        std::vector<result> run(const std::string &kernel);
 
       protected:
         using stencil_fptr = void (variant_base::*)();
@@ -55,6 +55,7 @@ namespace platform {
         int m_ilayout, m_jlayout, m_klayout;
         int m_istride, m_jstride, m_kstride;
         int m_data_offset, m_storage_size;
+        int m_runs;
 #ifdef WITH_PAPI
         int m_papi_event_code;
 #endif
