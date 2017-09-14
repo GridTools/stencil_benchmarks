@@ -39,6 +39,43 @@ namespace platform {
             return nullptr;
         }
 
+        void cuda::limit_blocksize(int &iblocksize, int &jblocksize) {
+            cudaError_t err;
+            int device;
+            if ((err = cudaGetDevice(&device)) != cudaSuccess)
+                throw ERROR("error in cudaGetDevice: " + std::string(cudaGetErrorString(err)));
+            cudaDeviceProp prop;
+            if ((err = cudaGetDeviceProperties(&prop, device)) != cudaSuccess)
+                throw ERROR("error in cudaGetDeviceProperties: " + std::string(cudaGetErrorString(err)));
+
+            int iblocksize0 = iblocksize, jblocksize0 = jblocksize;
+            bool adapt = false;
+            if (iblocksize > prop.maxThreadsDim[0]) {
+                iblocksize = prop.maxThreadsDim[0];
+                adapt = true;
+            }
+            if (jblocksize > prop.maxThreadsDim[1]) {
+                jblocksize = prop.maxThreadsDim[1];
+                adapt = true;
+            }
+
+            while (iblocksize * jblocksize > prop.maxThreadsPerBlock) {
+                if (iblocksize > jblocksize)
+                    iblocksize /= 2;
+                else
+                    jblocksize /= 2;
+                adapt = true;
+            }
+            if (adapt) {
+                std::cerr << "WARNING: adapted CUDA block size to conform to device limits "
+                          << "(" << iblocksize0 << "x" << jblocksize0 << " to " << iblocksize << "x" << jblocksize
+                          << ")" << std::endl;
+            }
+
+            if (iblocksize <= 0 || jblocksize <= 0)
+                throw ERROR("CUDA block size adaption failed");
+        }
+
     } // namespace cuda
 
 } // namespace platform

@@ -17,6 +17,8 @@ namespace platform {
             static void setup(arguments &args);
 
             static variant_base *create_variant(const arguments_map &args);
+
+            static void limit_blocksize(int &iblocksize, int &jblocksize);
         };
 
     } // namespace cuda
