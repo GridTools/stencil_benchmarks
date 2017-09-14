@@ -22,7 +22,7 @@ namespace platform {
 
         void prerun() override;
 
-        virtual void vadv() = 0;
+        virtual void vadv(counter &ctr) = 0;
 
       protected:
         value_type *ustage() { return m_ustage.data() + zero_offset(); }
@@ -45,7 +45,7 @@ namespace platform {
         value_type *vtensstage_ref() { return m_vtensstage_ref.data() + zero_offset(); }
         value_type *wtensstage_ref() { return m_wtensstage_ref.data() + zero_offset(); }
 
-        std::function<void()> stencil_function(const std::string &stencil) override;
+        std::function<void(counter &)> stencil_function(const std::string &stencil) override;
 
         bool verify(const std::string &stencil) override;
 
@@ -117,9 +117,10 @@ namespace platform {
     }
 
     template <class Platform, class ValueType>
-    std::function<void()> vadv_stencil_variant<Platform, ValueType>::stencil_function(const std::string &stencil) {
+    std::function<void(counter &)> vadv_stencil_variant<Platform, ValueType>::stencil_function(
+        const std::string &stencil) {
         if (stencil == "vadv")
-            return std::bind(&vadv_stencil_variant::vadv, this);
+            return std::bind(&vadv_stencil_variant::vadv, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 

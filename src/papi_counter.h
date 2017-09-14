@@ -14,7 +14,7 @@
 #include "counter_state.h"
 #include "except.h"
 
-class papi_counter final : public counter {
+class papi_counter : public counter {
     using state = omp_counter_state<long long>;
 
   public:
@@ -35,9 +35,6 @@ class papi_counter final : public counter {
 
         if (PAPI_thread_init(pthread_self) != PAPI_OK)
             throw ERROR("PAPI thread init error");
-
-        for (thread_data &td : m_data)
-            td = {0, false, false, false};
 #else
         throw ERROR("executable built without PAPI support");
 #endif
@@ -45,7 +42,7 @@ class papi_counter final : public counter {
 
     virtual ~papi_counter() {}
 
-    void start() override {
+    virtual void start() override {
         m_state.start(0, 0);
 #ifdef WITH_PAPI
         if (PAPI_register_thread() != PAPI_OK)
@@ -55,7 +52,7 @@ class papi_counter final : public counter {
 #endif
     }
 
-    void pause() override {
+    virtual void pause() override {
         long long ctr = 0;
 #ifdef WITH_PAPI
         if (PAPI_stop_counters(&ctr, 1) != PAPI_OK)
@@ -64,7 +61,7 @@ class papi_counter final : public counter {
         m_state.pause(ctr);
     }
 
-    void resume() override {
+    virtual void resume() override {
         m_state.resume(0);
 #ifdef WITH_PAPI
         if (PAPI_start_counters(&m_event_code, 1) != PAPI_OK)
@@ -72,7 +69,7 @@ class papi_counter final : public counter {
 #endif
     }
 
-    void stop() override {
+    virtual void stop() override {
         long long ctr = 0;
 #ifdef WITH_PAPI
         if (PAPI_stop_counters(&ctr, 1) != PAPI_OK)
@@ -83,9 +80,9 @@ class papi_counter final : public counter {
         m_state.stop(ctr);
     }
 
-    void clear() override { m_state.clear(); }
+    virtual void clear() override { m_state.clear(); }
 
-    result_array total() const override {
+    virtual result_array total() const override {
         auto counts = m_state.thread_sum();
         result_array result;
         std::transform(
@@ -93,21 +90,31 @@ class papi_counter final : public counter {
         return result;
     }
 
-    result_array imbalance() const override {
+    virtual result_array imbalance() const override {
         auto counts_sum = m_state.thread_sum();
         auto counts_max = m_state.thread_max();
         int threads = m_state.active_threads();
-        std::vector<double> imbalances;
+        result_array result;
 
         std::transform(counts_sum.begin(),
             counts_sum.end(),
             counts_max.begin(),
-            std::back_inserter(imbalances),
+            std::back_inserter(result),
             [threads](long long sum, long long max) { return double(max * threads) / sum - 1.0; });
-        return imbalances;
+        return result;
     }
 
-  private:
+    virtual int threads() const override { return m_state.active_threads(); }
+
+    virtual result_array thread_total(int thread) const override {
+        auto counts = m_state.thread_values(thread);
+        result_array result;
+        std::transform(
+            counts.begin(), counts.end(), std::back_inserter(result), [](long long count) { return double(count); });
+        return result;
+    }
+
+  protected:
     int m_event_code;
     state m_state;
 };

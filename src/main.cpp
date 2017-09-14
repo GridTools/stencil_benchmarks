@@ -7,6 +7,7 @@
 #include <omp.h>
 
 #include "arguments.h"
+#include "bandwidth_counter.h"
 #include "counter.h"
 #include "except.h"
 #include "papi_counter.h"
@@ -48,15 +49,18 @@ std::string metric_name(const arguments_map &args) {
     auto m = args.get("metric");
     auto mk = args.get("metric-kind");
     auto ma = args.get("metric-accumulate");
-    return m + "-" + mk + "-" + ma;
+    if (ma == "none")
+        return m + "-" + mk;
+    else
+        return m + "-" + mk + "-" + ma;
 }
 
 struct result {
     std::string stencil;
-    double value;
+    std::vector<double> data;
 };
 
-std::vector<result> run_stencils(const arguments_map &args) {
+std::vector<result> run_stencils(const arguments_map &args, bool per_thread = false) {
     std::vector<result> results;
 
     auto variant = platform::create_variant(args);
@@ -73,42 +77,48 @@ std::vector<result> run_stencils(const arguments_map &args) {
 
     for (const auto &s : stencils) {
         std::unique_ptr<counter> ctr;
-        if (m == "time" || m == "bandwidth")
+        if (m == "time")
             ctr.reset(new timer());
+        else if (m == "bandwidth")
+            ctr.reset(new bandwidth_counter(variant->touched_bytes(s)));
         else if (m == "papi")
             ctr.reset(new papi_counter(args.get("papi-event")));
         else
             throw ERROR("invalid metric");
         variant->run(s, *ctr);
-        result_array r;
-        if (mk == "total")
-            r = ctr->total();
-        else if (mk == "imbalance")
-            r = ctr->imbalance();
-        else
-            throw ERROR("invalid metric-kind");
-        double v;
-        if (m == "bandwidth") {
-            if (ma == "avg")
-                v = r.avg();
-            else if (ma == "min")
-                v = r.max();
-            else if (ma == "max")
-                v = r.min();
-            else
-                throw ERROR("invalid value for metric-accumulate");
-            v = variant->touched_bytes(s) / (1024 * 1024 * 1.024 * v);
+
+        result r;
+        r.stencil = s;
+        if (per_thread && mk == "total") {
+            for (int t = 0; t < ctr->threads(); ++t) {
+                result_array ra = ctr->thread_total(t);
+                if (ma == "avg")
+                    r.data.push_back(ra.avg());
+                else if (ma == "min")
+                    r.data.push_back(ra.min());
+                else if (ma == "max")
+                    r.data.push_back(ra.max());
+                else
+                    throw ERROR("invalid value for metric-accumulate");
+            }
         } else {
+            result_array ra;
+            if (mk == "total")
+                ra = ctr->total();
+            else if (mk == "imbalance")
+                ra = ctr->imbalance();
+            else
+                throw ERROR("invalid metric-kind");
             if (ma == "avg")
-                v = r.avg();
+                r.data.push_back(ra.avg());
             else if (ma == "min")
-                v = r.min();
+                r.data.push_back(ra.min());
             else if (ma == "max")
-                v = r.max();
+                r.data.push_back(ra.max());
             else
                 throw ERROR("invalid value for metric-accumulate");
         }
-        results.push_back({s, v});
+        results.push_back(r);
     }
 
     return results;
@@ -120,10 +130,27 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
     table t(2);
     t << "stencil" << metric_name(args);
 
-    const auto res = run_stencils(args);
-    for (auto &r : res)
-        t << r.stencil << r.value;
-    out << t;
+    std::string m = metric_name(args);
+    const auto res = run_stencils(args, true);
+
+    if (res.front().data.size() > 1) {
+        table t(res.front().data.size() + 1);
+        t << "stencil";
+        for (int i = 0; i < res.front().data.size(); ++i)
+            t << (m + "-" + std::to_string(i));
+        for (auto &r : res) {
+            t << r.stencil;
+            for (auto &v : r.data)
+                t << v;
+        }
+        out << t;
+    } else {
+        table t(2);
+        t << "stencil" << m;
+        for (auto &r : res)
+            t << r.stencil << r.data.front();
+        out << t;
+    }
 }
 
 void run_ij_scaling(const arguments_map &args, std::ostream &out) {
@@ -148,7 +175,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
         auto res = run_stencils(args.with({{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
         for (auto &r : res) {
-            res_map[r.stencil].push_back(r.value);
+            res_map[r.stencil].push_back(r.data.front());
         }
         ++sizes;
     }
@@ -206,7 +233,7 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
             std::stringstream jbs;
             jbs << jblocksize;
             auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
-            t << res.front().value;
+            t << res.front().data.front();
         }
     }
     out << t;

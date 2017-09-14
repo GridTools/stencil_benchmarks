@@ -2,15 +2,19 @@
 
 #include "knl/knl_basic_stencil_variant.h"
 
-#define KERNEL(name, stmt)                                                                                   \
-    void name() override {                                                                                   \
-        const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);               \
-        const value_type *__restrict__ src = this->src();                                                    \
-        const int istride = this->istride();                                                                 \
-        const int jstride = this->jstride();                                                                 \
-        const int kstride = this->kstride();                                                                 \
-        value_type *__restrict__ dst = this->dst();                                                          \
-        _Pragma("omp parallel for simd") _Pragma("vector nontemporal") for (int i = 0; i <= last; ++i) stmt; \
+#define KERNEL(name, stmt)                                                                              \
+    void name(counter &ctr) override {                                                                  \
+        const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);          \
+        const value_type *__restrict__ src = this->src();                                               \
+        const int istride = this->istride();                                                            \
+        const int jstride = this->jstride();                                                            \
+        const int kstride = this->kstride();                                                            \
+        value_type *__restrict__ dst = this->dst();                                                     \
+        _Pragma("omp parallel") {                                                                       \
+            ctr.start();                                                                                \
+            _Pragma("omp for simd") _Pragma("vector nontemporal") for (int i = 0; i <= last; ++i) stmt; \
+            ctr.stop();                                                                                 \
+        }                                                                                               \
     }
 
 namespace platform {

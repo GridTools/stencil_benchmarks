@@ -20,7 +20,7 @@ namespace platform {
             }
             ~variant_vadv_ij_blocked() {}
 
-            void vadv() override {
+            void vadv(counter &ctr) override {
                 const value_type *__restrict__ ustage = this->ustage();
                 const value_type *__restrict__ upos = this->upos();
                 const value_type *__restrict__ utens = this->utens();
@@ -46,112 +46,117 @@ namespace platform {
                 if (this->istride() != 1)
                     throw ERROR("this variant is only compatible with unit i-stride layout");
 
-#pragma omp parallel for collapse(2)
-                for (int jb = 0; jb < jsize; jb += m_jblocksize) {
-                    for (int ib = 0; ib < isize; ib += m_iblocksize) {
-                        const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
-                        const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
-                        int index = ib * istride + jb * jstride;
+#pragma omp parallel
+                {
+                    ctr.start();
+#pragma omp for collapse(2)
+                    for (int jb = 0; jb < jsize; jb += m_jblocksize) {
+                        for (int ib = 0; ib < isize; ib += m_iblocksize) {
+                            const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
+                            const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
+                            int index = ib * istride + jb * jstride;
 
-                        for (int j = jb; j < jmax; ++j) {
+                            for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
-                            for (int i = ib; i < imax; ++i) {
-                                forward_sweep(i,
-                                    j,
-                                    1,
-                                    0,
-                                    ccol,
-                                    dcol,
-                                    wcon,
-                                    ustage,
-                                    upos,
-                                    utens,
-                                    utensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
-                                backward_sweep(i,
-                                    j,
-                                    ccol,
-                                    dcol,
-                                    datacol,
-                                    upos,
-                                    utensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
-                                forward_sweep(i,
-                                    j,
-                                    1,
-                                    0,
-                                    ccol,
-                                    dcol,
-                                    wcon,
-                                    vstage,
-                                    vpos,
-                                    vtens,
-                                    vtensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
-                                backward_sweep(i,
-                                    j,
-                                    ccol,
-                                    dcol,
-                                    datacol,
-                                    vpos,
-                                    vtensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
-                                forward_sweep(i,
-                                    j,
-                                    1,
-                                    0,
-                                    ccol,
-                                    dcol,
-                                    wcon,
-                                    wstage,
-                                    wpos,
-                                    wtens,
-                                    wtensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
-                                backward_sweep(i,
-                                    j,
-                                    ccol,
-                                    dcol,
-                                    datacol,
-                                    wpos,
-                                    wtensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
-                                index += istride;
+                                for (int i = ib; i < imax; ++i) {
+                                    forward_sweep(i,
+                                        j,
+                                        1,
+                                        0,
+                                        ccol,
+                                        dcol,
+                                        wcon,
+                                        ustage,
+                                        upos,
+                                        utens,
+                                        utensstage,
+                                        isize,
+                                        jsize,
+                                        ksize,
+                                        istride,
+                                        jstride,
+                                        kstride);
+                                    backward_sweep(i,
+                                        j,
+                                        ccol,
+                                        dcol,
+                                        datacol,
+                                        upos,
+                                        utensstage,
+                                        isize,
+                                        jsize,
+                                        ksize,
+                                        istride,
+                                        jstride,
+                                        kstride);
+                                    forward_sweep(i,
+                                        j,
+                                        1,
+                                        0,
+                                        ccol,
+                                        dcol,
+                                        wcon,
+                                        vstage,
+                                        vpos,
+                                        vtens,
+                                        vtensstage,
+                                        isize,
+                                        jsize,
+                                        ksize,
+                                        istride,
+                                        jstride,
+                                        kstride);
+                                    backward_sweep(i,
+                                        j,
+                                        ccol,
+                                        dcol,
+                                        datacol,
+                                        vpos,
+                                        vtensstage,
+                                        isize,
+                                        jsize,
+                                        ksize,
+                                        istride,
+                                        jstride,
+                                        kstride);
+                                    forward_sweep(i,
+                                        j,
+                                        1,
+                                        0,
+                                        ccol,
+                                        dcol,
+                                        wcon,
+                                        wstage,
+                                        wpos,
+                                        wtens,
+                                        wtensstage,
+                                        isize,
+                                        jsize,
+                                        ksize,
+                                        istride,
+                                        jstride,
+                                        kstride);
+                                    backward_sweep(i,
+                                        j,
+                                        ccol,
+                                        dcol,
+                                        datacol,
+                                        wpos,
+                                        wtensstage,
+                                        isize,
+                                        jsize,
+                                        ksize,
+                                        istride,
+                                        jstride,
+                                        kstride);
+                                    index += istride;
+                                }
+                                index += jstride - (imax - ib) * istride;
                             }
-                            index += jstride - (imax - ib) * istride;
+                            index += kstride - (jmax - jb) * jstride;
                         }
-                        index += kstride - (jmax - jb) * jstride;
                     }
+                    ctr.stop();
                 }
             }
 

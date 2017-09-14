@@ -125,6 +125,20 @@ class omp_counter_state {
         return result;
     }
 
+    const std::vector<Duration> &thread_values(int thread) const {
+        if (thread < 0 || thread >= active_threads())
+            throw ERROR("thread index out of range");
+        int i = 0;
+        for (auto &s : m_thread_states) {
+            if (s.has_run()) {
+                if (i == thread)
+                    return s.values();
+                ++i;
+            }
+        }
+        throw ERROR("could not get thread values");
+    }
+
   private:
     thread_state &state() { return m_thread_states.at(omp_get_thread_num()); }
 

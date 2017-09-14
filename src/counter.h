@@ -14,4 +14,7 @@ class counter {
 
     virtual result_array total() const = 0;
     virtual result_array imbalance() const = 0;
+
+    virtual int threads() const = 0;
+    virtual result_array thread_total(int thread) const = 0;
 };

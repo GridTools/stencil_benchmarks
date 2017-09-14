@@ -28,19 +28,23 @@
 #define SRC9(idx) SRC8(idx) + SRCX(idx, 8)
 #define SRC10(idx) SRC9(idx) + SRCX(idx, 9)
 
-#define KERNELF(fields)                                                                              \
-    const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);           \
-    SRCPTR(fields)                                                                                   \
-    const int istride = this->istride();                                                             \
-    const int jstride = this->jstride();                                                             \
-    const int kstride = this->kstride();                                                             \
-    value_type *__restrict__ dst = this->dst();                                                      \
-    _Pragma("omp parallel for simd") _Pragma("vector nontemporal") for (int i = 0; i <= last; ++i) { \
-        dst[i] = STMT(SRC##fields);                                                                  \
+#define KERNELF(fields)                                                                         \
+    const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);      \
+    SRCPTR(fields)                                                                              \
+    const int istride = this->istride();                                                        \
+    const int jstride = this->jstride();                                                        \
+    const int kstride = this->kstride();                                                        \
+    value_type *__restrict__ dst = this->dst();                                                 \
+    _Pragma("omp parallel") {                                                                   \
+        ctr.start();                                                                            \
+        _Pragma("omp for simd") _Pragma("vector nontemporal") for (int i = 0; i <= last; ++i) { \
+            dst[i] = STMT(SRC##fields);                                                         \
+            ctr.stop();                                                                         \
+        }                                                                                       \
     }
 
 #define KERNEL(name)                       \
-    void name() override {                 \
+    void name(counter &ctr) override {     \
         const int fields = this->fields(); \
         if (fields == 1) {                 \
             KERNELF(1)                     \

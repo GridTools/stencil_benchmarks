@@ -22,24 +22,24 @@ namespace platform {
 
         std::vector<std::string> stencil_list() const override;
 
-        virtual void copy() = 0;
-        virtual void copyi() = 0;
-        virtual void copyj() = 0;
-        virtual void copyk() = 0;
-        virtual void avgi() = 0;
-        virtual void avgj() = 0;
-        virtual void avgk() = 0;
-        virtual void sumi() = 0;
-        virtual void sumj() = 0;
-        virtual void sumk() = 0;
-        virtual void lapij() = 0;
+        virtual void copy(counter &ctr) = 0;
+        virtual void copyi(counter &ctr) = 0;
+        virtual void copyj(counter &ctr) = 0;
+        virtual void copyk(counter &ctr) = 0;
+        virtual void avgi(counter &ctr) = 0;
+        virtual void avgj(counter &ctr) = 0;
+        virtual void avgk(counter &ctr) = 0;
+        virtual void sumi(counter &ctr) = 0;
+        virtual void sumj(counter &ctr) = 0;
+        virtual void sumk(counter &ctr) = 0;
+        virtual void lapij(counter &ctr) = 0;
 
       protected:
         value_type *src(int field) { return m_src_data.at(field).data() + zero_offset(); }
         value_type *dst() { return m_dst_data.data() + zero_offset(); }
         int fields() const { return m_src_data.size(); }
 
-        std::function<void()> stencil_function(const std::string &stencil) override;
+        std::function<void(counter &)> stencil_function(const std::string &stencil) override;
 
         bool verify(const std::string &stencil) override;
 
@@ -80,29 +80,30 @@ namespace platform {
     }
 
     template <class Platform, class ValueType>
-    std::function<void()> basic_multifield_variant<Platform, ValueType>::stencil_function(const std::string &stencil) {
+    std::function<void(counter &)> basic_multifield_variant<Platform, ValueType>::stencil_function(
+        const std::string &stencil) {
         if (stencil == "copy")
-            return std::bind(&basic_multifield_variant::copy, this);
+            return std::bind(&basic_multifield_variant::copy, this, std::placeholders::_1);
         if (stencil == "copyi")
-            return std::bind(&basic_multifield_variant::copyi, this);
+            return std::bind(&basic_multifield_variant::copyi, this, std::placeholders::_1);
         if (stencil == "copyj")
-            return std::bind(&basic_multifield_variant::copyj, this);
+            return std::bind(&basic_multifield_variant::copyj, this, std::placeholders::_1);
         if (stencil == "copyk")
-            return std::bind(&basic_multifield_variant::copyk, this);
+            return std::bind(&basic_multifield_variant::copyk, this, std::placeholders::_1);
         if (stencil == "avgi")
-            return std::bind(&basic_multifield_variant::avgi, this);
+            return std::bind(&basic_multifield_variant::avgi, this, std::placeholders::_1);
         if (stencil == "avgj")
-            return std::bind(&basic_multifield_variant::avgj, this);
+            return std::bind(&basic_multifield_variant::avgj, this, std::placeholders::_1);
         if (stencil == "avgk")
-            return std::bind(&basic_multifield_variant::avgk, this);
+            return std::bind(&basic_multifield_variant::avgk, this, std::placeholders::_1);
         if (stencil == "sumi")
-            return std::bind(&basic_multifield_variant::sumi, this);
+            return std::bind(&basic_multifield_variant::sumi, this, std::placeholders::_1);
         if (stencil == "sumj")
-            return std::bind(&basic_multifield_variant::sumj, this);
+            return std::bind(&basic_multifield_variant::sumj, this, std::placeholders::_1);
         if (stencil == "sumk")
-            return std::bind(&basic_multifield_variant::sumk, this);
+            return std::bind(&basic_multifield_variant::sumk, this, std::placeholders::_1);
         if (stencil == "lapij")
-            return std::bind(&basic_multifield_variant::lapij, this);
+            return std::bind(&basic_multifield_variant::lapij, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 

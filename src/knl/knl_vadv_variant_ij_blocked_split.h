@@ -20,7 +20,7 @@ namespace platform {
             }
             ~variant_vadv_ij_blocked_split() {}
 
-            void vadv() override {
+            void vadv(counter &ctr) override {
                 const value_type *__restrict__ ustage = this->ustage();
                 const value_type *__restrict__ upos = this->upos();
                 const value_type *__restrict__ utens = this->utens();
@@ -48,6 +48,7 @@ namespace platform {
 
 #pragma omp parallel
                 {
+                    ctr.start();
 #pragma omp for collapse(2) nowait
                     for (int jb = 0; jb < jsize; jb += m_jblocksize) {
                         for (int ib = 0; ib < isize; ib += m_iblocksize) {
@@ -189,6 +190,7 @@ namespace platform {
                             index += kstride - (jmax - jb) * jstride;
                         }
                     }
+                    ctr.stop();
                 }
             }
 

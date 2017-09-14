@@ -28,41 +28,45 @@
 #define SRC9(idx) SRC8(idx) + SRCX(idx, 8)
 #define SRC10(idx) SRC9(idx) + SRCX(idx, 9)
 
-#define KERNELF(fields)                                                                                         \
-    SRCPTR(fields)                                                                                              \
-    value_type *__restrict__ dst = this->dst();                                                                 \
-    const int isize = this->isize();                                                                            \
-    const int jsize = this->jsize();                                                                            \
-    const int ksize = this->ksize();                                                                            \
-    constexpr int istride = 1;                                                                                  \
-    const int jstride = this->jstride();                                                                        \
-    const int kstride = this->kstride();                                                                        \
-    if (this->istride() != 1)                                                                                   \
-        throw ERROR("this variant is only compatible with unit i-stride layout");                               \
-                                                                                                                \
-    const int iblocksize = m_iblocksize;                                                                        \
-    const int jblocksize = m_jblocksize;                                                                        \
-    _Pragma("omp parallel for collapse(2) schedule(static,1)") for (int jb = 0; jb < jsize; jb += jblocksize) { \
-        for (int ib = 0; ib < isize; ib += iblocksize) {                                                        \
-            const int imax = ib + iblocksize <= isize ? ib + iblocksize : isize;                                \
-            const int jmax = jb + jblocksize <= jsize ? jb + jblocksize : jsize;                                \
-            int index = ib * istride + jb * jstride;                                                            \
-                                                                                                                \
-            for (int k = 0; k < ksize; ++k) {                                                                   \
-                for (int j = jb; j < jmax; ++j) {                                                               \
-                    _Pragma("omp simd") _Pragma("vector nontemporal") for (int i = ib; i < imax; ++i) {         \
-                        dst[index] = STMT(SRC##fields);                                                         \
-                        index += istride;                                                                       \
-                    }                                                                                           \
-                    index += jstride - (imax - ib) * istride;                                                   \
-                }                                                                                               \
-                index += kstride - (jmax - jb) * jstride;                                                       \
-            }                                                                                                   \
-        }                                                                                                       \
+#define KERNELF(fields)                                                                                     \
+    SRCPTR(fields)                                                                                          \
+    value_type *__restrict__ dst = this->dst();                                                             \
+    const int isize = this->isize();                                                                        \
+    const int jsize = this->jsize();                                                                        \
+    const int ksize = this->ksize();                                                                        \
+    constexpr int istride = 1;                                                                              \
+    const int jstride = this->jstride();                                                                    \
+    const int kstride = this->kstride();                                                                    \
+    if (this->istride() != 1)                                                                               \
+        throw ERROR("this variant is only compatible with unit i-stride layout");                           \
+                                                                                                            \
+    const int iblocksize = m_iblocksize;                                                                    \
+    const int jblocksize = m_jblocksize;                                                                    \
+    _Pragma("omp parallel") {                                                                               \
+        ctr.start();                                                                                        \
+        _Pragma("omp for collapse(2) schedule(static,1)") for (int jb = 0; jb < jsize; jb += jblocksize) {  \
+            for (int ib = 0; ib < isize; ib += iblocksize) {                                                \
+                const int imax = ib + iblocksize <= isize ? ib + iblocksize : isize;                        \
+                const int jmax = jb + jblocksize <= jsize ? jb + jblocksize : jsize;                        \
+                int index = ib * istride + jb * jstride;                                                    \
+                                                                                                            \
+                for (int k = 0; k < ksize; ++k) {                                                           \
+                    for (int j = jb; j < jmax; ++j) {                                                       \
+                        _Pragma("omp simd") _Pragma("vector nontemporal") for (int i = ib; i < imax; ++i) { \
+                            dst[index] = STMT(SRC##fields);                                                 \
+                            index += istride;                                                               \
+                        }                                                                                   \
+                        index += jstride - (imax - ib) * istride;                                           \
+                    }                                                                                       \
+                    index += kstride - (jmax - jb) * jstride;                                               \
+                }                                                                                           \
+            }                                                                                               \
+        }                                                                                                   \
+        ctr.stop();                                                                                         \
     }
 
 #define KERNEL(name)                       \
-    void name() override {                 \
+    void name(counter &ctr) override {     \
         const int fields = this->fields(); \
         if (fields == 1) {                 \
             KERNELF(1)                     \

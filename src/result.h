@@ -18,6 +18,8 @@ class result_array {
     double max() const;
     double avg() const;
 
+    const std::vector<double> &data() const;
+
     void push_back(double d);
 
   private:

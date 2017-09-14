@@ -16,7 +16,7 @@ namespace platform {
             variant_vadv_2d(const arguments_map &args) : knl_vadv_stencil_variant<Platform, ValueType>(args) {}
             ~variant_vadv_2d() {}
 
-            void vadv() override {
+            void vadv(counter &ctr) override {
                 const value_type *__restrict__ ustage = this->ustage();
                 const value_type *__restrict__ upos = this->upos();
                 const value_type *__restrict__ utens = this->utens();
@@ -41,34 +41,39 @@ namespace platform {
                 const int kstride = this->kstride();
 
                 const int last = this->index(isize - 1, jsize - 1, ksize - 1);
-#pragma omp parallel for collapse(2)
-                for (int j = 0; j < jsize; ++j) {
-                    for (int i = 0; i < isize; ++i) {
-                        kernel_vadv(i,
-                            j,
-                            ustage,
-                            upos,
-                            utens,
-                            utensstage,
-                            vstage,
-                            vpos,
-                            vtens,
-                            vtensstage,
-                            wstage,
-                            wpos,
-                            wtens,
-                            wtensstage,
-                            ccol,
-                            dcol,
-                            wcon,
-                            datacol,
-                            isize,
-                            jsize,
-                            ksize,
-                            istride,
-                            jstride,
-                            kstride);
+#pragma omp parallel
+                {
+                    ctr.start();
+#pragma omp for collapse(2)
+                    for (int j = 0; j < jsize; ++j) {
+                        for (int i = 0; i < isize; ++i) {
+                            kernel_vadv(i,
+                                j,
+                                ustage,
+                                upos,
+                                utens,
+                                utensstage,
+                                vstage,
+                                vpos,
+                                vtens,
+                                vtensstage,
+                                wstage,
+                                wpos,
+                                wtens,
+                                wtensstage,
+                                ccol,
+                                dcol,
+                                wcon,
+                                datacol,
+                                isize,
+                                jsize,
+                                ksize,
+                                istride,
+                                jstride,
+                                kstride);
+                        }
                     }
+                    ctr.stop();
                 }
             }
 

@@ -51,7 +51,7 @@ namespace platform {
                        this->halo() * m_kstride_tmp + this->halo() * m_jstride_tmp;
             }
 
-            void hdiff() override {
+            void hdiff(counter &ctr) override {
 
                 const value_type *__restrict__ in = this->in();
                 const value_type *__restrict__ coeff = this->coeff();
@@ -74,6 +74,7 @@ namespace platform {
                     throw ERROR("Minimum required halo is 2");
 #pragma omp parallel
                 {
+                    ctr.start();
                     for (int k = 0; k < ksize; ++k) {
 #pragma omp for collapse(2) schedule(static, 1) nowait
                         for (int jb = 0; jb < m_nbj; ++jb) {
@@ -159,6 +160,7 @@ namespace platform {
                             }
                         }
                     }
+                    ctr.stop();
                 }
             }
 

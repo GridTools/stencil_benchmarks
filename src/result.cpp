@@ -24,4 +24,6 @@ double result_array::max() const {
 
 double result_array::avg() const { return std::accumulate(m_data.begin(), m_data.end(), 0.0) / m_data.size(); }
 
+const std::vector<double> &result_array::data() const { return m_data; }
+
 void result_array::push_back(double d) { m_data.push_back(d); }
