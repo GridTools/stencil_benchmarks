@@ -11,9 +11,10 @@ namespace platform {
           public:
             using value_type = ValueType;
 
-            x86_hdiff_variant_simple(const arguments_map &args) : x86_hdiff_stencil_variant<Platform, ValueType>(args) {}
+            x86_hdiff_variant_simple(const arguments_map &args)
+                : x86_hdiff_stencil_variant<Platform, ValueType>(args) {}
 
-            void hdiff() override {
+            void hdiff(counter &ctr) override {
 
                 const value_type *__restrict__ in = this->in();
                 const value_type *__restrict__ coeff = this->coeff();
@@ -33,6 +34,7 @@ namespace platform {
                 if (this->halo() < 2)
                     throw ERROR("Minimum required halo is 2");
 
+                ctr.start();
                 for (int k = 0; k < ksize; ++k) {
                     for (int j = -1; j < jsize + 1; ++j) {
                         for (int i = -1; i < isize + 1; ++i) {
@@ -71,6 +73,7 @@ namespace platform {
                         }
                     }
                 }
+                ctr.stop();
             }
         };
 

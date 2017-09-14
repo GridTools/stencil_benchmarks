@@ -1,17 +1,9 @@
-#include "variant_base.h"
-
 #include <algorithm>
 #include <chrono>
 #include <stdexcept>
 
-#ifdef WITH_PAPI
-#include <omp.h>
-#include <papi.h>
-#endif
-
-#include "arguments.h"
 #include "except.h"
-#include "result.h"
+#include "variant_base.h"
 
 namespace platform {
 
@@ -77,96 +69,28 @@ namespace platform {
         }
 
         m_storage_size = m_data_offset + s;
-
-#ifdef WITH_PAPI
-        if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT)
-            throw ERROR("PAPI error: initialization failed");
-        int ret = PAPI_event_name_to_code(const_cast<char *>(args.get("papi-event").c_str()), &m_papi_event_code);
-        if (ret != PAPI_OK) {
-            char *msg = PAPI_strerror(ret);
-            if (msg != nullptr)
-                throw ERROR("PAPI error, " + std::string(msg));
-            else
-                throw ERROR("unknown PAPI error");
-        }
-#endif
     }
 
-    std::vector<result> variant_base::run(const std::string &stencil) {
-        using clock = std::chrono::high_resolution_clock;
+    void variant_base::run(const std::string &stencil, counter &ctr) {
         constexpr int dry = 2;
 
-#ifdef WITH_PAPI
-        if (PAPI_num_counters() <= PAPI_OK)
-            throw ERROR("PAPI not available");
+        auto f = stencil_function(stencil);
 
-        if (PAPI_thread_init(reinterpret_cast<unsigned long (*)()>(omp_get_thread_num)) != PAPI_OK)
-            throw ERROR("PAPI thread init error");
-#endif
+        for (int i = 0; i < m_runs + dry; ++i) {
+            prerun();
 
-        std::vector<std::string> stencils;
-        if (stencil == "all")
-            stencils = stencil_list();
-        else
-            stencils = {stencil};
+            if (i == dry)
+                ctr.clear();
 
-        std::vector<result> results;
+            f(ctr);
 
-        for (const std::string &s : stencils) {
-            auto f = stencil_function(s);
-            result res(s);
+            postrun();
 
-            for (int i = 0; i < m_runs + dry; ++i) {
-                prerun();
-
-#ifdef WITH_PAPI
-#pragma omp parallel
-                {
-                    if (PAPI_start_counters(&m_papi_event_code, 1) != PAPI_OK)
-                        throw ERROR("PAPI error, could not start counters");
-                }
-#endif
-                auto tstart = clock::now();
-                f();
-                auto tend = clock::now();
-#ifdef WITH_PAPI
-                std::vector<long long> ctrs;
-#pragma omp parallel shared(ctrs)
-                {
-                    long long ctr;
-                    if (PAPI_stop_counters(&ctr, 1) != PAPI_OK)
-                        throw ERROR("PAPI error, could not stop counters");
-#pragma omp single
-                    ctrs.resize(omp_get_num_threads());
-#pragma omp barrier
-                    ctrs[omp_get_thread_num()] = ctr;
-                }
-#endif
-
-                postrun();
-
-                if (i == 0) {
-                    if (!verify(s))
-                        throw ERROR("result of stencil '" + s + "' is wrong");
-                } else if (i >= dry) {
-                    double t = std::chrono::duration<double>(tend - tstart).count();
-                    double gb = touched_bytes(s) / (1024.0 * 1024.0 * 1024.0);
-
-#ifdef WITH_PAPI
-                    double ctrs_sum = std::accumulate(ctrs.begin(), ctrs.end(), 0ll);
-                    double ctr = ctrs_sum / ctrs.size();
-                    double ctr_imb = *std::max_element(ctrs.begin(), ctrs.end()) / (ctrs_sum / ctrs.size()) - 1.0;
-
-                    res.push_back(t, gb, ctr, ctr_imb);
-#else
-                    res.push_back(t, gb, 0, 0);
-#endif
-                }
+            if (i == 0) {
+                if (!verify(stencil))
+                    throw ERROR("result of stencil '" + stencil + "' is wrong");
             }
-
-            results.push_back(res);
         }
-        return results;
     }
 
 } // namespace platform

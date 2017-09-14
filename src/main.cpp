@@ -7,9 +7,12 @@
 #include <omp.h>
 
 #include "arguments.h"
+#include "counter.h"
 #include "except.h"
+#include "papi_counter.h"
 #include "platform.h"
 #include "table.h"
+#include "timer.h"
 #include "variant_base.h"
 
 void print_header(const arguments_map &args, std::ostream &out) {
@@ -41,54 +44,85 @@ std::string metric_info(const arguments_map &args) {
         throw ERROR("invalid metric");
 }
 
-double get_metric(const arguments_map &args, const result &r) {
-    std::string m = args.get("metric");
-    if (m == "time")
-        return r.time.min() * 1000;
-    else if (m == "bandwidth")
-        return r.bandwidth.max();
-    else if (m == "papi")
-        return r.counter.min();
-    else if (m == "papi-imbalance")
-        return r.counter_imbalance.min();
-    else
-        throw ERROR("invalid metric");
+std::string metric_name(const arguments_map &args) {
+    auto m = args.get("metric");
+    auto mk = args.get("metric-kind");
+    auto ma = args.get("metric-accumulate");
+    return m + "-" + mk + "-" + ma;
 }
 
+struct result {
+    std::string stencil;
+    double value;
+};
+
 std::vector<result> run_stencils(const arguments_map &args) {
+    std::vector<result> results;
+
     auto variant = platform::create_variant(args);
     auto stencil = args.get("stencil");
-    return variant->run(stencil);
+    auto m = args.get("metric");
+    auto mk = args.get("metric-kind");
+    auto ma = args.get("metric-accumulate");
+
+    std::vector<std::string> stencils;
+    if (stencil == "all")
+        stencils = variant->stencil_list();
+    else
+        stencils = {stencil};
+
+    for (const auto &s : stencils) {
+        std::unique_ptr<counter> ctr;
+        if (m == "time" || m == "bandwidth")
+            ctr.reset(new timer());
+        else if (m == "papi")
+            ctr.reset(new papi_counter(args.get("papi-event")));
+        else
+            throw ERROR("invalid metric");
+        variant->run(s, *ctr);
+        result_array r;
+        if (mk == "total")
+            r = ctr->total();
+        else if (mk == "imbalance")
+            r = ctr->imbalance();
+        else
+            throw ERROR("invalid metric-kind");
+        double v;
+        if (m == "bandwidth") {
+            if (ma == "avg")
+                v = r.avg();
+            else if (ma == "min")
+                v = r.max();
+            else if (ma == "max")
+                v = r.min();
+            else
+                throw ERROR("invalid value for metric-accumulate");
+            v = variant->touched_bytes(s) / (1024 * 1024 * 1.024 * v);
+        } else {
+            if (ma == "avg")
+                v = r.avg();
+            else if (ma == "min")
+                v = r.min();
+            else if (ma == "max")
+                v = r.max();
+            else
+                throw ERROR("invalid value for metric-accumulate");
+        }
+        results.push_back({s, v});
+    }
+
+    return results;
 }
 
 void run_single_size(const arguments_map &args, std::ostream &out) {
     out << "# times are given in milliseconds, bandwidth in GB/s" << std::endl;
 
-    table t(13);
-    t << "Stencil"
-      << "Time-avg"
-      << "Time-min"
-      << "Time-max"
-      << "BW-avg"
-      << "BW-min"
-      << "BW-max"
-      << "CTR-avg"
-      << "CTR-min"
-      << "CTR-max"
-      << "CTR-IMB-avg"
-      << "CTR-IMB-min"
-      << "CTR-IMB-max";
-
-    auto print_result = [&t](const result &r) {
-        t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max() << r.counter.avg() << r.counter.min() << r.counter.max()
-          << r.counter_imbalance.avg() << r.counter_imbalance.min() << r.counter_imbalance.max();
-    };
+    table t(2);
+    t << "stencil" << metric_name(args);
 
     const auto res = run_stencils(args);
     for (auto &r : res)
-        print_result(r);
-
+        t << r.stencil << r.value;
     out << t;
 }
 
@@ -114,7 +148,7 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
         auto res = run_stencils(args.with({{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
         for (auto &r : res) {
-            res_map[r.stencil].push_back(get_metric(args, r));
+            res_map[r.stencil].push_back(r.value);
         }
         ++sizes;
     }
@@ -172,7 +206,7 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
             std::stringstream jbs;
             jbs << jblocksize;
             auto res = run_stencils(args.with({{"i-blocksize", ibs.str()}, {"j-blocksize", jbs.str()}}));
-            t << get_metric(args, res.front());
+            t << res.front().value;
         }
     }
     out << t;
@@ -194,10 +228,10 @@ int main(int argc, char **argv) {
         .add("stencil", "stencil to run", "all")
         .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan)", "single-size")
         .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
-        .add("metric", "what to measure (time, bandwidth, papi, papi-imbalance)", "bandwidth")
-#ifdef WITH_PAPI
+        .add("metric", "what to measure (time, bandwidth, papi)", "bandwidth")
+        .add("metric-kind", "kind of measurement (total, imbalance)", "total")
+        .add("metric-accumulate", "accumulation of result over runs (avg, min, max)", "avg")
         .add("papi-event", "PAPI event name", "PAPI_L2_TCM")
-#endif
         .add("output", "output file", "stdout")
         .add("runs", "number of runs", "20")
         .add_flag("no-header", "do not print header");

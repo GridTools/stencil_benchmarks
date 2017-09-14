@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "arguments.h"
+#include "counter.h"
 #include "result.h"
 
 namespace platform {
@@ -15,7 +16,11 @@ namespace platform {
         virtual ~variant_base() {}
 
         virtual std::vector<std::string> stencil_list() const = 0;
-        std::vector<result> run(const std::string &kernel);
+        void run(const std::string &kernel, counter &ctr);
+
+        std::size_t touched_bytes(const std::string &stencil) const {
+            return touched_elements(stencil) * bytes_per_element();
+        }
 
       protected:
         using stencil_fptr = void (variant_base::*)();
@@ -38,7 +43,7 @@ namespace platform {
         inline int data_offset() const { return m_data_offset; }
         inline int alignment() const { return m_alignment; }
 
-        virtual std::function<void()> stencil_function(const std::string &kernel) = 0;
+        virtual std::function<void(counter &)> stencil_function(const std::string &kernel) = 0;
 
         virtual void prerun() {}
         virtual void postrun() {}
@@ -48,19 +53,12 @@ namespace platform {
         virtual std::size_t bytes_per_element() const = 0;
 
       private:
-        std::size_t touched_bytes(const std::string &stencil) const {
-            return touched_elements(stencil) * bytes_per_element();
-        }
-
         int m_halo, m_alignment;
         int m_isize, m_jsize, m_ksize;
         int m_ilayout, m_jlayout, m_klayout;
         int m_istride, m_jstride, m_kstride;
         int m_data_offset, m_storage_size;
         int m_runs;
-#ifdef WITH_PAPI
-        int m_papi_event_code;
-#endif
     };
 
 } // namespace platform
