@@ -33,6 +33,15 @@ class bandwidth_counter : public timer {
         return result;
     }
 
+    virtual result_array thread_total(int thread) const override {
+        auto durations = m_state.thread_values(thread);
+        result_array result;
+        std::transform(durations.begin(), durations.end(), std::back_inserter(result), [this](clock::duration d) {
+            return m_bytes / (1024 * 1024 * 1.024 * to_ms(d));
+        });
+        return result;
+    }
+
   private:
     long long m_bytes;
 };
