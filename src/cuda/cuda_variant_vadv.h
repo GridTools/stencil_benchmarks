@@ -35,7 +35,7 @@ namespace platform {
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
                     int index = i * istride + j * jstride + k * kstride;
-                    datacol[index] = dcol[index] - ccol[index] * datacol[index + kstride];
+                    datacol[index] = dcol[index] - (ccol[index] * datacol[index + kstride]);
                     ccol[index] = datacol[index];
                     utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
                 }
@@ -104,9 +104,9 @@ namespace platform {
                                                 cs * (ustage[index + kstride] - ustage[index]);
                     dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    ValueType divided = ValueType(1.0) / (bcol - ccol[index - kstride] * acol);
+                    ValueType divided = ValueType(1.0) / (bcol - (ccol[index - kstride] * acol));
                     ccol[index] = ccol[index] * divided;
-                    dcol[index] = (dcol[index] - dcol[index - kstride] * acol) * divided;
+                    dcol[index] = (dcol[index] - (dcol[index - kstride] * acol)) * divided;
                 }
 
                 // k maximum
@@ -124,8 +124,8 @@ namespace platform {
                     ValueType correction_term = -as * (ustage[index - kstride] - ustage[index]);
                     dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    ValueType divided = ValueType(1.0) / (bcol - ccol[index - kstride] * acol);
-                    dcol[index] = (dcol[index] - dcol[index - kstride] * acol) * divided;
+                    ValueType divided = ValueType(1.0) / (bcol - (ccol[index - kstride] * acol));
+                    dcol[index] = (dcol[index] - (dcol[index - kstride] * acol)) * divided;
                 }
             }
         }
@@ -217,6 +217,7 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
+                platform::limit_blocksize(m_iblocksize, m_jblocksize);
             }
             ~variant_vadv() {}
 
@@ -245,11 +246,13 @@ namespace platform {
                 prefetch(this->wcon());
                 prefetch(this->datacol());
 
-                if (cudaDeviceSynchronize() != cudaSuccess)
-                    throw ERROR("error in cudaDeviceSynchronize");
+                cudaError_t err;
+                if ((err = cudaDeviceSynchronize()) != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize: " + std::string(cudaGetErrorString(err)));
             }
 
-            void vadv() override {
+            void vadv(counter &ctr) override {
+                ctr.start();
                 kernel_vadv<<<blocks(), blocksize()>>>(this->ustage(),
                     this->upos(),
                     this->utens(),
@@ -272,8 +275,12 @@ namespace platform {
                     this->istride(),
                     this->jstride(),
                     this->kstride());
-                if (cudaDeviceSynchronize() != cudaSuccess)
-                    throw ERROR("error in cudaDeviceSynchronize");
+                cudaError_t err;
+                if ((err = cudaGetLastError()) != cudaSuccess)
+                    throw ERROR("error on kernel launch: " + std::string(cudaGetErrorString(err)));
+                if ((err = cudaDeviceSynchronize()) != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize: " + std::string(cudaGetErrorString(err)));
+                ctr.stop();
             }
 
           private:

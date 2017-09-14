@@ -45,7 +45,8 @@ namespace platform {
                        LOAD(src[idx + jstride]))
 
 #define KERNEL_CALL(name)                                     \
-    void name() override {                                    \
+    void name(counter &ctr) override {                        \
+        ctr.start();                                          \
         kernel_##name<<<blocks(), blocksize()>>>(this->dst(), \
             this->src(),                                      \
             this->isize(),                                    \
@@ -56,6 +57,7 @@ namespace platform {
             this->kstride());                                 \
         if (cudaDeviceSynchronize() != cudaSuccess)           \
             throw ERROR("error in cudaDeviceSynchronize");    \
+        ctr.stop();                                           \
     }
 
         template <class Platform, class ValueType>
@@ -69,6 +71,7 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
+                platform::limit_blocksize(m_iblocksize, m_jblocksize);
             }
 
             ~variant_ij_blocked() {}
@@ -77,15 +80,17 @@ namespace platform {
                 basic_stencil_variant<platform, value_type>::prerun();
 
                 auto prefetch = [&](const value_type *ptr) {
-                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
-                        cudaSuccess)
-                        throw ERROR("error in cudaMemPrefetchAsync");
+                    cudaError_t err;
+                    if ((err = cudaMemPrefetchAsync(
+                             ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0)) != cudaSuccess)
+                        throw ERROR("error in cudaMemPrefetchAsync: " + std::string(cudaGetErrorString(err)));
                 };
                 prefetch(this->src());
                 prefetch(this->dst());
 
-                if (cudaDeviceSynchronize() != cudaSuccess)
-                    throw ERROR("error in cudaDeviceSynchronize");
+                cudaError_t err;
+                if ((err = cudaDeviceSynchronize()) != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize: " + std::string(cudaGetErrorString(err)));
             }
 
             KERNEL_CALL(copy)
