@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import click
+import collections
 import itertools
 import pandas as pd
 import numpy as np
@@ -27,15 +28,47 @@ def read_data(filename):
 def read(filename):
     return read_header(filename), read_data(filename)
 
+def argsdiff(argslist):
+    diffkeys = set()
+    first = argslist[0]
+    for a in argslist[1:]:
+        assert a.keys() == first.keys()
+        for k, v in first.items():
+            if a[k] != v:
+                diffkeys.add(k)
+    return set(diffkeys)
+
 def plot_title(args):
-    return (u'Variant: {} — Stencil: {} — Prec: {} — Align: {}\n'
-            u'Threads: {} — Domain: {}×{}×{} — Halo: {} — Layout: {}-{}-{}').format(
-                    args['platform'] + ' ' + args['variant'], args['stencil'],
-                    args['precision'].title(), args['alignment'],
-                    args['threads'],
-                    args['i-size'], args['j-size'], args['k-size'],
-                    args['halo'],
-                    args['i-layout'], args['j-layout'], args['k-layout'])
+    if isinstance(args, dict):
+        diff = set()
+    else:
+        diff = argsdiff(args)
+        args = args[0]
+    title = []
+    if diff.isdisjoint({'platform', 'variant'}):
+        title.append(u'Variant: {}'.format(args['platform'] + ' ' + args['variant']))
+    if 'stencil' not in diff:
+        title.append(u'Stencil: {}'.format(args['stencil']))
+    if 'prec' not in diff:
+        title.append(u'Prec: {}'.format(args['precision'].title()))
+    if 'align' not in diff:
+        title.append(u'Align: {}'.format(args['alignment']))
+    if 'threads' not in diff:
+        title.append(u'Threads: {}'.format(args['threads']))
+    if diff.isdisjoint({'i-size', 'j-size', 'k-size'}):
+        title.append(u'Domain: {}×{}×{}'.format(args['i-size'], args['j-size'], args['k-size']))
+    if 'halo' not in diff:
+        title.append(u'Halo: {}'.format(args['halo']))
+    if diff.isdisjoint({'i-layout', 'j-layout', 'k-layout'}):
+        title.append(u'Layout: {}-{}-{}'.format(args['i-layout'], args['j-layout'], args['k-layout']))
+
+    splittitle, minlen = None, 1000000
+    for s in range(len(title)):
+        ts = u' — '.join(title[:s]), u' — '.join(title[s:])
+        maxlen = max(len(t) for t in ts)
+        if maxlen < minlen:
+            splittitle, minlen = u'\n'.join(ts), maxlen
+    return splittitle
 
 def metric_str(args):
     if args['metric'].lower() == 'time':
@@ -162,8 +195,55 @@ def plot_blocksize_scan(args, data, logscale=False, lim=None, viewscale=True):
                      verticalalignment='center',
                      fontsize='xx-small', color='white')
 
+def plot_blocksize_reduction(allargs, alldata, diffkeys, op, logscale=False, lim=None):
+    x = np.arange(len(allargs))
+    m = metric_abbr(allargs[0]) 
 
-@click.command()
+    if op is None:
+        mavg = [np.mean(data.values) for data in alldata]
+        mmin = [np.amin(data.values) for data in alldata]
+        mmax = [np.amax(data.values) for data in alldata]
+        plt.fill_between(x, mmin, mmax, alpha=0.5)
+        plt.plot(x, mavg)
+    elif op == 'avg':
+        plt.plot(x, [np.mean(data.values) for data in alldata])
+    elif op == 'min':
+        plt.plot(x, [np.amin(data.values) for data in alldata])
+    elif op == 'max':
+        plt.plot(x, [np.amax(data.values) for data in alldata])
+    else:
+        assert False
+
+    if logscale:
+        plt.yscale('log')
+
+    plt.xticks(x, rotation=45)
+    if 'i-size' in diffkeys or 'j-size' in diffkeys or 'k-size' in diffkeys:
+        isizes = [int(a['i-size']) for a in allargs]
+        jsizes = [int(a['j-size']) for a in allargs]
+        ksizes = [int(a['k-size']) for a in allargs]
+        xlabels = ['{}x{}x{}'.format(i, j, k) for i, j, k in zip(isizes, jsizes, ksizes)]
+
+    plt.gca().set_xticklabels(xlabels)
+    plt.grid()
+    plt.gca().set_axisbelow(True)
+    plt.ylabel(metric_str(allargs[0]))
+    if lim:
+        plt.ylim(lim)
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    matplotlib.rcParams.update({'font.size': 25,
+                                'xtick.labelsize': 'small',
+                                'ytick.labelsize': 'small',
+                                'axes.titlesize': 'small',
+                                'lines.linestyle': '--',
+                                'lines.linewidth': 2})
+
+    pass
+
+@cli.command()
 @click.argument('outfile', type=click.Path())
 @click.argument('infile', type=click.Path(exists=True), nargs=-1)
 @click.option('--logscale/--no-logscale', default=False,
@@ -174,12 +254,7 @@ def plot_blocksize_scan(args, data, logscale=False, lim=None, viewscale=True):
               help='Maximum value of dependent variable used to define visible data range or "common" to use the maximum data value of all input files.')
 @click.option('--viewscale/--no-viewscale', default=True,
               help='Automatically scale numbers by a multiplier, for well readable value range.')
-def cli(outfile, infile, logscale, vmin, vmax, viewscale):
-    matplotlib.rcParams.update({'font.size': 25,
-                                'xtick.labelsize': 'small',
-                                'ytick.labelsize': 'small',
-                                'axes.titlesize': 'small'})
-
+def single(outfile, infile, logscale, vmin, vmax, viewscale):
     nrows = int(np.sqrt(len(infile)))
     ncols = (len(infile) + nrows - 1) // nrows
 
@@ -210,6 +285,27 @@ def cli(outfile, infile, logscale, vmin, vmax, viewscale):
             plot_ij_scaling(args, data, logscale, lim)
         if args['run-mode'] == 'blocksize-scan':
             plot_blocksize_scan(args, data, logscale, lim, viewscale)
+    plt.tight_layout()
+    plt.savefig(outfile)
+    plt.close()
+
+@cli.command()
+@click.argument('outfile', type=click.Path())
+@click.argument('infile', type=click.Path(exists=True), nargs=-1)
+@click.option('--logscale/--no-logscale', default=False,
+              help='Use logarithmic scaling for dependent variable.')
+@click.option('--vmin', help='Minimum value of dependent variable used to define visible data range', type=float)
+@click.option('--vmax', help='Maximum value of dependent variable used to define visible data range', type=float)
+@click.option('--local-reduction', help='Per-file reduction operation', type=click.Choice(['min', 'max', 'avg']))
+def reduce(outfile, infile, logscale, vmin, vmax, local_reduction):
+    allargs, alldata = zip(*(read(f) for f in infile))
+    diff = argsdiff(allargs)
+    diff.remove('output')
+    plt.figure(figsize=(12, 10))
+    plt.title(plot_title(allargs))
+    if allargs[0]['run-mode'] == 'blocksize-scan':
+        assert diff <= {'i-size', 'j-size', 'k-size'}
+        plot_blocksize_reduction(allargs, alldata, diff, local_reduction, logscale, [vmin, vmax])
     plt.tight_layout()
     plt.savefig(outfile)
     plt.close()
