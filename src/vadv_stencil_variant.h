@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <iterator>
 #include <random>
 
@@ -68,32 +69,58 @@ namespace platform {
           m_wtensstage(storage_size()), m_ccol(storage_size()), m_dcol(storage_size()), m_wcon(storage_size()),
           m_datacol(storage_size()), m_utensstage_ref(storage_size()), m_vtensstage_ref(storage_size()),
           m_wtensstage_ref(storage_size()) {
-#pragma omp parallel
-        {
-            std::minstd_rand eng;
-            std::uniform_real_distribution<value_type> dist(-1, 1);
 
-            int total_size = storage_size();
-#pragma omp for
-            for (int i = 0; i < total_size; ++i) {
-                m_ustage.at(i) = dist(eng);
-                m_upos.at(i) = dist(eng);
-                m_utens.at(i) = dist(eng);
-                m_utensstage.at(i) = dist(eng);
-                m_vstage.at(i) = dist(eng);
-                m_vpos.at(i) = dist(eng);
-                m_vtens.at(i) = dist(eng);
-                m_vtensstage.at(i) = dist(eng);
-                m_wstage.at(i) = dist(eng);
-                m_wpos.at(i) = dist(eng);
-                m_wtens.at(i) = dist(eng);
-                m_wtensstage.at(i) = dist(eng);
-                m_ccol.at(i) = dist(eng);
-                m_dcol.at(i) = dist(eng);
-                m_wcon.at(i) = dist(eng);
-                m_datacol.at(i) = dist(eng);
-            }
-        }
+        const int isize = this->isize();
+        const int jsize = this->jsize();
+        const int ksize = this->ksize();
+        const int h = this->halo();
+        const value_type dx = 1.0 / isize;
+        const value_type dy = 1.0 / jsize;
+        const value_type dz = 1.0 / ksize;
+
+        value_type x, y, z;
+
+        auto val = [&](value_type offset1,
+            value_type offset2,
+            value_type base1,
+            value_type base2,
+            value_type ispread,
+            value_type jspread) {
+            return offset1 +
+                   base1 * (offset2 + std::cos(M_PI * (ispread * x + ispread * y)) +
+                               base2 * std::sin(2 * M_PI * (ispread * x + jspread * y) * z)) /
+                       4.0;
+        };
+
+#pragma omp parallel for collapse(3)
+        for (int k = -h; k < ksize + h; ++k)
+            for (int j = -h; j < jsize + h; ++j)
+                for (int i = -h; i < ksize + h; ++i) {
+                    const int idx = this->zero_offset() + this->index(i, j, k);
+                    x = i * dx;
+                    y = j * dy;
+                    z = k * dz;
+                    m_ustage.at(idx) = val(2.2, 1.5, 0.95, 1.18, 18.4, 20.3);
+                    m_upos.at(idx) = val(3.4, 0.7, 1.07, 1.51, 1.4, 2.3);
+                    m_utens.at(idx) = val(7.4, 4.3, 1.17, 0.91, 1.4, 2.3);
+                    m_utensstage.at(idx) = val(3.2, 2.5, 0.95, 1.18, 18.4, 20.3);
+
+                    m_vstage.at(idx) = val(2.3, 1.5, 0.95, 1.14, 18.4, 20.3);
+                    m_vpos.at(idx) = val(3.3, 0.7, 1.07, 1.71, 1.4, 2.3);
+                    m_vtens.at(idx) = val(7.3, 4.3, 1.17, 0.71, 1.4, 2.3);
+                    m_vtensstage.at(idx) = val(3.3, 2.4, 0.95, 1.18, 18.4, 20.3);
+
+                    m_wstage.at(idx) = val(2.3, 1.5, 0.95, 1.14, 18.4, 20.3);
+                    m_wpos.at(idx) = val(3.3, 0.7, 1.07, 1.71, 1.4, 2.3);
+                    m_wtens.at(idx) = val(7.3, 4.3, 1.17, 0.71, 1.4, 2.3);
+                    m_wtensstage.at(idx) = val(3.3, 2.4, 0.95, 1.18, 18.4, 20.3);
+
+                    m_wcon.at(idx) = val(1.3, 0.3, 0.87, 1.14, 1.4, 2.3);
+
+                    m_ccol.at(idx) = -1;
+                    m_dcol.at(idx) = -1;
+                    m_datacol.at(idx) = -1;
+                }
     }
 
     template <class Platform, class ValueType>
