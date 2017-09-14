@@ -60,17 +60,18 @@ def metric_abbr(args):
 def plot_single_size(args, data, logscale=False, lim=None):
     assert args['run-mode'] == 'single-size'
 
-    x = np.arange(len(data.index))
     m = metric_abbr(args)
-    mavg = data[m + '-avg'].values
-    mmin = data[m + '-min'].values
-    mmax = data[m + '-max'].values
-    plt.bar(x, mavg, 0.6, yerr=[mavg - mmin, mmax - mavg])
-    plt.xticks(x, rotation=45)
-    plt.gca().set_xticklabels(data.index)
+
+    n = len(data.index)
+    x = np.arange(len(data.columns))
+    w = 0.9 / n
+    for i, row in enumerate(data.itertuples(name=None)):
+        stencil, y = row[0], row[1:]
+        plt.bar(x + (-n / 2.0 + i) * w, y, w, align='edge', label=stencil)
+
     plt.grid(axis='y')
     plt.gca().set_axisbelow(True)
-    plt.xlabel('Stencil')
+    plt.xlabel('Thread')
     plt.ylabel(metric_str(args))
     if lim:
         plt.ylim(lim)
