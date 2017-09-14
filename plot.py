@@ -39,7 +39,7 @@ def plot_title(args):
 
 def metric_str(args):
     if args['metric'].lower() == 'time':
-        return 'Measured Time [s]'
+        return 'Measured Time [ms]'
     elif args['metric'].lower() == 'bandwidth':
         return 'Estimated Bandwidth [GB/s]'
     elif args['metric'].lower() == 'papi':
