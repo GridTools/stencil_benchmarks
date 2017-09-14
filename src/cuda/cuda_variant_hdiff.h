@@ -133,7 +133,8 @@ namespace platform {
             }
             ~variant_hdiff() {}
 
-            void hdiff() override {
+            void hdiff(counter &ctr) override {
+                ctr.start();
                 kernel_hdiff<<<blocks(), blocksize()>>>(this->lap(),
                     this->flx(),
                     this->fly(),
@@ -149,6 +150,7 @@ namespace platform {
                     this->halo());
                 if (cudaDeviceSynchronize() != cudaSuccess)
                     throw ERROR("error in cudaDeviceSynchronize");
+                ctr.stop();
             }
 
           private:
