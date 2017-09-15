@@ -69,6 +69,7 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
+                platform::limit_blocksize(m_iblocksize, m_jblocksize);
             }
 
             ~variant_ij_blocked() {}
