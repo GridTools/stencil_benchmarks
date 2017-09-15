@@ -13,6 +13,8 @@
 #include "knl/knl_vadv_variant_2d.h"
 #include "knl/knl_vadv_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_ij_blocked_colopt.h"
+#include "knl/knl_vadv_variant_ij_blocked_k.h"
+#include "knl/knl_vadv_variant_ij_blocked_k_split.h"
 #include "knl/knl_vadv_variant_ij_blocked_split.h"
 #include "knl/knl_variant_1d.h"
 #include "knl/knl_variant_1d_nontemporal.h"
@@ -96,6 +98,12 @@ namespace platform {
                 pargs.command("vadv-ij-blocked-colopt")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("vadv-ij-blocked-k")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("vadv-ij-blocked-k-split")
+                    .add("i-blocksize", "block size in i-direction", "32")
+                    .add("j-blocksize", "block size in j-direction", "8");
             }
 
             template <class Platform, class ValueType>
@@ -131,6 +139,10 @@ namespace platform {
                     return new variant_vadv_ij_blocked_split<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked-colopt")
                     return new variant_vadv_ij_blocked_colopt<Platform, ValueType>(args);
+                if (var == "vadv-ij-blocked-k")
+                    return new variant_vadv_ij_blocked_k<Platform, ValueType>(args);
+                if (var == "vadv-ij-blocked-k-split")
+                    return new variant_vadv_ij_blocked_k_split<Platform, ValueType>(args);
                 return nullptr;
             }
 
