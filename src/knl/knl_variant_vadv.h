@@ -40,7 +40,7 @@ namespace platform {
     j, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride)
             __attribute__((always_inline)) void backward_sweep_kmax(const int i,
                 const int j,
-                value_type *__restrict__ ccol,
+                const value_type *__restrict__ ccol,
                 const value_type *__restrict__ dcol,
                 value_type *__restrict__ datacol,
                 const value_type *__restrict__ upos,
@@ -55,7 +55,6 @@ namespace platform {
                 const int k = ksize - 1;
                 const int index = i * istride + j * jstride + k * kstride;
                 datacol[index] = dcol[index];
-                ccol[index] = datacol[index];
                 utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
             }
 
@@ -64,7 +63,7 @@ namespace platform {
             __attribute__((always_inline)) void backward_sweep_kbody(const int i,
                 const int j,
                 const int k,
-                value_type *__restrict__ ccol,
+                const value_type *__restrict__ ccol,
                 const value_type *__restrict__ dcol,
                 value_type *__restrict__ datacol,
                 const value_type *__restrict__ upos,
@@ -78,7 +77,6 @@ namespace platform {
 
                 int index = i * istride + j * jstride + k * kstride;
                 datacol[index] = dcol[index] - ccol[index] * datacol[index + kstride];
-                ccol[index] = datacol[index];
                 utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
             }
 
@@ -86,7 +84,7 @@ namespace platform {
     j, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride)
             __attribute__((always_inline)) void backward_sweep(const int i,
                 const int j,
-                value_type *__restrict__ ccol,
+                const value_type *__restrict__ ccol,
                 const value_type *__restrict__ dcol,
                 value_type *__restrict__ datacol,
                 const value_type *__restrict__ upos,
@@ -115,7 +113,7 @@ namespace platform {
             __attribute__((always_inline)) void backward_sweep_k(const int i,
                 const int j,
                 const int k,
-                value_type *__restrict__ ccol,
+                const value_type *__restrict__ ccol,
                 const value_type *__restrict__ dcol,
                 value_type *__restrict__ datacol,
                 const value_type *__restrict__ upos,

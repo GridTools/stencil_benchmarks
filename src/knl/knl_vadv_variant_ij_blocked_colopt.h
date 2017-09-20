@@ -207,7 +207,7 @@ namespace platform {
     j, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride)
             /*__attribute__((always_inline))*/ void backward_sweep(const int i,
                 const int j,
-                value_type *__restrict__ ccol,
+                const value_type *__restrict__ ccol,
                 const value_type *__restrict__ dcol,
                 value_type *__restrict__ datacol,
                 const value_type *__restrict__ upos,
@@ -228,7 +228,6 @@ namespace platform {
                     const int index = i * istride + j * jstride + k * kstride;
                     const int colindex = i * istride + thread_index * jstride + k * kstride;
                     datacol[colindex] = dcol[colindex];
-                    ccol[colindex] = datacol[colindex];
                     utensstage[index] = dtr_stage * (datacol[colindex] - upos[index]);
                 }
 
@@ -237,7 +236,6 @@ namespace platform {
                     const int index = i * istride + j * jstride + k * kstride;
                     const int colindex = i * istride + thread_index * jstride + k * kstride;
                     datacol[colindex] = dcol[colindex] - ccol[colindex] * datacol[colindex + kcolstride];
-                    ccol[colindex] = datacol[colindex];
                     utensstage[index] = dtr_stage * (datacol[colindex] - upos[index]);
                 }
             }
