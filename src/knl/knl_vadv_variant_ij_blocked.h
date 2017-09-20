@@ -73,19 +73,8 @@ namespace platform {
                                     istride,
                                     jstride,
                                     kstride);
-                                backward_sweep(i,
-                                    j,
-                                    ccol,
-                                    dcol,
-                                    datacol,
-                                    upos,
-                                    utensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
+                                backward_sweep(
+                                    i, j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
                                 forward_sweep(i,
                                     j,
                                     1,
@@ -103,19 +92,8 @@ namespace platform {
                                     istride,
                                     jstride,
                                     kstride);
-                                backward_sweep(i,
-                                    j,
-                                    ccol,
-                                    dcol,
-                                    datacol,
-                                    vpos,
-                                    vtensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
+                                backward_sweep(
+                                    i, j, ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride);
                                 forward_sweep(i,
                                     j,
                                     1,
@@ -133,19 +111,8 @@ namespace platform {
                                     istride,
                                     jstride,
                                     kstride);
-                                backward_sweep(i,
-                                    j,
-                                    ccol,
-                                    dcol,
-                                    datacol,
-                                    wpos,
-                                    wtensstage,
-                                    isize,
-                                    jsize,
-                                    ksize,
-                                    istride,
-                                    jstride,
-                                    kstride);
+                                backward_sweep(
+                                    i, j, ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride);
                                 index += istride;
                             }
                             index += jstride - (imax - ib) * istride;

@@ -54,8 +54,9 @@ namespace platform {
 
                 const int k = ksize - 1;
                 const int index = i * istride + j * jstride + k * kstride;
-                datacol[index] = dcol[index];
-                utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
+                const int datacol_index = i * istride + j * jstride;
+                datacol[datacol_index] = dcol[index];
+                utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
             }
 
 #pragma omp declare simd linear(i) uniform( \
@@ -75,18 +76,18 @@ namespace platform {
                 const int jstride,
                 const int kstride) {
 
-                int index = i * istride + j * jstride + k * kstride;
-                datacol[index] = dcol[index] - ccol[index] * datacol[index + kstride];
-                utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
+                const int index = i * istride + j * jstride + k * kstride;
+                const int datacol_index = i * istride + j * jstride;
+                datacol[datacol_index] = dcol[index] - ccol[index] * datacol[datacol_index];
+                utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
             }
 
 #pragma omp declare simd linear(i) uniform( \
-    j, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride)
-            __attribute__((always_inline)) void backward_sweep(const int i,
+    j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride)
+            __attribute__((always_inline)) inline void backward_sweep(const int i,
                 const int j,
                 const value_type *__restrict__ ccol,
                 const value_type *__restrict__ dcol,
-                value_type *__restrict__ datacol,
                 const value_type *__restrict__ upos,
                 value_type *__restrict__ utensstage,
                 const int isize,
@@ -97,14 +98,20 @@ namespace platform {
                 const int kstride) {
                 constexpr value_type dtr_stage = 3.0 / 20.0;
 
+                value_type datacol;
                 // k maximum
-                backward_sweep_kmax(
-                    i, j, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
+                {
+                    const int k = ksize - 1;
+                    const int index = i * istride + j * jstride + k * kstride;
+                    datacol = dcol[index];
+                    utensstage[index] = dtr_stage * (datacol - upos[index]);
+                }
 
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
-                    backward_sweep_kbody(
-                        i, j, k, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
+                    const int index = i * istride + j * jstride + k * kstride;
+                    datacol = dcol[index] - ccol[index] * datacol;
+                    utensstage[index] = dtr_stage * (datacol - upos[index]);
                 }
             }
 

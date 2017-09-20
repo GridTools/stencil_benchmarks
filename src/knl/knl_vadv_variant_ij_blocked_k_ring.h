@@ -222,9 +222,9 @@ namespace platform {
 
                 const int k = ksize - 1;
                 const int index = i * istride + j * jstride + k * kstride;
-                const int ring_index = i * istride + j * jstride + (k % 2) * kstride;
-                datacol[ring_index] = dcol[index];
-                utensstage[index] = dtr_stage * (datacol[ring_index] - upos[index]);
+                const int datacol_index = i * istride + j * jstride;
+                datacol[datacol_index] = dcol[index];
+                utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
             }
 
 #pragma omp declare simd linear(i) uniform( \
@@ -245,10 +245,9 @@ namespace platform {
                 const int kstride) {
 
                 const int index = i * istride + j * jstride + k * kstride;
-                const int ring_index = i * istride + j * jstride + (k % 2) * kstride;
-                const int ring_index_kp1 = i * istride + j * jstride + ((k + 1) % 2) * kstride;
-                datacol[ring_index] = dcol[index] - ccol[index] * datacol[ring_index_kp1];
-                utensstage[index] = dtr_stage * (datacol[ring_index] - upos[index]);
+                const int datacol_index = i * istride + j * jstride;
+                datacol[datacol_index] = dcol[index] - ccol[index] * datacol[datacol_index];
+                utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
             }
 
 #pragma omp declare simd linear(i) uniform( \
