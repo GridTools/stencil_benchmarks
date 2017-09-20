@@ -355,65 +355,82 @@ namespace platform {
                 const int jstride,
                 const int kstride) {
 
+                value_type ccol0, ccol1;
+                value_type dcol0, dcol1;
+
                 // k minimum
-                forward_sweep_kmin(i,
-                    j,
-                    ishift,
-                    jshift,
-                    ccol,
-                    dcol,
-                    wcon,
-                    ustage,
-                    upos,
-                    utens,
-                    utensstage,
-                    isize,
-                    jsize,
-                    ksize,
-                    istride,
-                    jstride,
-                    kstride);
+                {
+                    const int k = 0;
+                    const int index = i * istride + j * jstride + k * kstride;
+                    value_type gcv = value_type(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
+                                                            wcon[index + kstride]);
+                    value_type cs = gcv * bet_m;
+
+                    ccol0 = gcv * bet_p;
+                    value_type bcol = dtr_stage - ccol0;
+
+                    value_type correction_term = -cs * (ustage[index + kstride] - ustage[index]);
+                    dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+                    value_type divided = value_type(1.0) / bcol;
+                    ccol0 = ccol0 * divided;
+                    dcol0 = dcol0 * divided;
+
+                    ccol[index] = ccol0;
+                    dcol[index] = dcol0;
+                }
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
-                    forward_sweep_kbody(i,
-                        j,
-                        k,
-                        ishift,
-                        jshift,
-                        ccol,
-                        dcol,
-                        wcon,
-                        ustage,
-                        upos,
-                        utens,
-                        utensstage,
-                        isize,
-                        jsize,
-                        ksize,
-                        istride,
-                        jstride,
-                        kstride);
+                    ccol1 = ccol0;
+                    dcol1 = dcol0;
+                    const int index = i * istride + j * jstride + k * kstride;
+                    value_type gav =
+                        value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
+                    value_type gcv = value_type(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
+                                                            wcon[index + kstride]);
+
+                    value_type as = gav * bet_m;
+                    value_type cs = gcv * bet_m;
+
+                    value_type acol = gav * bet_p;
+                    ccol0 = gcv * bet_p;
+                    value_type bcol = dtr_stage - acol - ccol0;
+
+                    value_type correction_term = -as * (ustage[index - kstride] - ustage[index]) -
+                                                 cs * (ustage[index + kstride] - ustage[index]);
+                    dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+                    value_type divided = value_type(1.0) / (bcol - ccol1 * acol);
+                    ccol0 = ccol0 * divided;
+                    dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+                    ccol[index] = ccol0;
+                    dcol[index] = dcol0;
                 }
 
                 // k maximum
-                forward_sweep_kmax(i,
-                    j,
-                    ishift,
-                    jshift,
-                    ccol,
-                    dcol,
-                    wcon,
-                    ustage,
-                    upos,
-                    utens,
-                    utensstage,
-                    isize,
-                    jsize,
-                    ksize,
-                    istride,
-                    jstride,
-                    kstride);
+                {
+                    ccol1 = ccol0;
+                    dcol1 = dcol0;
+                    const int k = ksize - 1;
+                    const int index = i * istride + j * jstride + k * kstride;
+                    value_type gav =
+                        value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
+
+                    value_type as = gav * bet_m;
+
+                    value_type acol = gav * bet_p;
+                    value_type bcol = dtr_stage - acol;
+
+                    value_type correction_term = -as * (ustage[index - kstride] - ustage[index]);
+                    dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+                    value_type divided = value_type(1.0) / (bcol - ccol1 * acol);
+                    dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+                    dcol[index] = dcol0;
+                }
             }
         };
 
