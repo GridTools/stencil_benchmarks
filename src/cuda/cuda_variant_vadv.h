@@ -9,7 +9,6 @@ namespace platform {
         template <class ValueType>
         __forceinline__ __device__ void backward_sweep(ValueType *ccol,
             const ValueType *__restrict__ dcol,
-            ValueType *__restrict__ datacol,
             const ValueType *__restrict__ upos,
             ValueType *__restrict__ utensstage,
             const int isize,
@@ -22,22 +21,21 @@ namespace platform {
             const int i = blockIdx.x * blockDim.x + threadIdx.x;
             const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
+            ValueType datacol;
             if (i < isize && j < jsize) {
                 // k maximum
                 {
                     const int k = ksize - 1;
                     const int index = i * istride + j * jstride + k * kstride;
-                    datacol[index] = dcol[index];
-                    ccol[index] = datacol[index];
-                    utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
+                    datacol = dcol[index];
+                    utensstage[index] = dtr_stage * (datacol - upos[index]);
                 }
 
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
                     int index = i * istride + j * jstride + k * kstride;
-                    datacol[index] = dcol[index] - ccol[index] * datacol[index + kstride];
-                    ccol[index] = datacol[index];
-                    utensstage[index] = dtr_stage * (datacol[index] - upos[index]);
+                    datacol = dcol[index] - ccol[index] * datacol;
+                    utensstage[index] = dtr_stage * (datacol - upos[index]);
                 }
             }
         }
@@ -65,6 +63,9 @@ namespace platform {
             const int i = blockIdx.x * blockDim.x + threadIdx.x;
             const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
+            ValueType ccol0, ccol1;
+            ValueType dcol0, dcol1;
+
             if (i < isize && j < jsize) {
                 // k minimum
                 {
@@ -74,19 +75,24 @@ namespace platform {
                                                           wcon[index + kstride]);
                     ValueType cs = gcv * bet_m;
 
-                    ccol[index] = gcv * bet_p;
-                    ValueType bcol = dtr_stage - ccol[index];
+                    ccol0 = gcv * bet_p;
+                    ValueType bcol = dtr_stage - ccol0;
 
                     ValueType correction_term = -cs * (ustage[index + kstride] - ustage[index]);
-                    dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+                    dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
                     ValueType divided = ValueType(1.0) / bcol;
-                    ccol[index] = ccol[index] * divided;
-                    dcol[index] = dcol[index] * divided;
+                    ccol0 = ccol0 * divided;
+                    dcol0 = dcol0 * divided;
+
+                    ccol[index] = ccol0;
+                    dcol[index] = dcol0;
                 }
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
+                    ccol1 = ccol0;
+                    dcol1 = dcol0;
                     const int index = i * istride + j * jstride + k * kstride;
                     ValueType gav =
                         ValueType(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
@@ -97,20 +103,25 @@ namespace platform {
                     ValueType cs = gcv * bet_m;
 
                     ValueType acol = gav * bet_p;
-                    ccol[index] = gcv * bet_p;
-                    ValueType bcol = dtr_stage - acol - ccol[index];
+                    ccol0 = gcv * bet_p;
+                    ValueType bcol = dtr_stage - acol - ccol0;
 
                     ValueType correction_term = -as * (ustage[index - kstride] - ustage[index]) -
                                                 cs * (ustage[index + kstride] - ustage[index]);
-                    dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+                    dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    ValueType divided = ValueType(1.0) / (bcol - ccol[index - kstride] * acol);
-                    ccol[index] = ccol[index] * divided;
-                    dcol[index] = (dcol[index] - dcol[index - kstride] * acol) * divided;
+                    ValueType divided = ValueType(1.0) / (bcol - ccol1 * acol);
+                    ccol0 = ccol0 * divided;
+                    dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+                    ccol[index] = ccol0;
+                    dcol[index] = dcol0;
                 }
 
                 // k maximum
                 {
+                    ccol1 = ccol0;
+                    dcol1 = dcol0;
                     const int k = ksize - 1;
                     const int index = i * istride + j * jstride + k * kstride;
                     ValueType gav =
@@ -122,10 +133,13 @@ namespace platform {
                     ValueType bcol = dtr_stage - acol;
 
                     ValueType correction_term = -as * (ustage[index - kstride] - ustage[index]);
-                    dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+                    dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    ValueType divided = ValueType(1.0) / (bcol - ccol[index - kstride] * acol);
-                    dcol[index] = (dcol[index] - dcol[index - kstride] * acol) * divided;
+                    ValueType divided = ValueType(1.0) / (bcol - ccol1 * acol);
+                    dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+                    ccol[index] = ccol0;
+                    dcol[index] = dcol0;
                 }
             }
         }
@@ -146,7 +160,6 @@ namespace platform {
             ValueType *__restrict__ ccol,
             ValueType *__restrict__ dcol,
             const ValueType *__restrict__ wcon,
-            ValueType *__restrict__ datacol,
             const int isize,
             const int jsize,
             const int ksize,
@@ -168,7 +181,7 @@ namespace platform {
                 istride,
                 jstride,
                 kstride);
-            backward_sweep(ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
+            backward_sweep(ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
 
             forward_sweep(1,
                 0,
@@ -185,7 +198,7 @@ namespace platform {
                 istride,
                 jstride,
                 kstride);
-            backward_sweep(ccol, dcol, datacol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride);
+            backward_sweep(ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride);
 
             forward_sweep(1,
                 0,
@@ -202,7 +215,7 @@ namespace platform {
                 istride,
                 jstride,
                 kstride);
-            backward_sweep(ccol, dcol, datacol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride);
+            backward_sweep(ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride);
         }
 
         template <class Platform, class ValueType>
@@ -266,7 +279,6 @@ namespace platform {
                     this->ccol(),
                     this->dcol(),
                     this->wcon(),
-                    this->datacol(),
                     this->isize(),
                     this->jsize(),
                     this->ksize(),
