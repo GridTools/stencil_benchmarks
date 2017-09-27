@@ -252,6 +252,7 @@ namespace platform {
                 computePPGradCor(i,j,k);
             }
         }
+        
         for(k=cFlatLimit+1; k < ksize; ++k) {
             for (int i = 0; i < isize+1; ++i) {
                 for (int j = 0; j < jsize+1; ++j) {
@@ -364,7 +365,6 @@ namespace platform {
     std::size_t fast_waves_uv_variant<Platform, ValueType>::touched_elements(const std::string &stencil) const {
         if (stencil != "fast-waves-uv")
             throw ERROR("unknown stencil '" + stencil + "'");
-        throw ERROR("use wall clock time for performance measurements.");
         return -1;
     }
 
