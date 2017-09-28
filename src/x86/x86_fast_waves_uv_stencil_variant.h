@@ -11,7 +11,8 @@ namespace platform {
         template <class Platform, class ValueType>
         class x86_fast_waves_uv_stencil_variant : public fast_waves_uv_variant<Platform, ValueType> {
           public:
-            x86_fast_waves_uv_stencil_variant(const arguments_map &args) : fast_waves_uv_variant<Platform, ValueType>(args) {
+            x86_fast_waves_uv_stencil_variant(const arguments_map &args)
+                : fast_waves_uv_variant<Platform, ValueType>(args) {
                 Platform::check_cache_conflicts("i-stride offsets", this->istride() * this->bytes_per_element());
                 Platform::check_cache_conflicts("j-stride offsets", this->jstride() * this->bytes_per_element());
                 Platform::check_cache_conflicts("k-stride offsets", this->kstride() * this->bytes_per_element());
