@@ -7,7 +7,7 @@ namespace platform {
     namespace cuda {
 
         template <class ValueType>
-        __forceinline__ __device__ void backward_sweep(ValueType *ccol,
+        __forceinline__ __device__ void backward_sweep(const ValueType *ccol,
             const ValueType *__restrict__ dcol,
             const ValueType *__restrict__ upos,
             ValueType *__restrict__ utensstage,
