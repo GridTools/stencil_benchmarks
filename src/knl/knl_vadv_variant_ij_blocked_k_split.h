@@ -58,7 +58,7 @@ namespace platform {
                                 for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                     for (int i = ib; i < imax; ++i) {
-                                        forward_sweep_k(i,
+                                        this->forward_sweep_k(i,
                                             j,
                                             k,
                                             1,
@@ -83,7 +83,7 @@ namespace platform {
                                 for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                     for (int i = ib; i < imax; ++i) {
-                                        backward_sweep_k(i,
+                                        this->backward_sweep_k(i,
                                             j,
                                             k,
                                             ccol,
@@ -112,7 +112,7 @@ namespace platform {
                                 for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                     for (int i = ib; i < imax; ++i) {
-                                        forward_sweep_k(i,
+                                        this->forward_sweep_k(i,
                                             j,
                                             k,
                                             1,
@@ -137,7 +137,7 @@ namespace platform {
                                 for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                     for (int i = ib; i < imax; ++i) {
-                                        backward_sweep_k(i,
+                                        this->backward_sweep_k(i,
                                             j,
                                             k,
                                             ccol,
@@ -166,7 +166,7 @@ namespace platform {
                                 for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                     for (int i = ib; i < imax; ++i) {
-                                        forward_sweep_k(i,
+                                        this->forward_sweep_k(i,
                                             j,
                                             k,
                                             1,
@@ -191,7 +191,7 @@ namespace platform {
                                 for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                     for (int i = ib; i < imax; ++i) {
-                                        backward_sweep_k(i,
+                                        this->backward_sweep_k(i,
                                             j,
                                             k,
                                             ccol,

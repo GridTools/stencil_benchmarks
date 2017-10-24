@@ -58,7 +58,7 @@ namespace platform {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
-                                    forward_sweep(i,
+                                    this->forward_sweep(i,
                                         j,
                                         1,
                                         0,
@@ -75,7 +75,7 @@ namespace platform {
                                         istride,
                                         jstride,
                                         kstride);
-                                    backward_sweep(i,
+                                    this->backward_sweep(i,
                                         j,
                                         ccol,
                                         dcol,
@@ -104,7 +104,7 @@ namespace platform {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
-                                    forward_sweep(i,
+                                    this->forward_sweep(i,
                                         j,
                                         1,
                                         0,
@@ -121,7 +121,7 @@ namespace platform {
                                         istride,
                                         jstride,
                                         kstride);
-                                    backward_sweep(i,
+                                    this->backward_sweep(i,
                                         j,
                                         ccol,
                                         dcol,
@@ -150,7 +150,7 @@ namespace platform {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                                 for (int i = ib; i < imax; ++i) {
-                                    forward_sweep(i,
+                                    this->forward_sweep(i,
                                         j,
                                         1,
                                         0,
@@ -167,7 +167,7 @@ namespace platform {
                                         istride,
                                         jstride,
                                         kstride);
-                                    backward_sweep(i,
+                                    this->backward_sweep(i,
                                         j,
                                         ccol,
                                         dcol,

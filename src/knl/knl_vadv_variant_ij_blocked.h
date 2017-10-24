@@ -56,7 +56,7 @@ namespace platform {
                         for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
                             for (int i = ib; i < imax; ++i) {
-                                forward_sweep(i,
+                                this->forward_sweep(i,
                                     j,
                                     1,
                                     0,
@@ -73,9 +73,9 @@ namespace platform {
                                     istride,
                                     jstride,
                                     kstride);
-                                backward_sweep(
+                                this->backward_sweep(
                                     i, j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
-                                forward_sweep(i,
+                                this->forward_sweep(i,
                                     j,
                                     1,
                                     0,
@@ -92,9 +92,9 @@ namespace platform {
                                     istride,
                                     jstride,
                                     kstride);
-                                backward_sweep(
+                                this->backward_sweep(
                                     i, j, ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride);
-                                forward_sweep(i,
+                                this->forward_sweep(i,
                                     j,
                                     1,
                                     0,
@@ -111,7 +111,7 @@ namespace platform {
                                     istride,
                                     jstride,
                                     kstride);
-                                backward_sweep(
+                                this->backward_sweep(
                                     i, j, ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride);
                                 index += istride;
                             }
