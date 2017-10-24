@@ -40,7 +40,7 @@ x86: stencil_bench_x86
 
 stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding
 stencil_bench_knl: $(OBJS) $(OBJS_KNL)
-	CC $(CCFLAGS) $+ $(LIBS) -o $@
+	$(CC) $(CCFLAGS) $+ $(LIBS) -o $@
 
 stencil_bench_knl_pat: stencil_bench_knl
 	pat_build -f -T '/.*copy,/.*sum,/.*avg,/.*lap' -w $< -o $@
