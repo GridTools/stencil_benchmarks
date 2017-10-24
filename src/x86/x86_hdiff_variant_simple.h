@@ -11,7 +11,8 @@ namespace platform {
           public:
             using value_type = ValueType;
 
-            x86_hdiff_variant_simple(const arguments_map &args) : x86_hdiff_stencil_variant<Platform, ValueType>(args) {}
+            x86_hdiff_variant_simple(const arguments_map &args)
+                : x86_hdiff_stencil_variant<Platform, ValueType>(args) {}
 
             void hdiff() override {
 
