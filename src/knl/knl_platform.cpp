@@ -136,7 +136,7 @@ namespace platform {
                 if (var == "hdiff-ij-blocked-stacked-layout")
                     return new knl_hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-fused")
-                    return new knl_hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>(args);
+                    return new knl_hdiff_variant_ij_blocked_fused<Platform, ValueType>(args);
                 if (var == "multifield-1d-nontemporal")
                     return new multifield_variant_1d_nontemporal<Platform, ValueType>(args);
                 if (var == "multifield-ij-blocked")
