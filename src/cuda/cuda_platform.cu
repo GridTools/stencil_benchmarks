@@ -1,5 +1,7 @@
 #include "cuda/cuda_platform.h"
 
+#include "cuda/cuda_variant_hdiff.h"
+#include "cuda/cuda_variant_hdiff_noshared.h"
 #include "cuda/cuda_variant_ij_blocked.h"
 #include "cuda/cuda_variant_vadv.h"
 
@@ -13,6 +15,12 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             pargs.command("vadv")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            pargs.command("hdiff")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            pargs.command("hdiff-noshared")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
         }
@@ -29,11 +37,19 @@ namespace platform {
                     return new variant_ij_blocked<cuda, float>(args);
                 if (var == "vadv")
                     return new variant_vadv<cuda, float>(args);
+                if (var == "hdiff")
+                    return new variant_hdiff<cuda, float>(args);
+                if (var == "hdiff-noshared")
+                    return new variant_hdiff_noshared<cuda, float>(args);
             } else if (prec == "double") {
                 if (var == "ij-blocked")
                     return new variant_ij_blocked<cuda, double>(args);
                 if (var == "vadv")
                     return new variant_vadv<cuda, double>(args);
+                if (var == "hdiff")
+                    return new variant_hdiff<cuda, double>(args);
+                if (var == "hdiff-noshared")
+                    return new variant_hdiff_noshared<cuda, double>(args);
             }
 
             return nullptr;
