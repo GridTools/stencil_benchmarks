@@ -37,6 +37,7 @@ namespace platform {
                 m_fly_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
                 m_in_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
                 m_coeff_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
+                m_out_tmp.resize(this->data_offset() + m_jstride_tmp * m_jsize_tmp * m_ksize_tmp);
             }
 
             value_type *lap_tmp() {
@@ -57,6 +58,10 @@ namespace platform {
             }
             value_type *coeff_tmp() {
                 return m_coeff_tmp.data() + this->data_offset() + this->halo() * m_istride_tmp +
+                       this->halo() * m_kstride_tmp + this->halo() * m_jstride_tmp;
+            }
+            value_type *out_tmp() {
+                return m_out_tmp.data() + this->data_offset() + this->halo() * m_istride_tmp +
                        this->halo() * m_kstride_tmp + this->halo() * m_jstride_tmp;
             }
 
@@ -95,6 +100,42 @@ namespace platform {
                 }
             }
 
+            void postrun() override {
+                knl_hdiff_stencil_variant<Platform, ValueType>::postrun();
+
+                const int istride = 1;
+                const int jstride = this->jstride();
+                const int kstride = this->kstride();
+                const int h = this->halo();
+                const int isize = this->isize();
+                const int jsize = this->jsize();
+                const int ksize = this->ksize();
+                const value_type *__restrict__ out_tmp = this->out_tmp();
+                value_type *__restrict__ out = this->out();
+
+#pragma omp parallel for collapse(2) schedule(static, 1)
+                for (int jb = 0; jb < m_nbj; ++jb) {
+                    for (int ib = 0; ib < m_nbi; ++ib) {
+                        const int bn = (jb * m_nbi + ib);
+                        const int imax = (ib + 1) * m_iblocksize <= isize ? m_iblocksize : (isize - ib * m_iblocksize);
+                        const int jmax = (jb + 1) * m_jblocksize <= jsize ? m_jblocksize : (jsize - jb * m_jblocksize);
+                        // iterate over k level for given block
+                        for (int k = 0; k < ksize; ++k) {
+                            // iterate over i and j for given block
+                            for (int j = 0; j < jmax; ++j) {
+                                for (int i = 0; i < imax; ++i) {
+                                    const int index_tmp = (bn * this->ksize() + 2 * bn * h) * m_kstride_tmp +
+                                                          k * m_kstride_tmp + i * m_istride_tmp + j * m_jstride_tmp;
+                                    const int index_real = ib * m_iblocksize * istride + jb * m_jblocksize * jstride +
+                                                           k * kstride + i * istride + j * jstride;
+                                    out[index_real] = out_tmp[index_tmp];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             void hdiff() override {
 
                 const value_type *__restrict__ in = this->in_tmp();
@@ -102,6 +143,7 @@ namespace platform {
                 value_type *__restrict__ lap = this->lap_tmp();
                 value_type *__restrict__ flx = this->flx_tmp();
                 value_type *__restrict__ fly = this->fly_tmp();
+                value_type *__restrict__ out_tmp = this->out_tmp();
                 value_type *__restrict__ out = this->out();
 
                 constexpr int istride = 1;
@@ -119,8 +161,8 @@ namespace platform {
 
 #pragma omp parallel
                 {
-                    for (int k = 0; k < ksize; ++k) {
 #pragma omp for collapse(2) schedule(static, 1) nowait
+                    for (int k = 0; k < ksize; ++k) {
                         for (int jb = 0; jb < m_nbj; ++jb) {
                             for (int ib = 0; ib < m_nbi; ++ib) {
                                 const int imax =
@@ -128,7 +170,6 @@ namespace platform {
                                 const int jmax =
                                     (jb + 1) * m_jblocksize <= jsize ? m_jblocksize : (jsize - jb * m_jblocksize);
 
-                                int index_out = ib * m_iblocksize * istride + jb * m_jblocksize * jstride + k * kstride;
                                 const int bn = (jb * m_nbi + ib);
 
                                 int index_lap_tmp = (bn * this->ksize() + 2 * bn * h) * m_kstride_tmp +
@@ -182,15 +223,13 @@ namespace platform {
 #pragma omp simd
 #pragma vector nontemporal
                                     for (int i = 0; i < imax; ++i) {
-                                        out[index_out] =
+                                        out_tmp[index_out_tmp] =
                                             in[index_out_tmp] -
                                             coeff[index_out_tmp] *
                                                 (flx[index_out_tmp] - flx[index_out_tmp - m_istride_tmp] +
                                                     fly[index_out_tmp] - fly[index_out_tmp - m_jstride_tmp]);
-                                        index_out += istride;
                                         index_out_tmp += m_istride_tmp;
                                     }
-                                    index_out += jstride - (imax)*istride;
                                     index_out_tmp += m_jstride_tmp - (imax)*m_istride_tmp;
                                 }
                             }
@@ -205,7 +244,7 @@ namespace platform {
             constexpr static int m_istride_tmp = 1;
             int m_jstride_tmp, m_kstride_tmp;
             int m_padding_tmp;
-            std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp, m_in_tmp, m_coeff_tmp;
+            std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp, m_in_tmp, m_coeff_tmp, m_out_tmp;
         };
 
     } // namespace knl
