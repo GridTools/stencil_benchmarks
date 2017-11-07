@@ -3,6 +3,7 @@
 
 #include "knl/knl_platform.h"
 
+#include "knl/knl_hdiff_variant_ij_blocked_ddfused.h"
 #include "knl/knl_hdiff_variant_ij_blocked_fused.h"
 #include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
@@ -88,6 +89,10 @@ namespace platform {
                 pargs.command("hdiff-ij-blocked-fused")
                     .add("i-blocksize", "block size in i-direction", "32")
                     .add("j-blocksize", "block size in j-direction", "8");
+                pargs.command("hdiff-ij-blocked-ddfused")
+                    .add("i-blocks", "blocks in i-direction", "16")
+                    .add("j-blocks", "blocks in j-direction", "8")
+                    .add("k-blocks", "blocks in k-direction", "1");
                 pargs.command("multifield-1d-nontemporal").add("fields", "number of fields", "5");
                 pargs.command("multifield-ij-blocked")
                     .add("fields", "number of fields", "5")
@@ -137,6 +142,8 @@ namespace platform {
                     return new knl_hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-fused")
                     return new knl_hdiff_variant_ij_blocked_fused<Platform, ValueType>(args);
+                if (var == "hdiff-ij-blocked-ddfused")
+                    return new knl_hdiff_variant_ij_blocked_ddfused<Platform, ValueType>(args);
                 if (var == "multifield-1d-nontemporal")
                     return new multifield_variant_1d_nontemporal<Platform, ValueType>(args);
                 if (var == "multifield-ij-blocked")
