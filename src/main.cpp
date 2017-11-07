@@ -178,6 +178,60 @@ void run_blocksize_scan(const arguments_map &args, std::ostream &out) {
     out << t;
 }
 
+void run_block_scan(const arguments_map &args, std::ostream &out) {
+    std::string stencil = args.get("stencil");
+    if (stencil == "all")
+        throw ERROR("block-scan run-mode can only be used with a single stencil");
+
+    const int isize = args.get<int>("i-size");
+    const int jsize = args.get<int>("j-size");
+    const int ksize = args.get<int>("k-size");
+    const int threads = omp_get_max_threads();
+
+    std::vector<std::array<int, 3>> blocks;
+
+    for (int k = 1; k <= ksize; ++k) {
+        for (int j = 1; j <= jsize; ++j) {
+            for (int i = 1; i <= isize; ++i) {
+                if (i * j * k == threads)
+                    blocks.push_back({i, j, k});
+            }
+        }
+    }
+
+    table t(13);
+    t << "Block-size"
+      << "Time-avg"
+      << "Time-min"
+      << "Time-max"
+      << "BW-avg"
+      << "BW-min"
+      << "BW-max"
+      << "CTR-avg"
+      << "CTR-min"
+      << "CTR-max"
+      << "CTR-IMB-avg"
+      << "CTR-IMB-min"
+      << "CTR-IMB-max";
+
+    auto print_result = [&t](const arguments_map &a, const result &r) {
+        t << (a.get("i-blocks") + "x" + a.get("j-blocks") + "x" + a.get("k-blocks"));
+        t << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
+          << r.bandwidth.min() << r.bandwidth.max() << r.counter.avg() << r.counter.min() << r.counter.max()
+          << r.counter_imbalance.avg() << r.counter_imbalance.min() << r.counter_imbalance.max();
+    };
+
+    for (const auto &b : blocks) {
+        auto a = args.with({{"i-blocks", std::to_string(b[0])},
+            {"j-blocks", std::to_string(b[1])},
+            {"k-blocks", std::to_string(b[2])}});
+        auto r = run_stencils(a).front();
+        print_result(a, r);
+    }
+
+    out << t;
+}
+
 int main(int argc, char **argv) {
     arguments args(argv[0], "platform");
 
@@ -192,7 +246,7 @@ int main(int argc, char **argv) {
         .add("alignment", "alignment in elements", "1")
         .add("precision", "single or double precision", "double")
         .add("stencil", "stencil to run", "all")
-        .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan)", "single-size")
+        .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan, block-scan)", "single-size")
         .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
         .add("metric", "what to measure (time, bandwidth, papi, papi-imbalance)", "bandwidth")
 #ifdef WITH_PAPI
@@ -232,6 +286,8 @@ int main(int argc, char **argv) {
         run_ij_scaling(argsmap, out);
     else if (run_mode == "blocksize-scan")
         run_blocksize_scan(argsmap, out);
+    else if (run_mode == "block-scan")
+        run_block_scan(argsmap, out);
     else
         throw ERROR("invalid run-mode");
 
