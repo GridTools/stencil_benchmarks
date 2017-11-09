@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+import argparse
 import itertools
 import sys
 import re
@@ -37,8 +38,12 @@ def var_range(s):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print('Usage: {} [APPLICATION] [APPLICATION ARGUMENTS]...'.format(sys.argv[0]))
+    try:
+        argstart = sys.argv.index('--')
+        if argstart >= len(sys.argv) - 1:
+            raise ValueError()
+    except ValueError:
+        print('Usage: {} [OPTIONS] -- [APPLICATION] [APPLICATION ARGUMENTS]...'.format(sys.argv[0]))
         print()
         print('This script generates a slurm array job script for starting the given application with the given arguments.')
         print('The result is printed to stdout. Arguments given in brackets are interpreted as ranges of values.')
@@ -69,7 +74,16 @@ if __name__ == '__main__':
         print('  {} ./app -a [foo,bar] -b [2-0]'.format(sys.argv[0]))
         sys.exit()
 
-    args = ' '.join(sys.argv[1:])
+    # parse options
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--slurm', '-s', action='append', default=[])
+    parser.add_argument('--environment', '-e', action='append', default=[])
+    argsmap = parser.parse_args(sys.argv[1:argstart])
+
+    # parse application argument string
+
+    args = ' '.join(sys.argv[argstart + 1:])
 
     grps = dict()
     vs = []
@@ -109,9 +123,8 @@ if __name__ == '__main__':
     slurm_output = h.hexdigest()
 
     print('#!/bin/bash -l')
-    print('#SBATCH --time=01:00:00')
-    print('#SBATCH --constraint=flat,quad')
-    print('#SBATCH --export=KMP_AFFINITY=balanced')
+    for slurmopt in argsmap.slurm:
+        print('#SBATCH --{}'.format(slurmopt))
     print('#SBATCH --array=0-{}%50'.format(tot_jobs - 1))
     print('#SBATCH --output={}_%a.out'.format(slurm_output)) 
     print()
@@ -133,7 +146,7 @@ if __name__ == '__main__':
 
     print('if [ ! -s "{0}_${{SLURM_ARRAY_TASK_ID}}.out" ] || [ -n "$(grep -l \'srun: error\' "{0}_${{SLURM_ARRAY_TASK_ID}}.out")" ]'.format(slurm_output))
     print('then')
-    print('    srun ' + nargs)
+    print('    {} srun '.format(' '.join(argsmap.environment)) + nargs)
     print('fi')
 
 
