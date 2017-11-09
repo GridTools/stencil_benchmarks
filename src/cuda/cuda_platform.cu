@@ -88,7 +88,7 @@ namespace platform {
                 adapt = true;
             }
 
-            while (iblocksize * jblocksize > prop.maxThreadsPerBlock) {
+            while (iblocksize * jblocksize * kblocksize > prop.maxThreadsPerBlock) {
                 if (iblocksize > jblocksize) {
                     if (iblocksize > kblocksize)
                         iblocksize /= 2;
