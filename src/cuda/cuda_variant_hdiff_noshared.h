@@ -63,11 +63,10 @@ namespace platform {
 
             variant_hdiff_noshared(const arguments_map &args)
                 : hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
-                  m_jblocksize(args.get<int>("j-blocksize")) {
+                  m_jblocksize(args.get<int>("j-blocksize")), m_kblocksize(args.get<int>("k-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
-                platform::limit_blocksize(m_iblocksize, m_jblocksize);
-                m_kblocksize = std::min(32, 1024 / (m_iblocksize * m_jblocksize));
+                platform::limit_blocksize(m_iblocksize, m_jblocksize, m_kblocksize);
             }
             ~variant_hdiff_noshared() {}
 

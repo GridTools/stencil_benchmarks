@@ -22,7 +22,8 @@ namespace platform {
                 .add("j-blocksize", "block size in j-direction", "8");
             pargs.command("hdiff-noshared")
                 .add("i-blocksize", "block size in i-direction", "32")
-                .add("j-blocksize", "block size in j-direction", "8");
+                .add("j-blocksize", "block size in j-direction", "8")
+                .add("k-blocksize", "block size in k-direction", "8");
         }
 
         variant_base *cuda::create_variant(const arguments_map &args) {
@@ -56,6 +57,14 @@ namespace platform {
         }
 
         void cuda::limit_blocksize(int &iblocksize, int &jblocksize) {
+            int kblocksize = 1;
+            limit_blocksize(iblocksize, jblocksize, kblocksize);
+        }
+
+        void cuda::limit_blocksize(int &iblocksize, int &jblocksize, int &kblocksize) {
+            if (iblocksize <= 0 || jblocksize <= 0 || kblocksize <= 0)
+                throw ERROR("invalid CUDA block size");
+
             cudaError_t err;
             int device;
             if ((err = cudaGetDevice(&device)) != cudaSuccess)
@@ -64,7 +73,7 @@ namespace platform {
             if ((err = cudaGetDeviceProperties(&prop, device)) != cudaSuccess)
                 throw ERROR("error in cudaGetDeviceProperties: " + std::string(cudaGetErrorString(err)));
 
-            int iblocksize0 = iblocksize, jblocksize0 = jblocksize;
+            int iblocksize0 = iblocksize, jblocksize0 = jblocksize, kblocksize0 = kblocksize;
             bool adapt = false;
             if (iblocksize > prop.maxThreadsDim[0]) {
                 iblocksize = prop.maxThreadsDim[0];
@@ -74,21 +83,32 @@ namespace platform {
                 jblocksize = prop.maxThreadsDim[1];
                 adapt = true;
             }
+            if (kblocksize > prop.maxThreadsDim[2]) {
+                kblocksize = prop.maxThreadsDim[2];
+                adapt = true;
+            }
 
             while (iblocksize * jblocksize > prop.maxThreadsPerBlock) {
-                if (iblocksize > jblocksize)
-                    iblocksize /= 2;
-                else
-                    jblocksize /= 2;
+                if (iblocksize > jblocksize) {
+                    if (iblocksize > kblocksize)
+                        iblocksize /= 2;
+                    else
+                        kblocksize /= 2;
+                } else {
+                    if (jblocksize > kblocksize)
+                        jblocksize /= 2;
+                    else
+                        kblocksize /= 2;
+                }
                 adapt = true;
             }
             if (adapt) {
                 std::cerr << "WARNING: adapted CUDA block size to conform to device limits "
-                          << "(" << iblocksize0 << "x" << jblocksize0 << " to " << iblocksize << "x" << jblocksize
-                          << ")" << std::endl;
+                          << "(" << iblocksize0 << "x" << jblocksize0 << "x" << kblocksize0 << " to " << iblocksize
+                          << "x" << jblocksize << "x" << kblocksize << ")" << std::endl;
             }
 
-            if (iblocksize <= 0 || jblocksize <= 0)
+            if (iblocksize <= 0 || jblocksize <= 0 || kblocksize <= 0)
                 throw ERROR("CUDA block size adaption failed");
         }
 
