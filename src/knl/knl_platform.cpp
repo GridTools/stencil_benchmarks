@@ -131,37 +131,37 @@ namespace platform {
                 if (var == "ijk-blocked")
                     return new variant_ijk_blocked<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-k-innermost")
-                    return new knl_hdiff_variant_ij_blocked_k_innermost<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_k_innermost<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-k-outermost")
-                    return new knl_hdiff_variant_ij_blocked_k_outermost<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_k_outermost<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-non-red")
-                    return new knl_hdiff_variant_ij_blocked_non_red<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_non_red<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-private-halo")
-                    return new knl_hdiff_variant_ij_blocked_private_halo<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_private_halo<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-stacked-layout")
-                    return new knl_hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-fused")
-                    return new knl_hdiff_variant_ij_blocked_fused<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_fused<Platform, ValueType>(args);
                 if (var == "hdiff-ij-blocked-ddfused")
-                    return new knl_hdiff_variant_ij_blocked_ddfused<Platform, ValueType>(args);
+                    return new hdiff_variant_ij_blocked_ddfused<Platform, ValueType>(args);
                 if (var == "multifield-1d-nontemporal")
                     return new multifield_variant_1d_nontemporal<Platform, ValueType>(args);
                 if (var == "multifield-ij-blocked")
                     return new multifield_variant_ij_blocked<Platform, ValueType>(args);
                 if (var == "vadv-2d")
-                    return new variant_vadv_2d<Platform, ValueType>(args);
+                    return new vadv_variant_2d<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked")
-                    return new variant_vadv_ij_blocked<Platform, ValueType>(args);
+                    return new vadv_variant_ij_blocked<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked-split")
-                    return new variant_vadv_ij_blocked_split<Platform, ValueType>(args);
+                    return new vadv_variant_ij_blocked_split<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked-colopt")
-                    return new variant_vadv_ij_blocked_colopt<Platform, ValueType>(args);
+                    return new vadv_variant_ij_blocked_colopt<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked-k")
-                    return new variant_vadv_ij_blocked_k<Platform, ValueType>(args);
+                    return new vadv_variant_ij_blocked_k<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked-k-ring")
-                    return new variant_vadv_ij_blocked_k_ring<Platform, ValueType>(args);
+                    return new vadv_variant_ij_blocked_k_ring<Platform, ValueType>(args);
                 if (var == "vadv-ij-blocked-k-split")
-                    return new variant_vadv_ij_blocked_k_split<Platform, ValueType>(args);
+                    return new vadv_variant_ij_blocked_k_split<Platform, ValueType>(args);
                 return nullptr;
             }
 

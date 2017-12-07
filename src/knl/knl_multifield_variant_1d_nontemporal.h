@@ -39,30 +39,31 @@
         dst[i] = STMT(SRC##fields);                                                                  \
     }
 
-#define KERNEL(name)                       \
-    void name() override {                 \
-        const int fields = this->fields(); \
-        if (fields == 1) {                 \
-            KERNELF(1)                     \
-        } else if (fields == 2) {          \
-            KERNELF(2)                     \
-        } else if (fields == 3) {          \
-            KERNELF(3)                     \
-        } else if (fields == 4) {          \
-            KERNELF(4)                     \
-        } else if (fields == 5) {          \
-            KERNELF(5)                     \
-        } else if (fields == 6) {          \
-            KERNELF(6)                     \
-        } else if (fields == 7) {          \
-            KERNELF(7)                     \
-        } else if (fields == 8) {          \
-            KERNELF(8)                     \
-        } else if (fields == 9) {          \
-            KERNELF(9)                     \
-        } else if (fields == 10) {         \
-            KERNELF(10)                    \
-        }                                  \
+#define KERNEL(name)                                                      \
+    template <class Platform, class ValueType>                            \
+    void multifield_variant_1d_nontemporal<Platform, ValueType>::name() { \
+        const int fields = this->fields();                                \
+        if (fields == 1) {                                                \
+            KERNELF(1)                                                    \
+        } else if (fields == 2) {                                         \
+            KERNELF(2)                                                    \
+        } else if (fields == 3) {                                         \
+            KERNELF(3)                                                    \
+        } else if (fields == 4) {                                         \
+            KERNELF(4)                                                    \
+        } else if (fields == 5) {                                         \
+            KERNELF(5)                                                    \
+        } else if (fields == 6) {                                         \
+            KERNELF(6)                                                    \
+        } else if (fields == 7) {                                         \
+            KERNELF(7)                                                    \
+        } else if (fields == 8) {                                         \
+            KERNELF(8)                                                    \
+        } else if (fields == 9) {                                         \
+            KERNELF(9)                                                    \
+        } else if (fields == 10) {                                        \
+            KERNELF(10)                                                   \
+        }                                                                 \
     }
 
 namespace platform {
@@ -80,40 +81,52 @@ namespace platform {
                     throw ERROR("multifield variant supports only up to 10 fields");
             }
 
+            void copy() override;
+            void copyi() override;
+            void copyj() override;
+            void copyk() override;
+            void avgi() override;
+            void avgj() override;
+            void avgk() override;
+            void sumi() override;
+            void sumj() override;
+            void sumk() override;
+            void lapij() override;
+        };
+
 #define STMT(src) src(i)
-            KERNEL(copy)
+        KERNEL(copy)
 #undef STMT
 #define STMT(src) src(i + istride)
-            KERNEL(copyi)
+        KERNEL(copyi)
 #undef STMT
 #define STMT(src) src(i + jstride)
-            KERNEL(copyj)
+        KERNEL(copyj)
 #undef STMT
 #define STMT(src) src(i + kstride)
-            KERNEL(copyk)
+        KERNEL(copyk)
 #undef STMT
 #define STMT(src) src(i - istride) + src(i + istride)
-            KERNEL(avgi)
+        KERNEL(avgi)
 #undef STMT
 #define STMT(src) src(i - jstride) + src(i + jstride)
-            KERNEL(avgj)
+        KERNEL(avgj)
 #undef STMT
 #define STMT(src) src(i - kstride) + src(i + kstride)
-            KERNEL(avgk)
+        KERNEL(avgk)
 #undef STMT
 #define STMT(src) src(i) + src(i + istride)
-            KERNEL(sumi)
+        KERNEL(sumi)
 #undef STMT
 #define STMT(src) src(i) + src(i + jstride)
-            KERNEL(sumj)
+        KERNEL(sumj)
 #undef STMT
 #define STMT(src) src(i) + src(i + kstride)
-            KERNEL(sumk)
+        KERNEL(sumk)
 #undef STMT
 #define STMT(src) src(i) + src(i - istride) + src(i + istride) + src(i - jstride) + src(i + jstride)
-            KERNEL(lapij)
+        KERNEL(lapij)
 #undef STMT
-        };
 
     } // namespace knl
 
