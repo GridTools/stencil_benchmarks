@@ -1,9 +1,9 @@
 #include "cuda/cuda_platform.h"
 
-#include "cuda/cuda_variant_hdiff.h"
-#include "cuda/cuda_variant_hdiff_noshared.h"
+#include "cuda/cuda_vadv_variant.h"
+#include "cuda/cuda_hdiff_variant.h"
+#include "cuda/cuda_hdiff_variant_noshared.h"
 #include "cuda/cuda_variant_ij_blocked.h"
-#include "cuda/cuda_variant_vadv.h"
 
 namespace platform {
 
@@ -37,20 +37,20 @@ namespace platform {
                 if (var == "ij-blocked")
                     return new variant_ij_blocked<cuda, float>(args);
                 if (var == "vadv")
-                    return new variant_vadv<cuda, float>(args);
+                    return new vadv_variant<cuda, float>(args);
                 if (var == "hdiff")
-                    return new variant_hdiff<cuda, float>(args);
+                    return new hdiff_variant<cuda, float>(args);
                 if (var == "hdiff-noshared")
-                    return new variant_hdiff_noshared<cuda, float>(args);
+                    return new hdiff_variant_noshared<cuda, float>(args);
             } else if (prec == "double") {
                 if (var == "ij-blocked")
                     return new variant_ij_blocked<cuda, double>(args);
                 if (var == "vadv")
-                    return new variant_vadv<cuda, double>(args);
+                    return new vadv_variant<cuda, double>(args);
                 if (var == "hdiff")
-                    return new variant_hdiff<cuda, double>(args);
+                    return new hdiff_variant<cuda, double>(args);
                 if (var == "hdiff-noshared")
-                    return new variant_hdiff_noshared<cuda, double>(args);
+                    return new hdiff_variant_noshared<cuda, double>(args);
             }
 
             return nullptr;

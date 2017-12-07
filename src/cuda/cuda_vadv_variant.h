@@ -219,20 +219,20 @@ namespace platform {
         }
 
         template <class Platform, class ValueType>
-        class variant_vadv final : public vadv_stencil_variant<Platform, ValueType> {
+        class vadv_variant final : public vadv_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
             using platform = Platform;
             using allocator = typename platform::template allocator<value_type>;
 
-            variant_vadv(const arguments_map &args)
+            vadv_variant(const arguments_map &args)
                 : vadv_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
                 platform::limit_blocksize(m_iblocksize, m_jblocksize);
             }
-            ~variant_vadv() {}
+            ~vadv_variant() {}
 
             void prerun() override {
                 vadv_stencil_variant<platform, value_type>::prerun();

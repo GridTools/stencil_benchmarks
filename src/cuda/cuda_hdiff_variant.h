@@ -101,7 +101,7 @@ namespace platform {
         }
 
         template <class Platform, class ValueType>
-        class variant_hdiff final : public hdiff_stencil_variant<Platform, ValueType> {
+        class hdiff_variant final : public hdiff_stencil_variant<Platform, ValueType> {
             static constexpr int block_halo = 1;
             static constexpr int padded_boundary = block_halo;
 
@@ -110,7 +110,7 @@ namespace platform {
             using platform = Platform;
             using allocator = typename platform::template allocator<value_type>;
 
-            variant_hdiff(const arguments_map &args)
+            hdiff_variant(const arguments_map &args)
                 : hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
@@ -126,7 +126,7 @@ namespace platform {
                     m_jblocksize = 8;
                 }
             }
-            ~variant_hdiff() {}
+            ~hdiff_variant() {}
 
             void prerun() override {
                 hdiff_stencil_variant<platform, value_type>::prerun();

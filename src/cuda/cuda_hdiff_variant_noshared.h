@@ -55,20 +55,20 @@ namespace platform {
         }
 
         template <class Platform, class ValueType>
-        class variant_hdiff_noshared final : public hdiff_stencil_variant<Platform, ValueType> {
+        class hdiff_variant_noshared final : public hdiff_stencil_variant<Platform, ValueType> {
           public:
             using value_type = ValueType;
             using platform = Platform;
             using allocator = typename platform::template allocator<value_type>;
 
-            variant_hdiff_noshared(const arguments_map &args)
+            hdiff_variant_noshared(const arguments_map &args)
                 : hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")), m_kblocksize(args.get<int>("k-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
                 platform::limit_blocksize(m_iblocksize, m_jblocksize, m_kblocksize);
             }
-            ~variant_hdiff_noshared() {}
+            ~hdiff_variant_noshared() {}
 
             void prerun() override {
                 hdiff_stencil_variant<platform, value_type>::prerun();
