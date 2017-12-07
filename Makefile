@@ -8,10 +8,6 @@ SRCS=$(wildcard src/*.cpp)
 OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
 
-SRCS_X86=$(wildcard src/x86/*.cpp)
-OBJS_X86=$(SRCS_X86:.cpp=.o)
-DEPS_X86=$(SRCS_X86:.cpp=.d)
-
 SRCS_KNL=$(wildcard src/knl/*.cpp)
 OBJS_KNL=$(SRCS_KNL:.cpp=.o)
 DEPS_KNL=$(SRCS_KNL:.cpp=.d)
@@ -35,9 +31,6 @@ knl: stencil_bench_knl
 .PHONY: cuda
 cuda: stencil_bench_cuda
 
-.PHONY: x86
-x86: stencil_bench_x86
-
 stencil_bench_knl: CCFLAGS+=-DPLATFORM_KNL -ffreestanding
 stencil_bench_knl: $(OBJS) $(OBJS_KNL)
 	$(CC) $(CCFLAGS) $+ $(LIBS) -o $@
@@ -50,10 +43,6 @@ stencil_bench_cuda: CUFLAGS+=-DPLATFORM_CUDA
 stencil_bench_cuda: LIBS+=-lgomp
 stencil_bench_cuda: $(OBJS) $(OBJS_CUDA)
 	nvcc $(NVCCFLAGS) $+ $(LIBS) -o $@
-
-stencil_bench_x86: CCFLAGS+=-DPLATFORM_X86
-stencil_bench_x86: $(OBJS) $(OBJS_X86)
-	g++ $(CCFLAGS) $+ -fopenmp -o $@
 
 -include $(DEPS) $(DEPS_KNL)
 
