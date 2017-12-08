@@ -25,10 +25,8 @@ namespace platform {
             int m_iblocksize, m_jblocksize;
         };
 
-        extern template class hdiff_variant_ij_blocked_fused<flat, float>;
-        extern template class hdiff_variant_ij_blocked_fused<flat, double>;
-        extern template class hdiff_variant_ij_blocked_fused<cache, float>;
-        extern template class hdiff_variant_ij_blocked_fused<cache, double>;
+        extern template class hdiff_variant_ij_blocked_fused<knl, float>;
+        extern template class hdiff_variant_ij_blocked_fused<knl, double>;
 
     } // namespace knl
 

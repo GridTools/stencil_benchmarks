@@ -124,10 +124,8 @@ namespace platform {
         KERNEL(lapij)
 #undef STMT
 
-        template class multifield_variant_ij_blocked<flat, float>;
-        template class multifield_variant_ij_blocked<flat, double>;
-        template class multifield_variant_ij_blocked<cache, float>;
-        template class multifield_variant_ij_blocked<cache, double>;
+        template class multifield_variant_ij_blocked<knl, float>;
+        template class multifield_variant_ij_blocked<knl, double>;
 
     } // namespace knl
 

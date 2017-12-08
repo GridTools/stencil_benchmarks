@@ -159,10 +159,8 @@ namespace platform {
             int m_iblocksize, m_jblocksize;
         };
 
-        extern template class vadv_variant_ij_blocked_colopt<flat, float>;
-        extern template class vadv_variant_ij_blocked_colopt<flat, double>;
-        extern template class vadv_variant_ij_blocked_colopt<cache, float>;
-        extern template class vadv_variant_ij_blocked_colopt<cache, double>;
+        extern template class vadv_variant_ij_blocked_colopt<knl, float>;
+        extern template class vadv_variant_ij_blocked_colopt<knl, double>;
 
     } // knl
 

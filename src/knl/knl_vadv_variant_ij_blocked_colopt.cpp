@@ -184,10 +184,8 @@ namespace platform {
             }
         }
 
-        template class vadv_variant_ij_blocked_colopt<flat, float>;
-        template class vadv_variant_ij_blocked_colopt<flat, double>;
-        template class vadv_variant_ij_blocked_colopt<cache, float>;
-        template class vadv_variant_ij_blocked_colopt<cache, double>;
+        template class vadv_variant_ij_blocked_colopt<knl, float>;
+        template class vadv_variant_ij_blocked_colopt<knl, double>;
 
     } // namespace knl
 

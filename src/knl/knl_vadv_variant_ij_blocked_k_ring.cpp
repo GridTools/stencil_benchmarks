@@ -199,10 +199,8 @@ namespace platform {
             }
         }
 
-        template class vadv_variant_ij_blocked_k_ring<flat, float>;
-        template class vadv_variant_ij_blocked_k_ring<flat, double>;
-        template class vadv_variant_ij_blocked_k_ring<cache, float>;
-        template class vadv_variant_ij_blocked_k_ring<cache, double>;
+        template class vadv_variant_ij_blocked_k_ring<knl, float>;
+        template class vadv_variant_ij_blocked_k_ring<knl, double>;
 
     } // namespace knl
 

@@ -27,10 +27,8 @@ namespace platform {
             void lapij() override;
         };
 
-        extern template class variant_1d_nontemporal<flat, float>;
-        extern template class variant_1d_nontemporal<flat, double>;
-        extern template class variant_1d_nontemporal<cache, float>;
-        extern template class variant_1d_nontemporal<cache, double>;
+        extern template class variant_1d_nontemporal<knl, float>;
+        extern template class variant_1d_nontemporal<knl, double>;
 
     } // namespace knl
 

@@ -28,10 +28,8 @@ namespace platform {
         KERNEL(sumk, dst[i] = src[i] + src[i + kstride])
         KERNEL(lapij, dst[i] = src[i] + src[i - istride] + src[i + istride] + src[i - jstride] + src[i + jstride])
 
-        template class variant_1d<flat, float>;
-        template class variant_1d<flat, double>;
-        template class variant_1d<cache, float>;
-        template class variant_1d<cache, double>;
+        template class variant_1d<knl, float>;
+        template class variant_1d<knl, double>;
 
     } // namespace knl
 

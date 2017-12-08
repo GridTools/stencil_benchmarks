@@ -28,7 +28,7 @@ namespace platform {
     };
 
 #ifdef PLATFORM_KNL
-    using knl_pls = platform_list<knl::flat, knl::cache>;
+    using knl_pls = platform_list<knl::knl>;
 #else
     using knl_pls = platform_list<>;
 #endif

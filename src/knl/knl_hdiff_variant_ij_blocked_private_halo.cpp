@@ -114,10 +114,8 @@ namespace platform {
             }
         }
 
-        template class hdiff_variant_ij_blocked_private_halo<flat, float>;
-        template class hdiff_variant_ij_blocked_private_halo<flat, double>;
-        template class hdiff_variant_ij_blocked_private_halo<cache, float>;
-        template class hdiff_variant_ij_blocked_private_halo<cache, double>;
+        template class hdiff_variant_ij_blocked_private_halo<knl, float>;
+        template class hdiff_variant_ij_blocked_private_halo<knl, double>;
 
     } // namespace knl
 

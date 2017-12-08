@@ -78,10 +78,8 @@ namespace platform {
             std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp, m_in_tmp, m_coeff_tmp, m_out_tmp;
         };
 
-        extern template class hdiff_variant_ij_blocked_stacked_layout<flat, float>;
-        extern template class hdiff_variant_ij_blocked_stacked_layout<flat, double>;
-        extern template class hdiff_variant_ij_blocked_stacked_layout<cache, float>;
-        extern template class hdiff_variant_ij_blocked_stacked_layout<cache, double>;
+        extern template class hdiff_variant_ij_blocked_stacked_layout<knl, float>;
+        extern template class hdiff_variant_ij_blocked_stacked_layout<knl, double>;
 
     } // namespace knl
 

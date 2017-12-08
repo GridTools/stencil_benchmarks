@@ -27,10 +27,8 @@ namespace platform {
             int m_iblocksize, m_jblocksize;
         };
 
-        extern template class vadv_variant_ij_blocked<flat, float>;
-        extern template class vadv_variant_ij_blocked<flat, double>;
-        extern template class vadv_variant_ij_blocked<cache, float>;
-        extern template class vadv_variant_ij_blocked<cache, double>;
+        extern template class vadv_variant_ij_blocked<knl, float>;
+        extern template class vadv_variant_ij_blocked<knl, double>;
 
     } // knl
 

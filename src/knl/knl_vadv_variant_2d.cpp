@@ -60,10 +60,8 @@ namespace platform {
             }
         }
 
-        template class vadv_variant_2d<flat, float>;
-        template class vadv_variant_2d<flat, double>;
-        template class vadv_variant_2d<cache, float>;
-        template class vadv_variant_2d<cache, double>;
+        template class vadv_variant_2d<knl, float>;
+        template class vadv_variant_2d<knl, double>;
 
     } // namespace knl
 

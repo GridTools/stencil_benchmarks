@@ -198,10 +198,8 @@ namespace platform {
             }
         }
 
-        template class vadv_variant_ij_blocked_k_split<flat, float>;
-        template class vadv_variant_ij_blocked_k_split<flat, double>;
-        template class vadv_variant_ij_blocked_k_split<cache, float>;
-        template class vadv_variant_ij_blocked_k_split<cache, double>;
+        template class vadv_variant_ij_blocked_k_split<knl, float>;
+        template class vadv_variant_ij_blocked_k_split<knl, double>;
 
     } // namespace knl
 

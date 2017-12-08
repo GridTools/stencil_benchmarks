@@ -175,10 +175,8 @@ namespace platform {
             }
         }
 
-        template class hdiff_variant_ij_blocked_stacked_layout<flat, float>;
-        template class hdiff_variant_ij_blocked_stacked_layout<flat, double>;
-        template class hdiff_variant_ij_blocked_stacked_layout<cache, float>;
-        template class hdiff_variant_ij_blocked_stacked_layout<cache, double>;
+        template class hdiff_variant_ij_blocked_stacked_layout<knl, float>;
+        template class hdiff_variant_ij_blocked_stacked_layout<knl, double>;
 
     } // namespace knl
 

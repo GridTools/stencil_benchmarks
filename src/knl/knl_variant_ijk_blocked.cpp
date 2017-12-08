@@ -55,10 +55,8 @@ namespace platform {
             dst[index] = src[index] + src[index - istride] + src[index + istride] + src[index - jstride] +
                          src[index + jstride])
 
-        template class variant_ijk_blocked<flat, float>;
-        template class variant_ijk_blocked<flat, double>;
-        template class variant_ijk_blocked<cache, float>;
-        template class variant_ijk_blocked<cache, double>;
+        template class variant_ijk_blocked<knl, float>;
+        template class variant_ijk_blocked<knl, double>;
 
     } // namespace knl
 
