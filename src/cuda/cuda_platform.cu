@@ -10,47 +10,55 @@ namespace platform {
     namespace cuda {
 
         void cuda::setup(arguments &args) {
-            arguments &pargs = args.command(name, "variant");
-            pargs.command("ij-blocked")
+            auto &basic = args.command("basic", "variant");
+            basic.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv")
+            auto &hdiff = args.command("hdiff", "variant");
+            hdiff.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff")
-                .add("i-blocksize", "block size in i-direction", "32")
-                .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-noshared")
+            hdiff.command("ijk-blocked-noshared")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8")
                 .add("k-blocksize", "block size in k-direction", "8");
+            auto &vadv = args.command("vadv", "variant");
+            vadv.command("vadv")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+        }
+
+        namespace {
+            template <class ValueType>
+            variant_base *create_variant_by_prec(const arguments_map &args) {
+                std::string grp = args.get("group");
+                std::string var = args.get("variant");
+
+                if (grp == "basic") {
+                    if (var == "ij-blocked")
+                        return new variant_ij_blocked<ValueType>(args);
+                }
+                if (grp == "hdiff") {
+                    if (var == "ij-blocked")
+                        return new hdiff_variant<ValueType>(args);
+                    if (var == "ijk-blocked-noshared")
+                        return new hdiff_variant_noshared<ValueType>(args);
+                }
+                if (grp == "vadv") {
+                    if (var == "ij-blocked")
+                        return new vadv_variant<ValueType>(args);
+                }
+                return nullptr;
+            }
         }
 
         variant_base *cuda::create_variant(const arguments_map &args) {
-            if (args.get("platform") != name)
-                return nullptr;
-
             std::string prec = args.get("precision");
-            std::string var = args.get("variant");
 
             if (prec == "single") {
-                if (var == "ij-blocked")
-                    return new variant_ij_blocked<cuda, float>(args);
-                if (var == "vadv")
-                    return new vadv_variant<cuda, float>(args);
-                if (var == "hdiff")
-                    return new hdiff_variant<cuda, float>(args);
-                if (var == "hdiff-noshared")
-                    return new hdiff_variant_noshared<cuda, float>(args);
+                return create_variant_by_prec<float>(args);
             } else if (prec == "double") {
-                if (var == "ij-blocked")
-                    return new variant_ij_blocked<cuda, double>(args);
-                if (var == "vadv")
-                    return new vadv_variant<cuda, double>(args);
-                if (var == "hdiff")
-                    return new hdiff_variant<cuda, double>(args);
-                if (var == "hdiff-noshared")
-                    return new hdiff_variant_noshared<cuda, double>(args);
+                return create_variant_by_prec<double>(args);
             }
 
             return nullptr;

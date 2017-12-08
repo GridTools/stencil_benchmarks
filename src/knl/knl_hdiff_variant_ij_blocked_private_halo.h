@@ -7,14 +7,14 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        class hdiff_variant_ij_blocked_private_halo final : public knl_hdiff_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class hdiff_variant_ij_blocked_private_halo final : public knl_hdiff_stencil_variant<ValueType> {
           public:
             using value_type = ValueType;
-            using allocator = typename knl_hdiff_stencil_variant<Platform, ValueType>::allocator;
+            using allocator = typename knl_hdiff_stencil_variant<ValueType>::allocator;
 
             hdiff_variant_ij_blocked_private_halo(const arguments_map &args)
-                : knl_hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : knl_hdiff_stencil_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
@@ -63,8 +63,8 @@ namespace platform {
             std::vector<value_type, allocator> m_lap_tmp, m_flx_tmp, m_fly_tmp;
         };
 
-        extern template class hdiff_variant_ij_blocked_private_halo<knl, float>;
-        extern template class hdiff_variant_ij_blocked_private_halo<knl, double>;
+        extern template class hdiff_variant_ij_blocked_private_halo<float>;
+        extern template class hdiff_variant_ij_blocked_private_halo<double>;
 
     } // namespace knl
 

@@ -6,28 +6,25 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        class knl_vadv_stencil_variant : public vadv_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class knl_vadv_stencil_variant : public vadv_stencil_variant<knl, ValueType> {
           public:
             using value_type = ValueType;
-            using platform = Platform;
+            using platform = knl;
 
-            knl_vadv_stencil_variant(const arguments_map &args) : vadv_stencil_variant<Platform, ValueType>(args) {
-                Platform::check_cache_conflicts("i-stride offsets", this->istride() * this->bytes_per_element());
-                Platform::check_cache_conflicts("j-stride offsets", this->jstride() * this->bytes_per_element());
-                Platform::check_cache_conflicts("k-stride offsets", this->kstride() * this->bytes_per_element());
-                Platform::check_cache_conflicts(
-                    "2 * i-stride offsets", 2 * this->istride() * this->bytes_per_element());
-                Platform::check_cache_conflicts(
-                    "2 * j-stride offsets", 2 * this->jstride() * this->bytes_per_element());
-                Platform::check_cache_conflicts(
-                    "2 * k-stride offsets", 2 * this->kstride() * this->bytes_per_element());
+            knl_vadv_stencil_variant(const arguments_map &args) : vadv_stencil_variant<knl, ValueType>(args) {
+                knl::check_cache_conflicts("i-stride offsets", this->istride() * this->bytes_per_element());
+                knl::check_cache_conflicts("j-stride offsets", this->jstride() * this->bytes_per_element());
+                knl::check_cache_conflicts("k-stride offsets", this->kstride() * this->bytes_per_element());
+                knl::check_cache_conflicts("2 * i-stride offsets", 2 * this->istride() * this->bytes_per_element());
+                knl::check_cache_conflicts("2 * j-stride offsets", 2 * this->jstride() * this->bytes_per_element());
+                knl::check_cache_conflicts("2 * k-stride offsets", 2 * this->kstride() * this->bytes_per_element());
             }
             virtual ~knl_vadv_stencil_variant() {}
 
             void prerun() override {
-                vadv_stencil_variant<Platform, ValueType>::prerun();
-                Platform::flush_cache();
+                vadv_stencil_variant<knl, ValueType>::prerun();
+                knl::flush_cache();
             }
 
           protected:

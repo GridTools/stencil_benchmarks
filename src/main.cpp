@@ -233,7 +233,7 @@ void run_block_scan(const arguments_map &args, std::ostream &out) {
 }
 
 int main(int argc, char **argv) {
-    arguments args(argv[0], "platform");
+    arguments args(argv[0], "group");
 
     args.add("i-size", "domain size in i-direction", "1024")
         .add("j-size", "domain size in j-direction", "1024")

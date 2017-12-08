@@ -4,8 +4,8 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        void vadv_variant_ij_blocked_split<Platform, ValueType>::vadv() {
+        template <class ValueType>
+        void vadv_variant_ij_blocked_split<ValueType>::vadv() {
             const value_type *__restrict__ ustage = this->ustage();
             const value_type *__restrict__ upos = this->upos();
             const value_type *__restrict__ utens = this->utens();
@@ -144,8 +144,8 @@ namespace platform {
             }
         }
 
-        template class vadv_variant_ij_blocked_split<knl, float>;
-        template class vadv_variant_ij_blocked_split<knl, double>;
+        template class vadv_variant_ij_blocked_split<float>;
+        template class vadv_variant_ij_blocked_split<double>;
 
     } // namespace knl
 

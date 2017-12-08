@@ -59,31 +59,31 @@
         }                                                                                                       \
     }
 
-#define KERNEL(name)                                                  \
-    template <class Platform, class ValueType>                        \
-    void multifield_variant_ij_blocked<Platform, ValueType>::name() { \
-        const int fields = this->fields();                            \
-        if (fields == 1) {                                            \
-            KERNELF(1)                                                \
-        } else if (fields == 2) {                                     \
-            KERNELF(2)                                                \
-        } else if (fields == 3) {                                     \
-            KERNELF(3)                                                \
-        } else if (fields == 4) {                                     \
-            KERNELF(4)                                                \
-        } else if (fields == 5) {                                     \
-            KERNELF(5)                                                \
-        } else if (fields == 6) {                                     \
-            KERNELF(6)                                                \
-        } else if (fields == 7) {                                     \
-            KERNELF(7)                                                \
-        } else if (fields == 8) {                                     \
-            KERNELF(8)                                                \
-        } else if (fields == 9) {                                     \
-            KERNELF(9)                                                \
-        } else if (fields == 10) {                                    \
-            KERNELF(10)                                               \
-        }                                                             \
+#define KERNEL(name)                                        \
+    template <class ValueType>                              \
+    void multifield_variant_ij_blocked<ValueType>::name() { \
+        const int fields = this->fields();                  \
+        if (fields == 1) {                                  \
+            KERNELF(1)                                      \
+        } else if (fields == 2) {                           \
+            KERNELF(2)                                      \
+        } else if (fields == 3) {                           \
+            KERNELF(3)                                      \
+        } else if (fields == 4) {                           \
+            KERNELF(4)                                      \
+        } else if (fields == 5) {                           \
+            KERNELF(5)                                      \
+        } else if (fields == 6) {                           \
+            KERNELF(6)                                      \
+        } else if (fields == 7) {                           \
+            KERNELF(7)                                      \
+        } else if (fields == 8) {                           \
+            KERNELF(8)                                      \
+        } else if (fields == 9) {                           \
+            KERNELF(9)                                      \
+        } else if (fields == 10) {                          \
+            KERNELF(10)                                     \
+        }                                                   \
     }
 
 namespace platform {
@@ -124,8 +124,8 @@ namespace platform {
         KERNEL(lapij)
 #undef STMT
 
-        template class multifield_variant_ij_blocked<knl, float>;
-        template class multifield_variant_ij_blocked<knl, double>;
+        template class multifield_variant_ij_blocked<float>;
+        template class multifield_variant_ij_blocked<double>;
 
     } // namespace knl
 

@@ -4,8 +4,8 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        void vadv_variant_ij_blocked_k_ring<Platform, ValueType>::vadv() {
+        template <class ValueType>
+        void vadv_variant_ij_blocked_k_ring<ValueType>::vadv() {
             const value_type *__restrict__ ustage = this->ustage();
             const value_type *__restrict__ upos = this->upos();
             const value_type *__restrict__ utens = this->utens();
@@ -199,8 +199,8 @@ namespace platform {
             }
         }
 
-        template class vadv_variant_ij_blocked_k_ring<knl, float>;
-        template class vadv_variant_ij_blocked_k_ring<knl, double>;
+        template class vadv_variant_ij_blocked_k_ring<float>;
+        template class vadv_variant_ij_blocked_k_ring<double>;
 
     } // namespace knl
 

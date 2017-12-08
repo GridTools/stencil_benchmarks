@@ -1,8 +1,8 @@
 #include "knl/knl_variant_1d_nontemporal.h"
 
 #define KERNEL(name, stmt)                                                                                   \
-    template <class Platform, class ValueType>                                                               \
-    void variant_1d_nontemporal<Platform, ValueType>::name() {                                               \
+    template <class ValueType>                                                                               \
+    void variant_1d_nontemporal<ValueType>::name() {                                                         \
         const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);               \
         const value_type *__restrict__ src = this->src();                                                    \
         const int istride = this->istride();                                                                 \
@@ -28,8 +28,8 @@ namespace platform {
         KERNEL(sumk, dst[i] = src[i] + src[i + kstride])
         KERNEL(lapij, dst[i] = src[i] + src[i - istride] + src[i + istride] + src[i - jstride] + src[i + jstride])
 
-        template class variant_1d_nontemporal<knl, float>;
-        template class variant_1d_nontemporal<knl, double>;
+        template class variant_1d_nontemporal<float>;
+        template class variant_1d_nontemporal<double>;
 
     } // namespace knl
 

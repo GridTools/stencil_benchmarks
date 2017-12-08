@@ -218,15 +218,15 @@ namespace platform {
             backward_sweep(ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride);
         }
 
-        template <class Platform, class ValueType>
-        class vadv_variant final : public vadv_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class vadv_variant final : public vadv_stencil_variant<cuda, ValueType> {
           public:
             using value_type = ValueType;
-            using platform = Platform;
+            using platform = cuda;
             using allocator = typename platform::template allocator<value_type>;
 
             vadv_variant(const arguments_map &args)
-                : vadv_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : vadv_stencil_variant<cuda, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");

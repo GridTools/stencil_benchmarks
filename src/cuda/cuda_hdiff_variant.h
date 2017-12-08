@@ -100,18 +100,18 @@ namespace platform {
             }
         }
 
-        template <class Platform, class ValueType>
-        class hdiff_variant final : public hdiff_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class hdiff_variant final : public hdiff_stencil_variant<cuda, ValueType> {
             static constexpr int block_halo = 1;
             static constexpr int padded_boundary = block_halo;
 
           public:
             using value_type = ValueType;
-            using platform = Platform;
+            using platform = cuda;
             using allocator = typename platform::template allocator<value_type>;
 
             hdiff_variant(const arguments_map &args)
-                : hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : hdiff_stencil_variant<cuda, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");

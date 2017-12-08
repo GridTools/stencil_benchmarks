@@ -58,14 +58,14 @@ namespace platform {
             throw ERROR("error in cudaDeviceSynchronize");    \
     }
 
-        template <class Platform, class ValueType>
-        class variant_ij_blocked final : public basic_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class variant_ij_blocked final : public basic_stencil_variant<cuda, ValueType> {
           public:
-            using platform = Platform;
+            using platform = cuda;
             using value_type = ValueType;
 
             variant_ij_blocked(const arguments_map &args)
-                : basic_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : basic_stencil_variant<cuda, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");

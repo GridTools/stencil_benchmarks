@@ -1,8 +1,8 @@
 #include "knl/knl_variant_ijk_blocked.h"
 
 #define KERNEL(name, stmt)                                                                                      \
-    template <class Platform, class ValueType>                                                                  \
-    void variant_ijk_blocked<Platform, ValueType>::name() {                                                     \
+    template <class ValueType>                                                                                  \
+    void variant_ijk_blocked<ValueType>::name() {                                                               \
         const value_type *__restrict__ src = this->src();                                                       \
         value_type *__restrict__ dst = this->dst();                                                             \
         const int isize = this->isize();                                                                        \
@@ -55,8 +55,8 @@ namespace platform {
             dst[index] = src[index] + src[index - istride] + src[index + istride] + src[index - jstride] +
                          src[index + jstride])
 
-        template class variant_ijk_blocked<knl, float>;
-        template class variant_ijk_blocked<knl, double>;
+        template class variant_ijk_blocked<float>;
+        template class variant_ijk_blocked<double>;
 
     } // namespace knl
 

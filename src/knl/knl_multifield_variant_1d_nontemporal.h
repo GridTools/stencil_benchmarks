@@ -39,44 +39,44 @@
         dst[i] = STMT(SRC##fields);                                                                  \
     }
 
-#define KERNEL(name)                                                      \
-    template <class Platform, class ValueType>                            \
-    void multifield_variant_1d_nontemporal<Platform, ValueType>::name() { \
-        const int fields = this->fields();                                \
-        if (fields == 1) {                                                \
-            KERNELF(1)                                                    \
-        } else if (fields == 2) {                                         \
-            KERNELF(2)                                                    \
-        } else if (fields == 3) {                                         \
-            KERNELF(3)                                                    \
-        } else if (fields == 4) {                                         \
-            KERNELF(4)                                                    \
-        } else if (fields == 5) {                                         \
-            KERNELF(5)                                                    \
-        } else if (fields == 6) {                                         \
-            KERNELF(6)                                                    \
-        } else if (fields == 7) {                                         \
-            KERNELF(7)                                                    \
-        } else if (fields == 8) {                                         \
-            KERNELF(8)                                                    \
-        } else if (fields == 9) {                                         \
-            KERNELF(9)                                                    \
-        } else if (fields == 10) {                                        \
-            KERNELF(10)                                                   \
-        }                                                                 \
+#define KERNEL(name)                                            \
+    template <class ValueType>                                  \
+    void multifield_variant_1d_nontemporal<ValueType>::name() { \
+        const int fields = this->fields();                      \
+        if (fields == 1) {                                      \
+            KERNELF(1)                                          \
+        } else if (fields == 2) {                               \
+            KERNELF(2)                                          \
+        } else if (fields == 3) {                               \
+            KERNELF(3)                                          \
+        } else if (fields == 4) {                               \
+            KERNELF(4)                                          \
+        } else if (fields == 5) {                               \
+            KERNELF(5)                                          \
+        } else if (fields == 6) {                               \
+            KERNELF(6)                                          \
+        } else if (fields == 7) {                               \
+            KERNELF(7)                                          \
+        } else if (fields == 8) {                               \
+            KERNELF(8)                                          \
+        } else if (fields == 9) {                               \
+            KERNELF(9)                                          \
+        } else if (fields == 10) {                              \
+            KERNELF(10)                                         \
+        }                                                       \
     }
 
 namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        class multifield_variant_1d_nontemporal final : public knl_basic_multifield_variant<Platform, ValueType> {
+        template <class ValueType>
+        class multifield_variant_1d_nontemporal final : public knl_basic_multifield_variant<ValueType> {
           public:
             using value_type = ValueType;
 
             multifield_variant_1d_nontemporal(const arguments_map &args)
-                : knl_basic_multifield_variant<Platform, ValueType>(args) {
+                : knl_basic_multifield_variant<ValueType>(args) {
                 if (this->fields() > 10)
                     throw ERROR("multifield variant supports only up to 10 fields");
             }

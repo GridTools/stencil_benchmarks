@@ -3,9 +3,9 @@
 namespace platform {
 
     namespace knl {
-        template <class Platform, class ValueType>
-        void hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>::prerun() {
-            knl_hdiff_stencil_variant<Platform, ValueType>::prerun();
+        template <class ValueType>
+        void hdiff_variant_ij_blocked_stacked_layout<ValueType>::prerun() {
+            knl_hdiff_stencil_variant<ValueType>::prerun();
             // copy data from in and coeff into block storage
             const int istride = 1;
             const int jstride = this->jstride();
@@ -39,9 +39,9 @@ namespace platform {
             }
         }
 
-        template <class Platform, class ValueType>
-        void hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>::postrun() {
-            knl_hdiff_stencil_variant<Platform, ValueType>::postrun();
+        template <class ValueType>
+        void hdiff_variant_ij_blocked_stacked_layout<ValueType>::postrun() {
+            knl_hdiff_stencil_variant<ValueType>::postrun();
 
             const int istride = 1;
             const int jstride = this->jstride();
@@ -76,8 +76,8 @@ namespace platform {
             }
         }
 
-        template <class Platform, class ValueType>
-        void hdiff_variant_ij_blocked_stacked_layout<Platform, ValueType>::hdiff() {
+        template <class ValueType>
+        void hdiff_variant_ij_blocked_stacked_layout<ValueType>::hdiff() {
             const value_type *__restrict__ in = this->in_tmp();
             const value_type *__restrict__ coeff = this->coeff_tmp();
             value_type *__restrict__ lap = this->lap_tmp();
@@ -175,8 +175,8 @@ namespace platform {
             }
         }
 
-        template class hdiff_variant_ij_blocked_stacked_layout<knl, float>;
-        template class hdiff_variant_ij_blocked_stacked_layout<knl, double>;
+        template class hdiff_variant_ij_blocked_stacked_layout<float>;
+        template class hdiff_variant_ij_blocked_stacked_layout<double>;
 
     } // namespace knl
 

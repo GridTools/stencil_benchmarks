@@ -4,8 +4,8 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        void hdiff_variant_ij_blocked_k_innermost<Platform, ValueType>::hdiff() {
+        template <class ValueType>
+        void hdiff_variant_ij_blocked_k_innermost<ValueType>::hdiff() {
             const value_type *__restrict__ in = this->in();
             const value_type *__restrict__ coeff = this->coeff();
             value_type *__restrict__ lap = this->lap();
@@ -98,8 +98,8 @@ namespace platform {
             }
         }
 
-        template class hdiff_variant_ij_blocked_k_innermost<knl, float>;
-        template class hdiff_variant_ij_blocked_k_innermost<knl, double>;
+        template class hdiff_variant_ij_blocked_k_innermost<float>;
+        template class hdiff_variant_ij_blocked_k_innermost<double>;
 
     } // namespace knl
 

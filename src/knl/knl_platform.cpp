@@ -61,121 +61,130 @@ namespace platform {
         namespace {
 
             template <class ValueType>
-            variant_base *common_create_variant_by_prec(const arguments_map &args) {
+            variant_base *create_variant_by_prec(const arguments_map &args) {
+                std::string grp = args.get("group");
                 std::string var = args.get("variant");
-                if (var == "1d")
-                    return new variant_1d<knl, ValueType>(args);
-                if (var == "1d-nontemporal")
-                    return new variant_1d_nontemporal<knl, ValueType>(args);
-                if (var == "ij-blocked")
-                    return new variant_ij_blocked<knl, ValueType>(args);
-                if (var == "ijk-blocked")
-                    return new variant_ijk_blocked<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-k-innermost")
-                    return new hdiff_variant_ij_blocked_k_innermost<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-k-outermost")
-                    return new hdiff_variant_ij_blocked_k_outermost<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-non-red")
-                    return new hdiff_variant_ij_blocked_non_red<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-private-halo")
-                    return new hdiff_variant_ij_blocked_private_halo<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-stacked-layout")
-                    return new hdiff_variant_ij_blocked_stacked_layout<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-fused")
-                    return new hdiff_variant_ij_blocked_fused<knl, ValueType>(args);
-                if (var == "hdiff-ij-blocked-ddfused")
-                    return new hdiff_variant_ij_blocked_ddfused<knl, ValueType>(args);
-                if (var == "multifield-1d-nontemporal")
-                    return new multifield_variant_1d_nontemporal<knl, ValueType>(args);
-                if (var == "multifield-ij-blocked")
-                    return new multifield_variant_ij_blocked<knl, ValueType>(args);
-                if (var == "vadv-2d")
-                    return new vadv_variant_2d<knl, ValueType>(args);
-                if (var == "vadv-ij-blocked")
-                    return new vadv_variant_ij_blocked<knl, ValueType>(args);
-                if (var == "vadv-ij-blocked-split")
-                    return new vadv_variant_ij_blocked_split<knl, ValueType>(args);
-                if (var == "vadv-ij-blocked-colopt")
-                    return new vadv_variant_ij_blocked_colopt<knl, ValueType>(args);
-                if (var == "vadv-ij-blocked-k")
-                    return new vadv_variant_ij_blocked_k<knl, ValueType>(args);
-                if (var == "vadv-ij-blocked-k-ring")
-                    return new vadv_variant_ij_blocked_k_ring<knl, ValueType>(args);
-                if (var == "vadv-ij-blocked-k-split")
-                    return new vadv_variant_ij_blocked_k_split<knl, ValueType>(args);
+                if (grp == "basic") {
+                    if (var == "1d")
+                        return new variant_1d<ValueType>(args);
+                    if (var == "1d-nontemporal")
+                        return new variant_1d_nontemporal<ValueType>(args);
+                    if (var == "ij-blocked")
+                        return new variant_ij_blocked<ValueType>(args);
+                    if (var == "ijk-blocked")
+                        return new variant_ijk_blocked<ValueType>(args);
+                }
+                if (grp == "hdiff") {
+                    if (var == "ij-blocked-k-innermost")
+                        return new hdiff_variant_ij_blocked_k_innermost<ValueType>(args);
+                    if (var == "ij-blocked-k-outermost")
+                        return new hdiff_variant_ij_blocked_k_outermost<ValueType>(args);
+                    if (var == "ij-blocked-non-red")
+                        return new hdiff_variant_ij_blocked_non_red<ValueType>(args);
+                    if (var == "ij-blocked-private-halo")
+                        return new hdiff_variant_ij_blocked_private_halo<ValueType>(args);
+                    if (var == "ij-blocked-stacked-layout")
+                        return new hdiff_variant_ij_blocked_stacked_layout<ValueType>(args);
+                    if (var == "ij-blocked-fused")
+                        return new hdiff_variant_ij_blocked_fused<ValueType>(args);
+                    if (var == "ij-blocked-ddfused")
+                        return new hdiff_variant_ij_blocked_ddfused<ValueType>(args);
+                }
+                if (grp == "multifield") {
+                    if (var == "1d-nontemporal")
+                        return new multifield_variant_1d_nontemporal<ValueType>(args);
+                    if (var == "ij-blocked")
+                        return new multifield_variant_ij_blocked<ValueType>(args);
+                }
+                if (grp == "vadv") {
+                    if (var == "2d")
+                        return new vadv_variant_2d<ValueType>(args);
+                    if (var == "ij-blocked")
+                        return new vadv_variant_ij_blocked<ValueType>(args);
+                    if (var == "ij-blocked-split")
+                        return new vadv_variant_ij_blocked_split<ValueType>(args);
+                    if (var == "ij-blocked-colopt")
+                        return new vadv_variant_ij_blocked_colopt<ValueType>(args);
+                    if (var == "ij-blocked-k")
+                        return new vadv_variant_ij_blocked_k<ValueType>(args);
+                    if (var == "ij-blocked-k-ring")
+                        return new vadv_variant_ij_blocked_k_ring<ValueType>(args);
+                    if (var == "ij-blocked-k-split")
+                        return new vadv_variant_ij_blocked_k_split<ValueType>(args);
+                }
                 return nullptr;
             }
         }
 
         void knl::setup(arguments &args) {
-            arguments &pargs = args.command(knl::name, "variant");
-            pargs.command("1d");
-            pargs.command("1d-nontemporal");
-            pargs.command("ij-blocked")
+            auto &basic = args.command("basic", "variant");
+            basic.command("1d");
+            basic.command("1d-nontemporal");
+            basic.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("ijk-blocked")
+            basic.command("ijk-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8")
                 .add("k-blocksize", "block size in k-direction", "8");
-            pargs.command("hdiff-ij-blocked-k-innermost")
+            auto &hdiff = args.command("hdiff", "variant");
+            hdiff.command("ij-blocked-k-innermost")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-ij-blocked-k-outermost")
+            hdiff.command("ij-blocked-k-outermost")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-ij-blocked-non-red")
+            hdiff.command("ij-blocked-non-red")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-ij-blocked-private-halo")
+            hdiff.command("ij-blocked-private-halo")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-ij-blocked-stacked-layout")
+            hdiff.command("ij-blocked-stacked-layout")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-ij-blocked-fused")
+            hdiff.command("ij-blocked-fused")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("hdiff-ij-blocked-ddfused")
+            hdiff.command("ij-blocked-ddfused")
                 .add("i-blocks", "blocks in i-direction", "16")
                 .add("j-blocks", "blocks in j-direction", "8")
                 .add("k-blocks", "blocks in k-direction", "1");
-            pargs.command("multifield-1d-nontemporal").add("fields", "number of fields", "5");
-            pargs.command("multifield-ij-blocked")
+            auto &multifield = args.command("multifield", "variant");
+            multifield.command("1d-nontemporal").add("fields", "number of fields", "5");
+            multifield.command("ij-blocked")
                 .add("fields", "number of fields", "5")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv-2d");
-            pargs.command("vadv-ij-blocked")
+            auto &vadv = args.command("vadv", "variant");
+            vadv.command("2d");
+            vadv.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv-ij-blocked-split")
+            vadv.command("ij-blocked-split")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv-ij-blocked-colopt")
+            vadv.command("ij-blocked-colopt")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv-ij-blocked-k")
+            vadv.command("ij-blocked-k")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv-ij-blocked-k-ring")
+            vadv.command("ij-blocked-k-ring")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
-            pargs.command("vadv-ij-blocked-k-split")
+            vadv.command("ij-blocked-k-split")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
         }
 
         variant_base *knl::create_variant(const arguments_map &args) {
-            if (args.get("platform") != knl::name)
-                return nullptr;
-
             std::string prec = args.get("precision");
 
             if (prec == "single") {
-                return common_create_variant_by_prec<float>(args);
+                return create_variant_by_prec<float>(args);
             } else if (prec == "double") {
-                return common_create_variant_by_prec<double>(args);
+                return create_variant_by_prec<double>(args);
             }
 
             return nullptr;

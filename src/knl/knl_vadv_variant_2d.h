@@ -7,14 +7,14 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        class vadv_variant_2d final : public knl_vadv_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class vadv_variant_2d final : public knl_vadv_stencil_variant<ValueType> {
           public:
             using value_type = ValueType;
-            using platform = Platform;
+            using platform = knl;
             using allocator = typename platform::template allocator<value_type>;
 
-            vadv_variant_2d(const arguments_map &args) : knl_vadv_stencil_variant<Platform, ValueType>(args) {}
+            vadv_variant_2d(const arguments_map &args) : knl_vadv_stencil_variant<ValueType>(args) {}
             ~vadv_variant_2d() {}
 
             void vadv() override;
@@ -106,8 +106,8 @@ namespace platform {
             }
         };
 
-        extern template class vadv_variant_2d<knl, float>;
-        extern template class vadv_variant_2d<knl, double>;
+        extern template class vadv_variant_2d<float>;
+        extern template class vadv_variant_2d<double>;
 
     } // knl
 

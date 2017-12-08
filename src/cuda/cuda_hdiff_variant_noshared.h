@@ -54,15 +54,15 @@ namespace platform {
             }
         }
 
-        template <class Platform, class ValueType>
-        class hdiff_variant_noshared final : public hdiff_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class hdiff_variant_noshared final : public hdiff_stencil_variant<cuda, ValueType> {
           public:
             using value_type = ValueType;
-            using platform = Platform;
+            using platform = cuda;
             using allocator = typename platform::template allocator<value_type>;
 
             hdiff_variant_noshared(const arguments_map &args)
-                : hdiff_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : hdiff_stencil_variant<cuda, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")), m_kblocksize(args.get<int>("k-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");

@@ -7,14 +7,14 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        class vadv_variant_ij_blocked_k_ring final : public knl_vadv_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class vadv_variant_ij_blocked_k_ring final : public knl_vadv_stencil_variant<ValueType> {
           public:
             using value_type = ValueType;
-            using platform = Platform;
+            using platform = knl;
 
             vadv_variant_ij_blocked_k_ring(const arguments_map &args)
-                : knl_vadv_stencil_variant<Platform, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : knl_vadv_stencil_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
@@ -392,8 +392,8 @@ namespace platform {
 
             int m_iblocksize, m_jblocksize;
         };
-        extern template class vadv_variant_ij_blocked_k_ring<knl, float>;
-        extern template class vadv_variant_ij_blocked_k_ring<knl, double>;
+        extern template class vadv_variant_ij_blocked_k_ring<float>;
+        extern template class vadv_variant_ij_blocked_k_ring<double>;
 
     } // knl
 

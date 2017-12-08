@@ -3,8 +3,8 @@
 namespace platform {
 
     namespace knl {
-        template <class Platform, class ValueType>
-        void hdiff_variant_ij_blocked_non_red<Platform, ValueType>::hdiff() {
+        template <class ValueType>
+        void hdiff_variant_ij_blocked_non_red<ValueType>::hdiff() {
             const value_type *__restrict__ in = this->in();
             const value_type *__restrict__ coeff = this->coeff();
             value_type *__restrict__ lap = this->lap();
@@ -104,8 +104,8 @@ namespace platform {
             }
         }
 
-        template class hdiff_variant_ij_blocked_non_red<knl, float>;
-        template class hdiff_variant_ij_blocked_non_red<knl, double>;
+        template class hdiff_variant_ij_blocked_non_red<float>;
+        template class hdiff_variant_ij_blocked_non_red<double>;
 
     } // namespace knl
 

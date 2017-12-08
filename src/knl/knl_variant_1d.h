@@ -7,12 +7,12 @@ namespace platform {
 
     namespace knl {
 
-        template <class Platform, class ValueType>
-        class variant_1d final : public knl_basic_stencil_variant<Platform, ValueType> {
+        template <class ValueType>
+        class variant_1d final : public knl_basic_stencil_variant<ValueType> {
           public:
             using value_type = ValueType;
 
-            variant_1d(const arguments_map &args) : knl_basic_stencil_variant<Platform, ValueType>(args) {}
+            variant_1d(const arguments_map &args) : knl_basic_stencil_variant<ValueType>(args) {}
 
             void copy() override;
             void copyi() override;
@@ -27,8 +27,8 @@ namespace platform {
             void lapij() override;
         };
 
-        extern template class variant_1d<knl, float>;
-        extern template class variant_1d<knl, double>;
+        extern template class variant_1d<float>;
+        extern template class variant_1d<double>;
 
     } // namespace knl
 

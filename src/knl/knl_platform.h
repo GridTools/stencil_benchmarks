@@ -9,7 +9,7 @@ namespace platform {
     namespace knl {
 
         struct knl {
-            static constexpr const char *name = "knl-flat";
+            static constexpr const char *name = "knl";
 
             template <class ValueType>
             using allocator = flat_allocator<ValueType>;
