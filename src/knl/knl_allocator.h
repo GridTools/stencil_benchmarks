@@ -1,6 +1,14 @@
 #pragma once
 
+#ifdef KNL_NO_HBWMALLOC
+#include <cstdlib>
+#define KNL_MEMALIGN posix_memalign
+#define KNL_FREE free
+#else
 #include <hbwmalloc.h>
+#define KNL_MEMALIGN hbw_posix_memalign
+#define KNL_FREE hbw_free
+#endif
 
 #include "except.h"
 
@@ -22,7 +30,7 @@ namespace platform {
             value_type *allocate(std::size_t n) const {
                 static std::size_t offset = 64;
                 char *raw_ptr;
-                if (hbw_posix_memalign(reinterpret_cast<void **>(&raw_ptr), alignment, n * sizeof(value_type) + offset))
+                if (KNL_MEMALIGN(reinterpret_cast<void **>(&raw_ptr), alignment, n * sizeof(value_type) + offset))
                     throw ERROR("could not allocate HBW memory");
 
                 value_type *ptr = reinterpret_cast<value_type *>(raw_ptr + offset);
@@ -40,10 +48,13 @@ namespace platform {
                 std::size_t offset = *offset_ptr;
 
                 char *raw_ptr = reinterpret_cast<char *>(ptr) - offset;
-                hbw_free(raw_ptr);
+                KNL_FREE(raw_ptr);
             }
         };
 
     } // namespace knl
 
 } // namespace platform
+
+#undef KNL_MEMALIGN
+#undef KNL_FREE
