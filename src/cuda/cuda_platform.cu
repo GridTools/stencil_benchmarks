@@ -1,8 +1,8 @@
 #include "cuda/cuda_platform.h"
 
-#include "cuda/cuda_vadv_variant.h"
 #include "cuda/cuda_hdiff_variant.h"
 #include "cuda/cuda_hdiff_variant_noshared.h"
+#include "cuda/cuda_vadv_variant.h"
 #include "cuda/cuda_variant_ij_blocked.h"
 
 namespace platform {
