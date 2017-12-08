@@ -39,7 +39,7 @@ namespace platform {
     using cuda_pls = platform_list<>;
 #endif
 
-    using pls_tmp = merge_platform_list<knl_pls, cuda_pls>::type;
+    using pls = merge_platform_list<knl_pls, cuda_pls>::type;
 
     void setup(arguments &args) { pls::loop<setuper>(args); }
 
