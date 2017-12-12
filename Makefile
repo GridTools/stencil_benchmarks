@@ -26,11 +26,11 @@ endif
 
 SRCS=$(wildcard src/*.cpp)
 OBJS=$(SRCS:src/%.cpp=%.o)
-DEPS=$(SRCS:.cpp=.d)
+DEPS=$(SRCS:src/%.cpp=%.d)
 
 SRCS_KNL=$(wildcard src/knl/*.cpp)
 OBJS_KNL=$(SRCS_KNL:src/knl/%.cpp=%.o)
-DEPS_KNL=$(SRCS_KNL:.cpp=.d)
+DEPS_KNL=$(SRCS_KNL:src/knl/%.cpp=%.d)
 
 SRCS_CUDA=$(wildcard src/cuda/*.cu)
 OBJS_CUDA=$(SRCS_CUDA:src/cuda/%.cu=%.o)
@@ -50,29 +50,32 @@ default:
 		'make cuda' for NVIDIA CUDA GPUs or 'make knl-cpu' to compile the KNL implementation for common CPUs)
 
 .PHONY: knl
-knl: CXXFLAGS+=$(CXXFLAGS_KNL)
-knl: LIBS+=$(LIBS_KNL)
-knl: $(OBJS) $(OBJS_KNL)
-	$(CXX) $(CXXFLAGS) $+ $(LIBS) -o stencil_bench
+knl: sbench_knl
 
 .PHONY: cuda
-cuda: CXX=nvcc
-cuda: CXXFLAGS=$(NVCCFLAGS) $(CXXFLAGS_CUDA)
-cuda: LIBS+=$(LIBS_CUDA)
-cuda: $(OBJS) $(OBJS_CUDA)
-	$(CXX) $(CXXFLAGS) $+ $(LIBS) -o stencil_bench
+cuda: sbench_cuda
 
 .PHONY: knl-cpu
-knl-cpu: CXXFLAGS+=$(CXXFLAGS_KNLCPU)
-knl-cpu: LIBS+=$(LIBS_KNLCPU)
-knl-cpu: $(OBJS) $(OBJS_KNL)
-	$(CXX) $(CXXFLAGS) $+ $(LIBS) -o stencil_bench
+knl-cpu: sbench_knlcpu
+
+sbench_knl: CXXFLAGS+=$(CXXFLAGS_KNL)
+sbench_knl: $(OBJS) $(OBJS_KNL)
+	$(CXX) $(CXXFLAGS) $+ $(LIBS) $(LIBS_KNL) -o $@
+
+sbench_cuda: CXX=nvcc
+sbench_cuda: CXXFLAGS=$(NVCCFLAGS) $(CXXFLAGS_CUDA)
+sbench_cuda: $(OBJS) $(OBJS_CUDA)
+	$(CXX) $(CXXFLAGS) $+ $(LIBS) $(LIBC_CUDA) -o $@
+
+sbench_knlcpu: CXXFLAGS+=$(CXXFLAGS_KNLCPU)
+sbench_knlcpu: $(OBJS) $(OBJS_KNL)
+	$(CXX) $(CXXFLAGS) $+ $(LIBS) $(LIBS_KNLCPU) -o $@
 
 -include $(DEPS) $(DEPS_KNL)
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS) $(DEPS) $(OBJS_KNL) $(DEPS_KNL) $(OBJS_CUDA) stencil_bench
+	rm -f $(OBJS) $(DEPS) $(OBJS_KNL) $(DEPS_KNL) $(OBJS_CUDA) sbench_*
 
 .PHONY: format
 format:
