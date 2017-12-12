@@ -23,7 +23,7 @@ namespace platform {
                 .add("j-blocksize", "block size in j-direction", "8")
                 .add("k-blocksize", "block size in k-direction", "8");
             auto &vadv = args.command("vadv", "variant");
-            vadv.command("vadv")
+            vadv.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
         }
