@@ -107,6 +107,14 @@ namespace platform {
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
                     const int index = i * istride + j * jstride + k * kstride;
+                    /*constexpr int prefdist = 4;
+                    if (k >= prefdist) {
+                        const int prefindex = index - prefdist * kstride;
+                        _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_NTA);
+                        _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_NTA);
+                    }*/
                     datacol = dcol[index] - ccol[index] * datacol;
                     utensstage[index] = dtr_stage * (datacol - upos[index]);
                 }
@@ -379,9 +387,22 @@ namespace platform {
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
+                    const int index = i * istride + j * jstride + k * kstride;
+                    constexpr int prefdist = 3;
+                    if (k < ksize - prefdist) {
+                        const int prefindex = index + prefdist * kstride;
+                        _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&ustage[prefindex + kstride]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&utens[prefindex]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + kstride]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + ishift * istride + jshift * jstride + kstride]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
+                    }
+
                     ccol1 = ccol0;
                     dcol1 = dcol0;
-                    const int index = i * istride + j * jstride + k * kstride;
                     value_type gav =
                         value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
                     value_type gcv = value_type(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
