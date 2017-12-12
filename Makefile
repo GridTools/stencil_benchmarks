@@ -46,7 +46,8 @@ OBJS_CUDA=$(SRCS_CUDA:src/cuda/%.cu=%.o)
 
 .PHONY: default
 default:
-	$(error Please specify the target platform, i.e. use 'make knl' for Intel KNL or 'make cuda' for NVIDIA CUDA GPUs)
+	$(error Please specify the target platform, i.e. use 'make knl' for Intel KNL, \
+		'make cuda' for NVIDIA CUDA GPUs or 'make knl-cpu' to compile the KNL implementation for common CPUs)
 
 .PHONY: knl
 knl: CXXFLAGS+=$(CXXFLAGS_KNL)
