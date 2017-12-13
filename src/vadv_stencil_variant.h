@@ -95,7 +95,7 @@ namespace platform {
 #pragma omp parallel for collapse(3)
         for (int k = -h; k < ksize + h; ++k)
             for (int j = -h; j < jsize + h; ++j)
-                for (int i = -h; i < ksize + h; ++i) {
+                for (int i = -h; i < isize + h; ++i) {
                     const int idx = this->zero_offset() + this->index(i, j, k);
                     x = i * dx;
                     y = j * dy;
@@ -283,7 +283,7 @@ namespace platform {
 #pragma omp parallel for collapse(2)
         for (int j = 0; j < jsize; ++j)
             for (int i = 0; i < isize; ++i) {
-                forward_sweep(i, j, 1, 0, ccol(), dcol(), wcon(), vstage(), vpos(), vtens(), vtensstage_ref());
+                forward_sweep(i, j, 0, 1, ccol(), dcol(), wcon(), vstage(), vpos(), vtens(), vtensstage_ref());
                 backward_sweep(i, j, ccol(), dcol(), datacol(), vpos(), vtensstage_ref());
             }
 
@@ -291,7 +291,7 @@ namespace platform {
 #pragma omp parallel for collapse(2)
         for (int j = 0; j < jsize; ++j)
             for (int i = 0; i < isize; ++i) {
-                forward_sweep(i, j, 1, 0, ccol(), dcol(), wcon(), wstage(), wpos(), wtens(), wtensstage_ref());
+                forward_sweep(i, j, 0, 0, ccol(), dcol(), wcon(), wstage(), wpos(), wtens(), wtensstage_ref());
                 backward_sweep(i, j, ccol(), dcol(), datacol(), wpos(), wtensstage_ref());
             }
 
