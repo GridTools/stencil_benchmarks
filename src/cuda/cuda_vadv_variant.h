@@ -65,20 +65,25 @@ namespace platform {
 
             ValueType ccol0, ccol1;
             ValueType dcol0, dcol1;
+            ValueType ustage0, ustage1, ustage2;
+            ValueType wcon0, wcon1;
+            ValueType wcon_shift0, wcon_shift1;
 
             if (i < isize && j < jsize) {
+                int index = i * istride + j * jstride;
                 // k minimum
                 {
-                    const int k = 0;
-                    const int index = i * istride + j * jstride + k * kstride;
-                    ValueType gcv = ValueType(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
-                                                          wcon[index + kstride]);
+                    wcon_shift0 = wcon[index + ishift * istride + jshift * jstride + kstride];
+                    wcon0 = wcon[index + kstride];
+                    ValueType gcv = ValueType(0.25) * (wcon_shift0 + wcon0);
                     ValueType cs = gcv * bet_m;
 
                     ccol0 = gcv * bet_p;
                     ValueType bcol = dtr_stage - ccol0;
 
-                    ValueType correction_term = -cs * (ustage[index + kstride] - ustage[index]);
+                    ustage0 = ustage[index + kstride];
+                    ustage1 = ustage[index];
+                    ValueType correction_term = -cs * (ustage0 - ustage1);
                     dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
                     ValueType divided = ValueType(1.0) / bcol;
@@ -87,17 +92,23 @@ namespace platform {
 
                     ccol[index] = ccol0;
                     dcol[index] = dcol0;
+
+                    index += kstride;
                 }
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
                     ccol1 = ccol0;
                     dcol1 = dcol0;
-                    const int index = i * istride + j * jstride + k * kstride;
-                    ValueType gav =
-                        ValueType(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
-                    ValueType gcv = ValueType(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
-                                                          wcon[index + kstride]);
+                    ustage2 = ustage1;
+                    ustage1 = ustage0;
+                    wcon1 = wcon0;
+                    wcon_shift1 = wcon_shift0;
+
+                    ValueType gav = ValueType(-0.25) * (wcon_shift1 + wcon1);
+                    wcon_shift0 = wcon[index + ishift * istride + jshift * jstride + kstride];
+                    wcon0 = wcon[index + kstride];
+                    ValueType gcv = ValueType(0.25) * (wcon_shift0 + wcon0);
 
                     ValueType as = gav * bet_m;
                     ValueType cs = gcv * bet_m;
@@ -106,8 +117,8 @@ namespace platform {
                     ccol0 = gcv * bet_p;
                     ValueType bcol = dtr_stage - acol - ccol0;
 
-                    ValueType correction_term = -as * (ustage[index - kstride] - ustage[index]) -
-                                                cs * (ustage[index + kstride] - ustage[index]);
+                    ustage0 = ustage[index + kstride];
+                    ValueType correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
                     dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
                     ValueType divided = ValueType(1.0) / (bcol - ccol1 * acol);
@@ -116,23 +127,27 @@ namespace platform {
 
                     ccol[index] = ccol0;
                     dcol[index] = dcol0;
+
+                    index += kstride;
                 }
 
                 // k maximum
                 {
                     ccol1 = ccol0;
                     dcol1 = dcol0;
-                    const int k = ksize - 1;
-                    const int index = i * istride + j * jstride + k * kstride;
-                    ValueType gav =
-                        ValueType(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
+                    ustage2 = ustage1;
+                    ustage1 = ustage0;
+                    wcon1 = wcon0;
+                    wcon_shift1 = wcon_shift0;
+
+                    ValueType gav = ValueType(-0.25) * (wcon_shift1 + wcon1);
 
                     ValueType as = gav * bet_m;
 
                     ValueType acol = gav * bet_p;
                     ValueType bcol = dtr_stage - acol;
 
-                    ValueType correction_term = -as * (ustage[index - kstride] - ustage[index]);
+                    ValueType correction_term = -as * (ustage2 - ustage1);
                     dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
                     ValueType divided = ValueType(1.0) / (bcol - ccol1 * acol);
@@ -183,8 +198,8 @@ namespace platform {
                 kstride);
             backward_sweep(ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
 
-            forward_sweep(1,
-                0,
+            forward_sweep(0,
+                1,
                 ccol,
                 dcol,
                 wcon,
@@ -200,7 +215,7 @@ namespace platform {
                 kstride);
             backward_sweep(ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride);
 
-            forward_sweep(1,
+            forward_sweep(0,
                 0,
                 ccol,
                 dcol,
@@ -236,6 +251,13 @@ namespace platform {
 
             void prerun() override {
                 vadv_stencil_variant<platform, value_type>::prerun();
+
+                if (cudaDeviceSetCacheConfig(cudaFuncCachePreferL1) != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSetCacheConfig");
+
+                if (cudaDeviceSetSharedMemConfig(
+                        sizeof(ValueType) == 8 ? cudaSharedMemBankSizeEightByte : cudaSharedMemBankSizeFourByte))
+                    throw ERROR("error in cudaDeviceSetSharedMemConfig");
 
                 auto prefetch = [&](const value_type *ptr) {
                     if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
