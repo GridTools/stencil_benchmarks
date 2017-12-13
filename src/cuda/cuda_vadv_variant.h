@@ -22,20 +22,23 @@ namespace platform {
             const int j = blockIdx.y * blockDim.y + threadIdx.y;
 
             ValueType datacol;
+
             if (i < isize && j < jsize) {
+                int index = i * istride + j * jstride + (ksize - 1) * kstride;
                 // k maximum
                 {
-                    const int k = ksize - 1;
-                    const int index = i * istride + j * jstride + k * kstride;
                     datacol = dcol[index];
                     utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+                    index -= kstride;
                 }
 
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
-                    int index = i * istride + j * jstride + k * kstride;
                     datacol = dcol[index] - ccol[index] * datacol;
                     utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+                    index -= kstride;
                 }
             }
         }
