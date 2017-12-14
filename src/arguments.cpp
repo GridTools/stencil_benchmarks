@@ -5,6 +5,8 @@
 #include "arguments.h"
 #include "except.h"
 
+bool arguments_map::exists(const std::string &name) const { return m_map.count(name); }
+
 std::string arguments_map::get_raw(const std::string &name) const {
     auto i = m_map.find(name);
     if (i == std::end(m_map))

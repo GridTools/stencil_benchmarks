@@ -92,6 +92,79 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
     out << t;
 }
 
+void run_tabular(const arguments_map &args, std::ostream &out) {
+    std::string stencil = args.get("stencil");
+
+    int isize = args.get<int>("i-size");
+    int jsize = args.get<int>("j-size");
+    int ksize = args.get<int>("k-size");
+    int iblocksize = isize;
+    int jblocksize = jsize;
+    int kblocksize = ksize;
+    if (args.exists("i-blocksize"))
+        iblocksize = args.get<int>("i-blocksize");
+    if (args.exists("j-blocksize"))
+        jblocksize = args.get<int>("j-blocksize");
+    if (args.exists("k-blocksize"))
+        kblocksize = args.get<int>("k-blocksize");
+
+    if (iblocksize > isize || jblocksize > jsize || kblocksize > ksize) {
+        std::cerr << "Warning: invalid block size configuration, no computation performed" << std::endl;
+        return;
+    }
+    int threads = args.get<int>("threads");
+    int iblocks = (isize + iblocksize - 1) / iblocksize;
+    int jblocks = (jsize + jblocksize - 1) / jblocksize;
+    int kblocks = (ksize + kblocksize - 1) / kblocksize;
+    if (iblocks * jblocks * kblocks < threads) {
+        std::cerr << "Warning: not enough blocks for the given threads, no computation performed" << std::endl;
+        return;
+    }
+
+#ifdef WITH_PAPI
+    table t(args.size() + 13);
+#else
+    table t(args.size() + 7);
+#endif
+
+    for (auto &arg : args)
+        t << arg.first;
+
+    t << "stencil"
+      << "time-avg"
+      << "time-min"
+      << "time-max"
+      << "bandwidth-avg"
+      << "bandwidth-min"
+      << "bandwidth-max"
+#ifdef WITH_PAPI
+      << "counter-avg"
+      << "counter-min"
+      << "counter-max"
+      << "counter-imbalance-avg"
+      << "counter-imbalance-min"
+      << "counter-imbalance-max"
+#endif
+        ;
+
+    const auto res = run_stencils(args);
+
+    for (auto &r : res) {
+        for (auto &arg : args)
+            t << arg.second;
+
+        t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
+          << r.bandwidth.min() << r.bandwidth.max()
+#ifdef WITH_PAPI
+          << r.counter.avg() << r.counter.min() << r.counter.max() << r.counter_imbalance.avg()
+          << r.counter_imbalance.min() << r.counter_imbalance.max()
+#endif
+            ;
+    }
+
+    out << t;
+}
+
 void run_ij_scaling(const arguments_map &args, std::ostream &out) {
     out << metric_info(args) << std::endl;
 
@@ -246,7 +319,7 @@ int main(int argc, char **argv) {
         .add("alignment", "alignment in elements", "1")
         .add("precision", "single or double precision", "double")
         .add("stencil", "stencil to run", "all")
-        .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan, block-scan)", "single-size")
+        .add("run-mode", "run mode (single-size, ij-scaling, blocksize-scan, block-scan, tabular)", "single-size")
         .add("threads", "number of threads to use (0 = use OMP_NUM_THREADS)", "0")
         .add("metric", "what to measure (time, bandwidth, papi, papi-imbalance)", "bandwidth")
 #ifdef WITH_PAPI
@@ -272,7 +345,7 @@ int main(int argc, char **argv) {
     }
     std::ostream out(buf);
 
-    if (!argsmap.get_flag("no-header"))
+    if (!argsmap.get_flag("no-header") && argsmap.get("run-mode") != "tabular")
         print_header(argsmap, out);
 
     omp_set_dynamic(0);
@@ -288,6 +361,8 @@ int main(int argc, char **argv) {
         run_blocksize_scan(argsmap, out);
     else if (run_mode == "block-scan")
         run_block_scan(argsmap, out);
+    else if (run_mode == "tabular")
+        run_tabular(argsmap, out);
     else
         throw ERROR("invalid run-mode");
 

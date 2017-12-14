@@ -21,6 +21,8 @@ class arguments_map {
 
     std::string get_raw(const std::string &name) const;
 
+    bool exists(const std::string &name) const;
+
     template <class Type = std::string>
     Type get(const std::string &name) const {
         return get_impl(name, overload<Type>());
@@ -32,6 +34,8 @@ class arguments_map {
     const_iterator end() const { return m_map.end(); }
 
     arguments_map with(const std::vector<std::pair<std::string, std::string>> &args) const;
+
+    int size() const { return m_map.size(); }
 
   private:
     std::string get_impl(const std::string &name, overload<std::string>) const;
