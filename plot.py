@@ -45,15 +45,15 @@ def plot_title(args):
         diff = argsdiff(args)
         args = args[0]
     title = []
-    if diff.isdisjoint({'platform', 'variant'}):
-        title.append(u'Variant: {}'.format(args['platform'] + ' ' + args['variant']))
+    if 'variant' not in diff:
+        title.append(u'Variant: {}'.format(args['variant']))
     if 'stencil' not in diff:
         title.append(u'Stencil: {}'.format(args['stencil']))
     if 'prec' not in diff:
         title.append(u'Prec: {}'.format(args['precision'].title()))
     if 'align' not in diff:
         title.append(u'Align: {}'.format(args['alignment']))
-    if 'threads' not in diff:
+    if 'threads' not in diff and int(args['threads']) != 0:
         title.append(u'Threads: {}'.format(args['threads']))
     if diff.isdisjoint({'i-size', 'j-size', 'k-size'}):
         title.append(u'Domain: {}×{}×{}'.format(args['i-size'], args['j-size'], args['k-size']))
