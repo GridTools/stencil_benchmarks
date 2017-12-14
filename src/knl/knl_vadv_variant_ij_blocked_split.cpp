@@ -41,6 +41,7 @@ namespace platform {
                         int index = ib * istride + jb * jstride;
 
                         for (int j = jb; j < jmax; ++j) {
+#pragma ivdep
 #pragma omp simd
                             for (int i = ib; i < imax; ++i) {
                                 this->forward_sweep(i,
@@ -77,12 +78,13 @@ namespace platform {
                         int index = ib * istride + jb * jstride;
 
                         for (int j = jb; j < jmax; ++j) {
+#pragma ivdep
 #pragma omp simd
                             for (int i = ib; i < imax; ++i) {
                                 this->forward_sweep(i,
                                     j,
-                                    1,
                                     0,
+                                    1,
                                     ccol,
                                     dcol,
                                     wcon,
@@ -113,11 +115,12 @@ namespace platform {
                         int index = ib * istride + jb * jstride;
 
                         for (int j = jb; j < jmax; ++j) {
+#pragma ivdep
 #pragma omp simd
                             for (int i = ib; i < imax; ++i) {
                                 this->forward_sweep(i,
                                     j,
-                                    1,
+                                    0,
                                     0,
                                     ccol,
                                     dcol,

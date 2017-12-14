@@ -95,8 +95,8 @@ namespace platform {
                             for (int i = ib; i < imax; ++i) {
                                 forward_sweep(i,
                                     j,
-                                    1,
                                     0,
+                                    1,
                                     ccol,
                                     dcol,
                                     wcon,
@@ -144,7 +144,7 @@ namespace platform {
                             for (int i = ib; i < imax; ++i) {
                                 forward_sweep(i,
                                     j,
-                                    1,
+                                    0,
                                     0,
                                     ccol,
                                     dcol,

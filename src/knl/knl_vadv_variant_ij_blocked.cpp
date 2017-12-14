@@ -62,8 +62,8 @@ namespace platform {
                                 i, j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride);
                             this->forward_sweep(i,
                                 j,
-                                1,
                                 0,
+                                1,
                                 ccol,
                                 dcol,
                                 wcon,
@@ -81,7 +81,7 @@ namespace platform {
                                 i, j, ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride);
                             this->forward_sweep(i,
                                 j,
-                                1,
+                                0,
                                 0,
                                 ccol,
                                 dcol,

@@ -20,7 +20,6 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
-                std::cout << m_iblocksize << " " << m_jblocksize << std::endl;
             }
             ~vadv_variant_ij_blocked_colopt() {}
 

@@ -96,18 +96,19 @@ namespace platform {
                 constexpr value_type dtr_stage = 3.0 / 20.0;
 
                 value_type datacol;
-                // k maximum
+
+                int index = i * istride + j * jstride + (ksize - 1) * kstride;
+                // k
                 {
-                    const int k = ksize - 1;
-                    const int index = i * istride + j * jstride + k * kstride;
                     datacol = dcol[index];
                     utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+                    index -= kstride;
                 }
 
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
-                    const int index = i * istride + j * jstride + k * kstride;
-                    /*constexpr int prefdist = 4;
+                    /*constexpr int prefdist = 6;
                     if (k >= prefdist) {
                         const int prefindex = index - prefdist * kstride;
                         _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
@@ -117,6 +118,8 @@ namespace platform {
                     }*/
                     datacol = dcol[index] - ccol[index] * datacol;
                     utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+                    index -= kstride;
                 }
             }
 
@@ -362,32 +365,38 @@ namespace platform {
 
                 value_type ccol0, ccol1;
                 value_type dcol0, dcol1;
+                ValueType ustage0, ustage1, ustage2;
+                ValueType wcon0, wcon1;
+                ValueType wcon_shift0, wcon_shift1;
 
+                int index = i * istride + j * jstride;
                 // k minimum
                 {
-                    const int k = 0;
-                    const int index = i * istride + j * jstride + k * kstride;
-                    value_type gcv = value_type(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
-                                                            wcon[index + kstride]);
-                    value_type cs = gcv * bet_m;
+                    wcon_shift0 = wcon[index + ishift * istride + jshift * jstride + kstride];
+                    wcon0 = wcon[index + kstride];
+                    ValueType gcv = ValueType(0.25) * (wcon_shift0 + wcon0);
+                    ValueType cs = gcv * bet_m;
 
                     ccol0 = gcv * bet_p;
-                    value_type bcol = dtr_stage - ccol0;
+                    ValueType bcol = dtr_stage - ccol0;
 
-                    value_type correction_term = -cs * (ustage[index + kstride] - ustage[index]);
+                    ustage0 = ustage[index + kstride];
+                    ustage1 = ustage[index];
+                    ValueType correction_term = -cs * (ustage0 - ustage1);
                     dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    value_type divided = value_type(1.0) / bcol;
+                    ValueType divided = ValueType(1.0) / bcol;
                     ccol0 = ccol0 * divided;
                     dcol0 = dcol0 * divided;
 
                     ccol[index] = ccol0;
                     dcol[index] = dcol0;
+
+                    index += kstride;
                 }
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
-                    const int index = i * istride + j * jstride + k * kstride;
                     constexpr int prefdist = 3;
                     if (k < ksize - prefdist) {
                         const int prefindex = index + prefdist * kstride;
@@ -396,57 +405,69 @@ namespace platform {
                         _mm_prefetch(reinterpret_cast<const char *>(&utens[prefindex]), _MM_HINT_T1);
                         _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_T1);
                         _mm_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + kstride]), _MM_HINT_T1);
-                        _mm_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + ishift * istride + jshift * jstride + kstride]), _MM_HINT_T1);
+                        _mm_prefetch(reinterpret_cast<const char *>(
+                                         &wcon[prefindex + ishift * istride + jshift * jstride + kstride]),
+                            _MM_HINT_T1);
                         _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
                         _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
                     }
 
                     ccol1 = ccol0;
                     dcol1 = dcol0;
-                    value_type gav =
-                        value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
-                    value_type gcv = value_type(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride] +
-                                                            wcon[index + kstride]);
+                    ustage2 = ustage1;
+                    ustage1 = ustage0;
+                    wcon1 = wcon0;
+                    wcon_shift1 = wcon_shift0;
 
-                    value_type as = gav * bet_m;
-                    value_type cs = gcv * bet_m;
+                    ValueType gav = ValueType(-0.25) * (wcon_shift1 + wcon1);
+                    wcon_shift0 = wcon[index + ishift * istride + jshift * jstride + kstride];
+                    wcon0 = wcon[index + kstride];
+                    ValueType gcv = ValueType(0.25) * (wcon_shift0 + wcon0);
 
-                    value_type acol = gav * bet_p;
+                    ValueType as = gav * bet_m;
+                    ValueType cs = gcv * bet_m;
+
+                    ValueType acol = gav * bet_p;
                     ccol0 = gcv * bet_p;
-                    value_type bcol = dtr_stage - acol - ccol0;
+                    ValueType bcol = dtr_stage - acol - ccol0;
 
-                    value_type correction_term = -as * (ustage[index - kstride] - ustage[index]) -
-                                                 cs * (ustage[index + kstride] - ustage[index]);
+                    ustage0 = ustage[index + kstride];
+                    ValueType correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
                     dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    value_type divided = value_type(1.0) / (bcol - ccol1 * acol);
+                    ValueType divided = ValueType(1.0) / (bcol - ccol1 * acol);
                     ccol0 = ccol0 * divided;
                     dcol0 = (dcol0 - dcol1 * acol) * divided;
 
                     ccol[index] = ccol0;
                     dcol[index] = dcol0;
+
+                    index += kstride;
                 }
 
                 // k maximum
                 {
                     ccol1 = ccol0;
                     dcol1 = dcol0;
-                    const int k = ksize - 1;
-                    const int index = i * istride + j * jstride + k * kstride;
-                    value_type gav =
-                        value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
+                    ustage2 = ustage1;
+                    ustage1 = ustage0;
+                    wcon1 = wcon0;
+                    wcon_shift1 = wcon_shift0;
 
-                    value_type as = gav * bet_m;
+                    ValueType gav = ValueType(-0.25) * (wcon_shift1 + wcon1);
 
-                    value_type acol = gav * bet_p;
-                    value_type bcol = dtr_stage - acol;
+                    ValueType as = gav * bet_m;
 
-                    value_type correction_term = -as * (ustage[index - kstride] - ustage[index]);
+                    ValueType acol = gav * bet_p;
+                    ValueType bcol = dtr_stage - acol;
+
+                    ValueType correction_term = -as * (ustage2 - ustage1);
                     dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-                    value_type divided = value_type(1.0) / (bcol - ccol1 * acol);
+                    ValueType divided = ValueType(1.0) / (bcol - ccol1 * acol);
                     dcol0 = (dcol0 - dcol1 * acol) * divided;
 
+                    ccol[index] = ccol0;
                     dcol[index] = dcol0;
                 }
             }
