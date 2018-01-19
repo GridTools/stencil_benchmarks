@@ -1,6 +1,8 @@
 #include "cuda/cuda_platform.h"
 
 #include "cuda/cuda_hdiff_variant.h"
+#include "cuda/cuda_hdiff_variant_ijnoshared.h"
+#include "cuda/cuda_hdiff_variant_incache.h"
 #include "cuda/cuda_hdiff_variant_noshared.h"
 #include "cuda/cuda_vadv_variant.h"
 #include "cuda/cuda_variant_1d.h"
@@ -25,10 +27,17 @@ namespace platform {
             hdiff.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
+            hdiff.command("ij-blocked-noshared")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ijk-blocked-noshared")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8")
                 .add("k-blocksize", "block size in k-direction", "8");
+            hdiff.command("ijk-blocked-incache")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8")
+                .add("k-blocksize", "block size in k-direction", "1");
             auto &vadv = args.command("vadv", "variant");
             vadv.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
@@ -52,8 +61,12 @@ namespace platform {
                 if (grp == "hdiff") {
                     if (var == "ij-blocked")
                         return new hdiff_variant<ValueType>(args);
+                    if (var == "ij-blocked-noshared")
+                        return new hdiff_variant_ijnoshared<ValueType>(args);
                     if (var == "ijk-blocked-noshared")
                         return new hdiff_variant_noshared<ValueType>(args);
+                    if (var == "ijk-blocked-incache")
+                        return new hdiff_variant_incache<ValueType>(args);
                 }
                 if (grp == "vadv") {
                     if (var == "ij-blocked")
