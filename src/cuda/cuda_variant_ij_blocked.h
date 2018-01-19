@@ -8,26 +8,26 @@ namespace platform {
 
 #define LOAD(x) x
 
-#define KERNEL(name, stmt)                                     \
-    template <class ValueType>                                 \
-    __global__ void kernel_##name(ValueType *__restrict__ dst, \
-        const ValueType *__restrict__ src,                     \
-        int isize,                                             \
-        int jsize,                                             \
-        int ksize,                                             \
-        int istride,                                           \
-        int jstride,                                           \
-        int kstride) {                                         \
-        const int i = blockIdx.x * blockDim.x + threadIdx.x;   \
-        const int j = blockIdx.y * blockDim.y + threadIdx.y;   \
-                                                               \
-        int idx = i * istride + j * jstride;                   \
-        for (int k = 0; k < ksize; ++k) {                      \
-            if (i < isize && j < jsize) {                      \
-                stmt;                                          \
-                idx += kstride;                                \
-            }                                                  \
-        }                                                      \
+#define KERNEL(name, stmt)                                        \
+    template <class ValueType>                                    \
+    __global__ void kernel_ij_##name(ValueType *__restrict__ dst, \
+        const ValueType *__restrict__ src,                        \
+        int isize,                                                \
+        int jsize,                                                \
+        int ksize,                                                \
+        int istride,                                              \
+        int jstride,                                              \
+        int kstride) {                                            \
+        const int i = blockIdx.x * blockDim.x + threadIdx.x;      \
+        const int j = blockIdx.y * blockDim.y + threadIdx.y;      \
+                                                                  \
+        int idx = i * istride + j * jstride;                      \
+        for (int k = 0; k < ksize; ++k) {                         \
+            if (i < isize && j < jsize) {                         \
+                stmt;                                             \
+                idx += kstride;                                   \
+            }                                                     \
+        }                                                         \
     }
 
         KERNEL(copy, dst[idx] = LOAD(src[idx]))
@@ -44,18 +44,18 @@ namespace platform {
             dst[idx] = LOAD(src[idx]) + LOAD(src[idx - istride]) + LOAD(src[idx + istride]) + LOAD(src[idx - jstride]) +
                        LOAD(src[idx + jstride]))
 
-#define KERNEL_CALL(name)                                     \
-    void name() override {                                    \
-        kernel_##name<<<blocks(), blocksize()>>>(this->dst(), \
-            this->src(),                                      \
-            this->isize(),                                    \
-            this->jsize(),                                    \
-            this->ksize(),                                    \
-            this->istride(),                                  \
-            this->jstride(),                                  \
-            this->kstride());                                 \
-        if (cudaDeviceSynchronize() != cudaSuccess)           \
-            throw ERROR("error in cudaDeviceSynchronize");    \
+#define KERNEL_CALL(name)                                        \
+    void name() override {                                       \
+        kernel_ij_##name<<<blocks(), blocksize()>>>(this->dst(), \
+            this->src(),                                         \
+            this->isize(),                                       \
+            this->jsize(),                                       \
+            this->ksize(),                                       \
+            this->istride(),                                     \
+            this->jstride(),                                     \
+            this->kstride());                                    \
+        if (cudaDeviceSynchronize() != cudaSuccess)              \
+            throw ERROR("error in cudaDeviceSynchronize");       \
     }
 
         template <class ValueType>
@@ -118,3 +118,4 @@ namespace platform {
 
 #undef LOAD
 #undef KERNEL
+#undef KERNEL_CALL

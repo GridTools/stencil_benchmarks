@@ -3,7 +3,9 @@
 #include "cuda/cuda_hdiff_variant.h"
 #include "cuda/cuda_hdiff_variant_noshared.h"
 #include "cuda/cuda_vadv_variant.h"
+#include "cuda/cuda_variant_1d.h"
 #include "cuda/cuda_variant_ij_blocked.h"
+#include "cuda/cuda_variant_ijk_blocked.h"
 
 namespace platform {
 
@@ -11,9 +13,14 @@ namespace platform {
 
         void cuda::setup(arguments &args) {
             auto &basic = args.command("basic", "variant");
+            basic.command("1d").add("blocksize", "1D block size", "32");
             basic.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
+            basic.command("ijk-blocked")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8")
+                .add("k-blocksize", "block size in k-direction", "8");
             auto &hdiff = args.command("hdiff", "variant");
             hdiff.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
@@ -35,8 +42,12 @@ namespace platform {
                 std::string var = args.get("variant");
 
                 if (grp == "basic") {
+                    if (var == "1d")
+                        return new variant_1d<ValueType>(args);
                     if (var == "ij-blocked")
                         return new variant_ij_blocked<ValueType>(args);
+                    if (var == "ijk-blocked")
+                        return new variant_ijk_blocked<ValueType>(args);
                 }
                 if (grp == "hdiff") {
                     if (var == "ij-blocked")
