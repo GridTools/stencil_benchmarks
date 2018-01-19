@@ -151,7 +151,7 @@ namespace platform {
                         throw ERROR("result of stencil '" + s + "' is wrong");
                 } else if (i >= dry) {
                     double t = std::chrono::duration<double>(tend - tstart).count();
-                    double gb = touched_bytes(s) / (1024.0 * 1024.0 * 1024.0);
+                    double gb = touched_bytes(s) / 1.0e9;
 
 #ifdef WITH_PAPI
                     double ctrs_sum = std::accumulate(ctrs.begin(), ctrs.end(), 0ll);
