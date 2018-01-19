@@ -180,10 +180,9 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
     std::map<std::string, std::vector<double>> res_map;
 
     int sizes = 0;
-    const int halo = args.get<int>("halo");
-    for (int size = min_size; size <= isize_max + 2 * halo; size *= 2) {
+    for (int size = min_size; size <= isize_max; size *= 2) {
         std::stringstream size_stream;
-        size_stream << (size - 2 * halo);
+        size_stream << size;
 
         auto res = run_stencils(args.with({{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
         for (auto &r : res) {
@@ -194,8 +193,8 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
 
     table t(sizes + 1);
     t << "Stencil";
-    for (int size = min_size; size <= isize_max + 2 * halo; size *= 2)
-        t << (size - 2 * halo);
+    for (int size = min_size; size <= isize_max; size *= 2)
+        t << size;
 
     std::set<std::string> stencils;
     for (const auto &r : res_map)
