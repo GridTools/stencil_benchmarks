@@ -50,6 +50,9 @@ namespace platform {
                 char *raw_ptr = reinterpret_cast<char *>(ptr) - offset;
                 KNL_FREE(raw_ptr);
             }
+
+            template <class OtherValueType, class... Args>
+            void construct(OtherValueType *, Args &&...) {}
         };
 
     } // namespace knl
