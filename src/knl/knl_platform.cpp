@@ -29,8 +29,28 @@ namespace platform {
     namespace knl {
 
         void knl::flush_cache() {
+#ifdef KNL_CLASSIC_CFLUSHER
+            constexpr int cache_size = 1 * 1024 * 1024;
+            constexpr int n = cache_size / sizeof(float);
+            std::vector<float, flat_allocator<float>> a(n), b(n);
+            volatile float *a_ptr = a.data();
+            volatile float *b_ptr = b.data();
+#pragma omp parallel
+            {
+                std::minstd_rand eng(13 * omp_get_thread_num());
+                std::uniform_int_distribution<int> dist(0, n - 1);
+                const int offset = dist(eng);
+#pragma vector nontemporal
+                for (int i = 0; i < n; ++i) {
+                    b_ptr[i] = a_ptr[offset];
+                }
+
+                _mm_mfence();
+            }
+#else
 #pragma omp parallel
             { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }
+#endif
         }
 
         void knl::check_cache_conflicts(const std::string &stride_name, std::ptrdiff_t byte_stride) {
