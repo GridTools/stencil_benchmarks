@@ -24,8 +24,8 @@ namespace platform {
           m_runs(args.get<int>("runs")) {
         if (m_isize <= 0 || m_jsize <= 0 || m_ksize <= 0)
             throw ERROR("invalid domain size");
-        if (m_halo <= 0)
-            throw ERROR("invalid m_halo size");
+        if (m_halo < 0)
+            throw ERROR("invalid halo size");
         if (m_alignment <= 0)
             throw ERROR("invalid alignment");
         if (m_runs <= 0)
