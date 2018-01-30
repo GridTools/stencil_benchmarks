@@ -332,6 +332,8 @@ int main(int argc, char **argv) {
 
     auto argsmap = args.parse(argc, argv);
 
+    argsmap.add("platform", platform::device::name);
+
     std::streambuf *buf;
     std::ofstream outfile;
     if (argsmap.get("output") == "stdout") {
