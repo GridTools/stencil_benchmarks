@@ -76,16 +76,18 @@ namespace platform {
             }
         }
 
-        variant_base *cuda::create_variant(const arguments_map &args) {
+        std::unique_ptr<variant_base> cuda::create_variant(const arguments_map &args) {
             std::string prec = args.get("precision");
 
+            variant_base *ptr = nullptr;
+
             if (prec == "single") {
-                return create_variant_by_prec<float>(args);
+                ptr = create_variant_by_prec<float>(args);
             } else if (prec == "double") {
-                return create_variant_by_prec<double>(args);
+                ptr = create_variant_by_prec<double>(args);
             }
 
-            return nullptr;
+            return std::unique_ptr<variant_base>(ptr);
         }
 
         void cuda::limit_blocksize(int &iblocksize, int &jblocksize) {

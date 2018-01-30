@@ -1,14 +1,9 @@
 #pragma once
 
-#include <memory>
-
-#include "arguments.h"
-#include "variant_base.h"
-
-namespace platform {
-
-    void setup(arguments &args);
-
-    std::unique_ptr<variant_base> create_variant(const arguments_map &args);
-
-} // namespace platform
+#ifdef PLATFORM_KNL
+#include "knl/knl_platform.h"
+#elif defined(PLATFORM_CUDA)
+#include "cuda/cuda_platform.h"
+#else
+#error "No platform defined."
+#endif

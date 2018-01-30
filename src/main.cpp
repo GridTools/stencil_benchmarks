@@ -56,7 +56,7 @@ double get_metric(const arguments_map &args, const result &r) {
 }
 
 std::vector<result> run_stencils(const arguments_map &args) {
-    auto variant = platform::create_variant(args);
+    auto variant = platform::device::create_variant(args);
     auto stencil = args.get("stencil");
     return variant->run(stencil);
 }
@@ -328,7 +328,7 @@ int main(int argc, char **argv) {
         .add("runs", "number of runs", "20")
         .add_flag("no-header", "do not print header");
 
-    platform::setup(args);
+    platform::device::setup(args);
 
     auto argsmap = args.parse(argc, argv);
 

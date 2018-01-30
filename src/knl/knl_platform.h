@@ -16,12 +16,14 @@ namespace platform {
 
             static void setup(arguments &args);
 
-            static variant_base *create_variant(const arguments_map &args);
+            static std::unique_ptr<variant_base> create_variant(const arguments_map &args);
 
             static void flush_cache();
             static void check_cache_conflicts(const std::string &stride_name, std::ptrdiff_t byte_stride);
         };
 
     } // namespace knl
+
+    using device = knl::knl;
 
 } // namespace platform
