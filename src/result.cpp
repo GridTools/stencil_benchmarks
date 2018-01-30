@@ -6,6 +6,8 @@
 #include "result.h"
 #include "table.h"
 
+result_array::result_array(const std::string &name, const std::string &unit) : m_name(name), m_unit(unit) {}
+
 double result_array::min() const {
     return std::accumulate(
         m_data.begin(), m_data.end(), lim::infinity(), [](double a, double b) { return a < b ? a : b; });
@@ -18,43 +20,36 @@ double result_array::max() const {
 
 double result_array::avg() const { return std::accumulate(m_data.begin(), m_data.end(), 0.0) / m_data.size(); }
 
-result::result(const std::string &stencil) : stencil(stencil) {}
+result::result(const std::string &stencil) : m_stencil(stencil) {}
 
-void result::push_back(double t,
-    double gb
-#ifdef WITH_PAPI
-    ,
-    double ctr,
-    double ctr_imb
-#endif
-    ) {
-    time.m_data.push_back(t);
-    bandwidth.m_data.push_back(gb / t);
-#ifdef WITH_PAPI
-    counter.m_data.push_back(ctr);
-    counter_imbalance.m_data.push_back(ctr_imb);
-#endif
+void result::add_data(const std::string &name, const std::string &unit) {
+    for (const auto &d : m_data) {
+        if (!d.m_data.empty())
+            throw ERROR("can only add additional data to empty result object");
+    }
+    m_data.emplace_back(name, unit);
+}
+
+const result_array &result::operator[](const std::string &name) const {
+    for (const auto &d : m_data) {
+        if (d.name() == name)
+            return d;
+    }
+    throw ERROR("could not find result data for '" + name + "'");
 }
 
 std::ostream &operator<<(std::ostream &out, const result &r) {
+    out << "Result for stencil '" << r.stencil() << "':\n";
+
     table t(5);
-
-    auto tdata = [&](const std::string &name, const std::string &unit, const result_array &a, double mul = 1) {
-        t << name << unit << (a.avg() * mul) << (a.min() * mul) << (a.max() * mul);
-    };
-
-    out << "Result for stencil '" << r.stencil << "':\n";
     t << "Metric"
       << "Unit"
       << "Average"
       << "Minimum"
       << "Maximum";
-    tdata("Time", "ms", r.time, 1000);
-    tdata("Bandwidth", "GB/s", r.bandwidth);
-#ifdef WITH_PAPI
-    tdata("Counter", "", r.counter);
-    tdata("Ctr. Imbalance", "", r.counter_imbalance);
-#endif
+
+    for (auto &ri : r)
+        t << ri.name() << ri.unit() << ri.avg() << ri.min() << ri.max();
 
     out << t;
     return out;

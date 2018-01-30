@@ -116,6 +116,12 @@ namespace platform {
         for (const std::string &s : stencils) {
             auto f = stencil_function(s);
             result res(s);
+            res.add_data("time", "ms");
+            res.add_data("bandwidth", "GB/s");
+#ifdef WITH_PAPI
+            res.add_data("counter", "-");
+            res.add_data("counter-imbalance", "-");
+#endif
 
             for (int i = 0; i < m_runs + dry; ++i) {
                 prerun();
@@ -158,9 +164,9 @@ namespace platform {
                     double ctr = ctrs_sum / ctrs.size();
                     double ctr_imb = *std::max_element(ctrs.begin(), ctrs.end()) / (ctrs_sum / ctrs.size()) - 1.0;
 
-                    res.push_back(t, gb, ctr, ctr_imb);
+                    res.push_back(t * 1000.0, gb / t, ctr, ctr_imb);
 #else
-                    res.push_back(t, gb);
+                    res.push_back(t * 1000.0, gb / t);
 #endif
                 }
             }

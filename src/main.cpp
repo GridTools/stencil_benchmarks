@@ -44,14 +44,14 @@ std::string metric_info(const arguments_map &args) {
 double get_metric(const arguments_map &args, const result &r) {
     std::string m = args.get("metric");
     if (m == "time")
-        return r.time.min() * 1000;
+        return r["time"].min();
     else if (m == "bandwidth")
-        return r.bandwidth.max();
+        return r["bandwidth"].max();
 #ifdef WITH_PAPI
     else if (m == "papi")
-        return r.counter.min();
+        return r["counter"].min();
     else if (m == "papi-imbalance")
-        return r.counter_imbalance.min();
+        return r["counter-imbalance"].min();
 #endif
     else
         throw ERROR("invalid metric");
@@ -66,41 +66,18 @@ std::vector<result> run_stencils(const arguments_map &args) {
 void run_single_size(const arguments_map &args, std::ostream &out) {
     out << "# times are given in milliseconds, bandwidth in GB/s" << std::endl;
 
-#ifdef WITH_PAPI
-    table t(13);
-#else
-    table t(7);
-#endif
-    t << "Stencil"
-      << "Time-avg"
-      << "Time-min"
-      << "Time-max"
-      << "BW-avg"
-      << "BW-min"
-      << "BW-max"
-#ifdef WITH_PAPI
-      << "CTR-avg"
-      << "CTR-min"
-      << "CTR-max"
-      << "CTR-IMB-avg"
-      << "CTR-IMB-min"
-      << "CTR-IMB-max"
-#endif
-        ;
-
-    auto print_result = [&t](const result &r) {
-        t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max()
-#ifdef WITH_PAPI
-          << r.counter.avg() << r.counter.min() << r.counter.max() << r.counter_imbalance.avg()
-          << r.counter_imbalance.min() << r.counter_imbalance.max()
-#endif
-            ;
-    };
-
     const auto res = run_stencils(args);
-    for (auto &r : res)
-        print_result(r);
+    table t(res.front().size() * 3 + 1);
+    t << "stencil";
+    for (auto &ri : res.front()) {
+        t << (ri.name() + "-avg") << (ri.name() + "-min") << (ri.name() + "-max");
+    }
+
+    for (auto &r : res) {
+        t << r.stencil();
+        for (auto &ri : r)
+            t << ri.avg() << ri.min() << ri.max();
+    }
 
     out << t;
 }
@@ -134,45 +111,22 @@ void run_tabular(const arguments_map &args, std::ostream &out) {
         return;
     }
 
-#ifdef WITH_PAPI
-    table t(args.size() + 13);
-#else
-    table t(args.size() + 7);
-#endif
-
+    const auto res = run_stencils(args);
+    table t(args.size() + res.front().size() * 3);
     for (auto &arg : args)
         t << arg.first;
-
-    t << "stencil"
-      << "time-avg"
-      << "time-min"
-      << "time-max"
-      << "bandwidth-avg"
-      << "bandwidth-min"
-      << "bandwidth-max"
-#ifdef WITH_PAPI
-      << "counter-avg"
-      << "counter-min"
-      << "counter-max"
-      << "counter-imbalance-avg"
-      << "counter-imbalance-min"
-      << "counter-imbalance-max"
-#endif
-        ;
-
-    const auto res = run_stencils(args);
+    for (auto &ri : res.front())
+        t << (ri.name() + "-avg") << (ri.name() + "-min") << (ri.name() + "-max");
 
     for (auto &r : res) {
-        for (auto &arg : args)
-            t << arg.second;
-
-        t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max()
-#ifdef WITH_PAPI
-          << r.counter.avg() << r.counter.min() << r.counter.max() << r.counter_imbalance.avg()
-          << r.counter_imbalance.min() << r.counter_imbalance.max()
-#endif
-            ;
+        for (auto &arg : args) {
+            if (arg.first == "stencil")
+                t << r.stencil();
+            else
+                t << arg.second;
+        }
+        for (auto &ri : r)
+            t << ri.avg() << ri.min() << ri.max();
     }
 
     out << t;
@@ -198,14 +152,13 @@ void run_ij_scaling(const arguments_map &args, std::ostream &out) {
         size_stream << size;
 
         auto res = run_stencils(args.with({{"i-size", size_stream.str()}, {"j-size", size_stream.str()}}));
-        for (auto &r : res) {
-            res_map[r.stencil].push_back(get_metric(args, r));
-        }
+        for (auto &r : res)
+            res_map[r.stencil()].push_back(get_metric(args, r));
         ++sizes;
     }
 
     table t(sizes + 1);
-    t << "Stencil";
+    t << "stencil";
     for (int size = min_size; size <= isize_max; size *= 2)
         t << size;
 
@@ -284,48 +237,25 @@ void run_block_scan(const arguments_map &args, std::ostream &out) {
         }
     }
 
-#ifdef WITH_PAPI
-    table t(13);
-#else
-    table t(7);
-#endif
-    t << "Block-size"
-      << "Time-avg"
-      << "Time-min"
-      << "Time-max"
-      << "BW-avg"
-      << "BW-min"
-      << "BW-max"
-#ifdef WITH_PAPI
-      << "CTR-avg"
-      << "CTR-min"
-      << "CTR-max"
-      << "CTR-IMB-avg"
-      << "CTR-IMB-min"
-      << "CTR-IMB-max"
-#endif
-        ;
-
-    auto print_result = [&t](const arguments_map &a, const result &r) {
-        t << (a.get("i-blocks") + "x" + a.get("j-blocks") + "x" + a.get("k-blocks"));
-        t << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max()
-#ifdef WITH_PAPI
-          << r.counter.avg() << r.counter.min() << r.counter.max() << r.counter_imbalance.avg()
-          << r.counter_imbalance.min() << r.counter_imbalance.max()
-#endif
-            ;
-    };
-
+    std::unique_ptr<table> t;
     for (const auto &b : blocks) {
         auto a = args.with({{"i-blocks", std::to_string(b[0])},
             {"j-blocks", std::to_string(b[1])},
             {"k-blocks", std::to_string(b[2])}});
         auto r = run_stencils(a).front();
-        print_result(a, r);
+        if (!t) {
+            t = std::unique_ptr<table>(new table(r.size() * 3 + 1));
+            *t << "blocksize";
+            for (auto &ri : r)
+                *t << (ri.name() + "-avg") << (ri.name() + "-min") << (ri.name() + "-max");
+        }
+
+        *t << (a.get("i-blocks") + "x" + a.get("j-blocks") + "x" + a.get("k-blocks"));
+        for (auto &ri : r)
+            *t << ri.avg() << ri.min() << ri.max();
     }
 
-    out << t;
+    out << *t;
 }
 
 int main(int argc, char **argv) {
