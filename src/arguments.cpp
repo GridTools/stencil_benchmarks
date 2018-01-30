@@ -31,6 +31,12 @@ arguments_map arguments_map::with(const std::vector<std::pair<std::string, std::
     return copy;
 }
 
+void arguments_map::add(const std::string &name, const std::string &value) {
+    if (get_flag(name))
+        throw ERROR("given argument '" + name + "' is already in map");
+    m_map[name] = value;
+}
+
 std::ostream &operator<<(std::ostream &out, const arguments_map &argsmap) {
     out << "Arguments:" << std::endl;
     std::size_t name_maxl = 0;

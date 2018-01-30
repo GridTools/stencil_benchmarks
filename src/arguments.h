@@ -37,6 +37,8 @@ class arguments_map {
 
     int size() const { return m_map.size(); }
 
+    void add(const std::string &name, const std::string &value);
+
   private:
     std::string get_impl(const std::string &name, overload<std::string>) const;
     int get_impl(const std::string &name, overload<int>) const;
