@@ -197,8 +197,11 @@ namespace platform {
         std::size_t i = isize();
         std::size_t j = jsize();
         std::size_t k = ksize();
-        // TODO: better estimate
-        return i * j * k * 6;
+        // We ignore the temporaries here, as they are not touched by optimized implementations
+        std::size_t in_elements = (i + 4) * (j + 4) * k;
+        std::size_t coeff_elements = i * j * k;
+        std::size_t out_elements = i * j * k;
+        return in_elements + coeff_elements + out_elements;
     }
 
 } // namespace platform
