@@ -47,10 +47,12 @@ double get_metric(const arguments_map &args, const result &r) {
         return r.time.min() * 1000;
     else if (m == "bandwidth")
         return r.bandwidth.max();
+#ifdef WITH_PAPI
     else if (m == "papi")
         return r.counter.min();
     else if (m == "papi-imbalance")
         return r.counter_imbalance.min();
+#endif
     else
         throw ERROR("invalid metric");
 }
@@ -64,7 +66,11 @@ std::vector<result> run_stencils(const arguments_map &args) {
 void run_single_size(const arguments_map &args, std::ostream &out) {
     out << "# times are given in milliseconds, bandwidth in GB/s" << std::endl;
 
+#ifdef WITH_PAPI
     table t(13);
+#else
+    table t(7);
+#endif
     t << "Stencil"
       << "Time-avg"
       << "Time-min"
@@ -72,17 +78,24 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
       << "BW-avg"
       << "BW-min"
       << "BW-max"
+#ifdef WITH_PAPI
       << "CTR-avg"
       << "CTR-min"
       << "CTR-max"
       << "CTR-IMB-avg"
       << "CTR-IMB-min"
-      << "CTR-IMB-max";
+      << "CTR-IMB-max"
+#endif
+        ;
 
     auto print_result = [&t](const result &r) {
         t << r.stencil << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max() << r.counter.avg() << r.counter.min() << r.counter.max()
-          << r.counter_imbalance.avg() << r.counter_imbalance.min() << r.counter_imbalance.max();
+          << r.bandwidth.min() << r.bandwidth.max()
+#ifdef WITH_PAPI
+          << r.counter.avg() << r.counter.min() << r.counter.max() << r.counter_imbalance.avg()
+          << r.counter_imbalance.min() << r.counter_imbalance.max()
+#endif
+            ;
     };
 
     const auto res = run_stencils(args);
@@ -271,7 +284,11 @@ void run_block_scan(const arguments_map &args, std::ostream &out) {
         }
     }
 
+#ifdef WITH_PAPI
     table t(13);
+#else
+    table t(7);
+#endif
     t << "Block-size"
       << "Time-avg"
       << "Time-min"
@@ -279,18 +296,25 @@ void run_block_scan(const arguments_map &args, std::ostream &out) {
       << "BW-avg"
       << "BW-min"
       << "BW-max"
+#ifdef WITH_PAPI
       << "CTR-avg"
       << "CTR-min"
       << "CTR-max"
       << "CTR-IMB-avg"
       << "CTR-IMB-min"
-      << "CTR-IMB-max";
+      << "CTR-IMB-max"
+#endif
+        ;
 
     auto print_result = [&t](const arguments_map &a, const result &r) {
         t << (a.get("i-blocks") + "x" + a.get("j-blocks") + "x" + a.get("k-blocks"));
         t << (r.time.avg() * 1000) << (r.time.min() * 1000) << (r.time.max() * 1000) << r.bandwidth.avg()
-          << r.bandwidth.min() << r.bandwidth.max() << r.counter.avg() << r.counter.min() << r.counter.max()
-          << r.counter_imbalance.avg() << r.counter_imbalance.min() << r.counter_imbalance.max();
+          << r.bandwidth.min() << r.bandwidth.max()
+#ifdef WITH_PAPI
+          << r.counter.avg() << r.counter.min() << r.counter.max() << r.counter_imbalance.avg()
+          << r.counter_imbalance.min() << r.counter_imbalance.max()
+#endif
+            ;
     };
 
     for (const auto &b : blocks) {

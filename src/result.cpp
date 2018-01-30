@@ -20,15 +20,25 @@ double result_array::avg() const { return std::accumulate(m_data.begin(), m_data
 
 result::result(const std::string &stencil) : stencil(stencil) {}
 
-void result::push_back(double t, double gb, double ctr, double ctr_imb) {
+void result::push_back(double t,
+    double gb
+#ifdef WITH_PAPI
+    ,
+    double ctr,
+    double ctr_imb
+#endif
+    ) {
     time.m_data.push_back(t);
     bandwidth.m_data.push_back(gb / t);
+#ifdef WITH_PAPI
     counter.m_data.push_back(ctr);
     counter_imbalance.m_data.push_back(ctr_imb);
+#endif
 }
 
 std::ostream &operator<<(std::ostream &out, const result &r) {
     table t(5);
+
     auto tdata = [&](const std::string &name, const std::string &unit, const result_array &a, double mul = 1) {
         t << name << unit << (a.avg() * mul) << (a.min() * mul) << (a.max() * mul);
     };
@@ -41,8 +51,10 @@ std::ostream &operator<<(std::ostream &out, const result &r) {
       << "Maximum";
     tdata("Time", "ms", r.time, 1000);
     tdata("Bandwidth", "GB/s", r.bandwidth);
+#ifdef WITH_PAPI
     tdata("Counter", "", r.counter);
     tdata("Ctr. Imbalance", "", r.counter_imbalance);
+#endif
 
     out << t;
     return out;

@@ -160,7 +160,7 @@ namespace platform {
 
                     res.push_back(t, gb, ctr, ctr_imb);
 #else
-                    res.push_back(t, gb, 0, 0);
+                    res.push_back(t, gb);
 #endif
                 }
             }
