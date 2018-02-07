@@ -108,6 +108,7 @@ namespace platform {
 
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
+#ifdef __SSE__
                     /*constexpr int prefdist = 6;
                     if (k >= prefdist) {
                         const int prefindex = index - prefdist * kstride;
@@ -116,6 +117,7 @@ namespace platform {
                         _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_NTA);
                         _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_NTA);
                     }*/
+#endif
                     datacol = dcol[index] - ccol[index] * datacol;
                     utensstage[index] = dtr_stage * (datacol - upos[index]);
 
@@ -397,6 +399,7 @@ namespace platform {
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
+#ifdef __SSE__
                     constexpr int prefdist = 3;
                     if (k < ksize - prefdist) {
                         const int prefindex = index + prefdist * kstride;
@@ -411,6 +414,7 @@ namespace platform {
                         _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
                         _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
                     }
+#endif
 
                     ccol1 = ccol0;
                     dcol1 = dcol0;
