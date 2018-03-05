@@ -53,13 +53,13 @@ namespace platform {
 
       private:
         const unsigned int num_storages_per_field;
-        std::vector<data_field> m_src_data, m_dst_data;
+        std::vector<data_field<value_type, allocator> > m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
     };
 
     template <class Platform, class ValueType>
     basic_stencil_variant<Platform, ValueType>::basic_stencil_variant(const arguments_map &args)
-        : variant_base(args), num_storages_per_field((int)(6 * 1e6 / (storage_size() * value_type))),
+        : variant_base(args), num_storages_per_field((int)(6 * 1e6 / (storage_size() * sizeof(value_type)))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
 #pragma omp parallel
         {
@@ -114,8 +114,8 @@ namespace platform {
     template <class Platform, class ValueType>
     bool basic_stencil_variant<Platform, ValueType>::verify(const std::string &stencil) {
         std::function<bool(int, int, int)> f;
-        auto s = [&](int i, int j, int k) { return (src()[index(i, j, k)]; };
-        auto d = [&](int i, int j, int k) { return (dst()[index(i, j, k)]; };
+        auto s = [&](int i, int j, int k) { return src()[index(i, j, k)]; };
+        auto d = [&](int i, int j, int k) { return dst()[index(i, j, k)]; };
 
         if (stencil == "copy") {
             f = [&](int i, int j, int k) { return d(i, j, k) == s(i, j, k); };
