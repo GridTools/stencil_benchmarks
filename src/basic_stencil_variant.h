@@ -59,7 +59,7 @@ namespace platform {
 
     template <class Platform, class ValueType>
     basic_stencil_variant<Platform, ValueType>::basic_stencil_variant(const arguments_map &args)
-        : variant_base(args), num_storages_per_field((int)(6 * 1e6 / (storage_size() * value_type))),
+        : variant_base(args), num_storages_per_field(std::min(1, (int)(6 * 1e6 / (storage_size() * value_type)))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
 #pragma omp parallel
         {
