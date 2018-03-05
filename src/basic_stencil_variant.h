@@ -44,7 +44,7 @@ namespace platform {
         value_type *src(unsigned int field = 0) { return m_src_data.at(field).m_data.data() + zero_offset(); }
         value_type *dst(unsigned int field = 0) { return m_dst_data.at(field).m_data.data() + zero_offset(); }
 
-        std::function<void()> stencil_function(const std::string &stencil) override;
+        std::function<void(unsigned int)> stencil_function(const std::string &stencil) override;
 
         bool verify(const std::string &stencil) override;
 
