@@ -86,7 +86,8 @@ namespace platform {
     }
 
     template <class Platform, class ValueType>
-    std::function<void()> basic_stencil_variant<Platform, ValueType>::stencil_function(const std::string &stencil) {
+    std::function<void(unsigned int)> basic_stencil_variant<Platform, ValueType>::stencil_function(
+        const std::string &stencil) {
         if (stencil == "copy")
             return std::bind(&basic_stencil_variant::copy, this);
         if (stencil == "copyi")
