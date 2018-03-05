@@ -288,7 +288,7 @@ namespace platform {
                     throw ERROR("error in cudaDeviceSynchronize");
             }
 
-            void vadv() override {
+            void vadv(unsigned int i) override {
                 kernel_vadv<<<blocks(), blocksize()>>>(this->ustage(),
                     this->upos(),
                     this->utens(),

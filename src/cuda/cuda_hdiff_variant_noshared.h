@@ -88,7 +88,7 @@ namespace platform {
                     throw ERROR("error in cudaDeviceSynchronize");
             }
 
-            void hdiff() override {
+            void hdiff(unsigned int i) override {
                 kernel_hdiff_noshared<<<blocks(), blocksize()>>>(this->in(),
                     this->coeff(),
                     this->out(),

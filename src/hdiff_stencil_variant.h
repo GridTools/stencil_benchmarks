@@ -22,7 +22,7 @@ namespace platform {
 
         void prerun() override;
 
-        virtual void hdiff() = 0;
+        virtual void hdiff(unsigned int) = 0;
 
       protected:
         value_type *in() { return m_in.data() + zero_offset(); }
@@ -38,7 +38,7 @@ namespace platform {
         value_type *flx_ref() { return m_flx_ref.data() + zero_offset(); }
         value_type *fly_ref() { return m_fly_ref.data() + zero_offset(); }
 
-        std::function<void()> stencil_function(const std::string &stencil) override;
+        std::function<void(unsigned int)> stencil_function(const std::string &stencil) override;
 
         bool verify(const std::string &stencil) override;
 
@@ -120,9 +120,9 @@ namespace platform {
     }
 
     template <class Platform, class ValueType>
-    std::function<void()> hdiff_stencil_variant<Platform, ValueType>::stencil_function(const std::string &stencil) {
+    std::function<void(unsigned int)> hdiff_stencil_variant<Platform, ValueType>::stencil_function(const std::string &stencil) {
         if (stencil == "hdiff")
-            return std::bind(&hdiff_stencil_variant::hdiff, this);
+            return std::bind(&hdiff_stencil_variant::hdiff, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 

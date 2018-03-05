@@ -41,8 +41,8 @@ namespace platform {
         virtual void lapij(unsigned int) = 0;
 
       protected:
-        value_type *src(unsigned int field = 0) { return m_src_data.at(field).m_data.data() + zero_offset(); }
-        value_type *dst(unsigned int field = 0) { return m_dst_data.at(field).m_data.data() + zero_offset(); }
+        value_type *src(unsigned int field = 0) { return m_src_data.at(field%num_storages_per_field).m_data.data() + zero_offset(); }
+        value_type *dst(unsigned int field = 0) { return m_dst_data.at(field%num_storages_per_field).m_data.data() + zero_offset(); }
 
         std::function<void(unsigned int)> stencil_function(const std::string &stencil) override;
 
@@ -50,9 +50,8 @@ namespace platform {
 
         std::size_t touched_elements(const std::string &stencil) const override;
         std::size_t bytes_per_element() const override { return sizeof(value_type); }
-
-      private:
         const unsigned int num_storages_per_field;
+      private:
         std::vector<data_field<value_type, allocator>> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
     };
@@ -89,27 +88,27 @@ namespace platform {
     std::function<void(unsigned int)> basic_stencil_variant<Platform, ValueType>::stencil_function(
         const std::string &stencil) {
         if (stencil == "copy")
-            return std::bind(&basic_stencil_variant::copy, this);
+            return std::bind(&basic_stencil_variant::copy, this, std::placeholders::_1);
         if (stencil == "copyi")
-            return std::bind(&basic_stencil_variant::copyi, this);
+            return std::bind(&basic_stencil_variant::copyi, this, std::placeholders::_1);
         if (stencil == "copyj")
-            return std::bind(&basic_stencil_variant::copyj, this);
+            return std::bind(&basic_stencil_variant::copyj, this, std::placeholders::_1);
         if (stencil == "copyk")
-            return std::bind(&basic_stencil_variant::copyk, this);
+            return std::bind(&basic_stencil_variant::copyk, this, std::placeholders::_1);
         if (stencil == "avgi")
-            return std::bind(&basic_stencil_variant::avgi, this);
+            return std::bind(&basic_stencil_variant::avgi, this, std::placeholders::_1);
         if (stencil == "avgj")
-            return std::bind(&basic_stencil_variant::avgj, this);
+            return std::bind(&basic_stencil_variant::avgj, this, std::placeholders::_1);
         if (stencil == "avgk")
-            return std::bind(&basic_stencil_variant::avgk, this);
+            return std::bind(&basic_stencil_variant::avgk, this, std::placeholders::_1);
         if (stencil == "sumi")
-            return std::bind(&basic_stencil_variant::sumi, this);
+            return std::bind(&basic_stencil_variant::sumi, this, std::placeholders::_1);
         if (stencil == "sumj")
-            return std::bind(&basic_stencil_variant::sumj, this);
+            return std::bind(&basic_stencil_variant::sumj, this, std::placeholders::_1);
         if (stencil == "sumk")
-            return std::bind(&basic_stencil_variant::sumk, this);
+            return std::bind(&basic_stencil_variant::sumk, this, std::placeholders::_1);
         if (stencil == "lapij")
-            return std::bind(&basic_stencil_variant::lapij, this);
+            return std::bind(&basic_stencil_variant::lapij, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 

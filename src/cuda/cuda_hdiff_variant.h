@@ -152,7 +152,7 @@ namespace platform {
                 }
             }
 
-            void hdiff() override {
+            void hdiff(unsigned int i) override {
                 dim3 bs = blocksize();
                 int smem_size = 3 * sizeof(value_type) * (bs.x + 2 * block_halo) * (bs.y + 2 * block_halo);
                 bs.y += 2 * block_halo + 2;

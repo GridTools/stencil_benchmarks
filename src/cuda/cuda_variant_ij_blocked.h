@@ -82,7 +82,7 @@ namespace platform {
                         cudaSuccess)
                         throw ERROR("error in cudaMemPrefetchAsync");
                 };
-                for (int i = 0; i < num_storages_per_field; ++i) {
+                for (int i = 0; i < this->num_storages_per_field; ++i) {
                     prefetch(this->src(i));
                     prefetch(this->dst(i));
                 }

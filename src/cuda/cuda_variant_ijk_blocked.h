@@ -43,9 +43,9 @@ namespace platform {
                        LOAD(src[idx + jstride]))
 
 #define KERNEL_CALL(name)                                         \
-    void name() override {                                        \
-        kernel_ijk_##name<<<blocks(), blocksize()>>>(this->dst(), \
-            this->src(),                                          \
+    void name(unsigned int i) override {                                        \
+        kernel_ijk_##name<<<blocks(), blocksize()>>>(this->dst(i), \
+            this->src(i),                                          \
             this->isize(),                                        \
             this->jsize(),                                        \
             this->ksize(),                                        \
