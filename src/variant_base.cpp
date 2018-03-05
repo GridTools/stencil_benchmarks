@@ -177,11 +177,9 @@ namespace platform {
 #else
             res.push_back(t * 1000.0, gb / t);
 #endif
+            results.push_back(res);
         }
-
-        results.push_back(res);
+        return results;
     }
-    return results;
-}
 
 } // namespace platform
