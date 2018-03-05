@@ -125,9 +125,7 @@ namespace platform {
 
             for (int i = 0; i < dry; ++i) {
                 prerun();
-
                 f(i);
-
                 postrun();
 
                 if (i == 0) {
@@ -136,10 +134,11 @@ namespace platform {
                 }
             }
 
-            prerun();
+            setup();
             auto tstart = clock::now();
 
             for (int i = 0; i < m_runs; ++i) {
+                prerun();
 
 #ifdef WITH_PAPI
 #pragma omp parallel
@@ -162,7 +161,9 @@ namespace platform {
                     ctrs[omp_get_thread_num()] = ctr;
                 }
 #endif
+                postrun();
             }
+            teardown();
             auto tend = clock::now();
 
             double t = std::chrono::duration<double>(tend - tstart).count() / (double)m_runs;

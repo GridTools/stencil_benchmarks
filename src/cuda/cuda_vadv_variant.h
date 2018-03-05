@@ -252,8 +252,8 @@ namespace platform {
             }
             ~vadv_variant() {}
 
-            void prerun() override {
-                vadv_stencil_variant<platform, value_type>::prerun();
+            void setup() override {
+                vadv_stencil_variant<platform, value_type>::setup();
 
                 if (cudaDeviceSetCacheConfig(cudaFuncCachePreferL1) != cudaSuccess)
                     throw ERROR("error in cudaDeviceSetCacheConfig");

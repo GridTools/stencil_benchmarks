@@ -1,6 +1,6 @@
 #pragma once
 
-#include "basic_stencil_variant.h"
+#include "cuda_basic_variant.h"
 
 namespace platform {
 
@@ -48,33 +48,18 @@ namespace platform {
     }
 
         template <class ValueType>
-        class variant_1d final : public basic_stencil_variant<cuda, ValueType> {
+        class variant_1d final : public cuda_basic_variant<ValueType> {
           public:
             using platform = cuda;
             using value_type = ValueType;
 
             variant_1d(const arguments_map &args)
-                : basic_stencil_variant<cuda, ValueType>(args), m_blocksize(args.get<int>("blocksize")) {
+                : cuda_basic_variant<ValueType>(args), m_blocksize(args.get<int>("blocksize")) {
                 if (m_blocksize <= 0)
                     throw ERROR("invalid block size");
             }
 
             ~variant_1d() {}
-
-            void prerun() override {
-                basic_stencil_variant<platform, value_type>::prerun();
-
-                auto prefetch = [&](const value_type *ptr) {
-                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
-                        cudaSuccess)
-                        throw ERROR("error in cudaMemPrefetchAsync");
-                };
-                prefetch(this->src());
-                prefetch(this->dst());
-
-                if (cudaDeviceSynchronize() != cudaSuccess)
-                    throw ERROR("error in cudaDeviceSynchronize");
-            }
 
             KERNEL_CALL(copy)
             KERNEL_CALL(copyi)

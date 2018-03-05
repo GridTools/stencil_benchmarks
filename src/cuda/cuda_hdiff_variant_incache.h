@@ -137,8 +137,8 @@ namespace platform {
             }
             ~hdiff_variant_incache() {}
 
-            void prerun() override {
-                hdiff_stencil_variant<platform, value_type>::prerun();
+            void setup() override {
+                hdiff_stencil_variant<platform, value_type>::setup();
 
                 auto prefetch = [&](const value_type *ptr) {
                     if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=

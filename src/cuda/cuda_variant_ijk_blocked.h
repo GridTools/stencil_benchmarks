@@ -1,6 +1,6 @@
 #pragma once
 
-#include "basic_stencil_variant.h"
+#include "cuda_basic_variant.h"
 
 namespace platform {
 
@@ -42,28 +42,28 @@ namespace platform {
             dst[idx] = LOAD(src[idx]) + LOAD(src[idx - istride]) + LOAD(src[idx + istride]) + LOAD(src[idx - jstride]) +
                        LOAD(src[idx + jstride]))
 
-#define KERNEL_CALL(name)                                         \
-    void name(unsigned int i) override {                                        \
+#define KERNEL_CALL(name)                                          \
+    void name(unsigned int i) override {                           \
         kernel_ijk_##name<<<blocks(), blocksize()>>>(this->dst(i), \
             this->src(i),                                          \
-            this->isize(),                                        \
-            this->jsize(),                                        \
-            this->ksize(),                                        \
-            this->istride(),                                      \
-            this->jstride(),                                      \
-            this->kstride());                                     \
-        if (cudaDeviceSynchronize() != cudaSuccess)               \
-            throw ERROR("error in cudaDeviceSynchronize");        \
+            this->isize(),                                         \
+            this->jsize(),                                         \
+            this->ksize(),                                         \
+            this->istride(),                                       \
+            this->jstride(),                                       \
+            this->kstride());                                      \
+        if (cudaDeviceSynchronize() != cudaSuccess)                \
+            throw ERROR("error in cudaDeviceSynchronize");         \
     }
 
         template <class ValueType>
-        class variant_ijk_blocked final : public basic_stencil_variant<cuda, ValueType> {
+        class variant_ijk_blocked final : public cuda_basic_variant<ValueType> {
           public:
             using platform = cuda;
             using value_type = ValueType;
 
             variant_ijk_blocked(const arguments_map &args)
-                : basic_stencil_variant<cuda, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : cuda_basic_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")), m_kblocksize(args.get<int>("k-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0 || m_kblocksize <= 0)
                     throw ERROR("invalid block size");
@@ -71,21 +71,6 @@ namespace platform {
             }
 
             ~variant_ijk_blocked() {}
-
-            void prerun() override {
-                basic_stencil_variant<platform, value_type>::prerun();
-
-                auto prefetch = [&](const value_type *ptr) {
-                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
-                        cudaSuccess)
-                        throw ERROR("error in cudaMemPrefetchAsync");
-                };
-                prefetch(this->src());
-                prefetch(this->dst());
-
-                if (cudaDeviceSynchronize() != cudaSuccess)
-                    throw ERROR("error in cudaDeviceSynchronize");
-            }
 
             KERNEL_CALL(copy)
             KERNEL_CALL(copyi)

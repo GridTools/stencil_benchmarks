@@ -40,8 +40,14 @@ namespace platform {
 
         virtual std::function<void(unsigned int)> stencil_function(const std::string &kernel) = 0;
 
+        // to be called in each iteration before kernel call
         virtual void prerun() {}
+        // to be called in each iteration after kernel call
         virtual void postrun() {}
+        // to be called only once before the iteration over kernels
+        virtual void setup() {}
+        // to be called only once after the iteration over kernels
+        virtual void teardown() {}
         virtual bool verify(const std::string &kernel) = 0;
 
         virtual std::size_t touched_elements(const std::string &stencil) const = 0;

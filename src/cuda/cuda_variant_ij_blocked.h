@@ -1,6 +1,6 @@
 #pragma once
 
-#include "basic_stencil_variant.h"
+#include "cuda_basic_variant.h"
 
 namespace platform {
 
@@ -59,13 +59,13 @@ namespace platform {
     }
 
         template <class ValueType>
-        class variant_ij_blocked final : public basic_stencil_variant<cuda, ValueType> {
+        class variant_ij_blocked final : public cuda_basic_variant<ValueType> {
           public:
             using platform = cuda;
             using value_type = ValueType;
 
             variant_ij_blocked(const arguments_map &args)
-                : basic_stencil_variant<cuda, ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : cuda_basic_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
@@ -73,23 +73,6 @@ namespace platform {
             }
 
             ~variant_ij_blocked() {}
-
-            void prerun() override {
-                basic_stencil_variant<platform, value_type>::prerun();
-
-                auto prefetch = [&](const value_type *ptr) {
-                    if (cudaMemPrefetchAsync(ptr - this->zero_offset(), this->storage_size() * sizeof(value_type), 0) !=
-                        cudaSuccess)
-                        throw ERROR("error in cudaMemPrefetchAsync");
-                };
-                for (int i = 0; i < this->num_storages_per_field; ++i) {
-                    prefetch(this->src(i));
-                    prefetch(this->dst(i));
-                }
-
-                if (cudaDeviceSynchronize() != cudaSuccess)
-                    throw ERROR("error in cudaDeviceSynchronize");
-            }
 
             KERNEL_CALL(copy)
             KERNEL_CALL(copyi)
