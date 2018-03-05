@@ -38,7 +38,7 @@ namespace platform {
         inline int data_offset() const { return m_data_offset; }
         inline int alignment() const { return m_alignment; }
 
-        virtual std::function<void()> stencil_function(const std::string &kernel) = 0;
+        virtual std::function<void(unsigned int)> stencil_function(const std::string &kernel) = 0;
 
         virtual void prerun() {}
         virtual void postrun() {}
