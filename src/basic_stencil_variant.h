@@ -9,6 +9,13 @@
 
 namespace platform {
 
+    template <typename ValueType, typename Allocator>
+    struct data_field {
+        data_field(unsigned int size) : m_data(size) {}
+
+        std::vector<ValueType, Allocator> m_data;
+    };
+
     template <class Platform, class ValueType>
     class basic_stencil_variant : public variant_base {
       public:
@@ -34,8 +41,8 @@ namespace platform {
         virtual void lapij() = 0;
 
       protected:
-        value_type *src() { return m_src_data.data() + zero_offset(); }
-        value_type *dst() { return m_dst_data.data() + zero_offset(); }
+        value_type *src(unsigned int field = 0) { return m_src_data.at(field).m_data.data() + zero_offset(); }
+        value_type *dst(unsigned int field = 0) { return m_dst_data.at(field).m_data.data() + zero_offset(); }
 
         std::function<void()> stencil_function(const std::string &stencil) override;
 
@@ -45,23 +52,29 @@ namespace platform {
         std::size_t bytes_per_element() const override { return sizeof(value_type); }
 
       private:
-        std::vector<value_type, allocator> m_src_data, m_dst_data;
+        const unsigned int num_storages_per_field;
+        std::vector<data_field> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
     };
 
     template <class Platform, class ValueType>
     basic_stencil_variant<Platform, ValueType>::basic_stencil_variant(const arguments_map &args)
-        : variant_base(args), m_src_data(storage_size()), m_dst_data(storage_size()) {
+        : variant_base(args), num_storages_per_field((int)(6 * 1e6 / (storage_size() * value_type))),
+          m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
 #pragma omp parallel
         {
             std::minstd_rand eng;
             std::uniform_real_distribution<value_type> dist(-100, 100);
 
             int total_size = storage_size();
+            for (int f = 0; f < num_storages_per_field; ++f) {
+                auto src_field = m_src_data.at(f).m_data;
+                auto dst_field = m_dst_data.at(f).m_data;
 #pragma omp for
-            for (int i = 0; i < total_size; ++i) {
-                m_src_data.at(i) = dist(eng);
-                m_dst_data.at(i) = dist(eng);
+                for (int i = 0; i < total_size; ++i) {
+                    src_field.at(i) = dist(eng);
+                    dst_field.at(i) = dist(eng);
+                }
             }
         }
     }
@@ -101,8 +114,8 @@ namespace platform {
     template <class Platform, class ValueType>
     bool basic_stencil_variant<Platform, ValueType>::verify(const std::string &stencil) {
         std::function<bool(int, int, int)> f;
-        auto s = [&](int i, int j, int k) { return (m_src_data.data() + zero_offset())[index(i, j, k)]; };
-        auto d = [&](int i, int j, int k) { return (m_dst_data.data() + zero_offset())[index(i, j, k)]; };
+        auto s = [&](int i, int j, int k) { return (src()[index(i, j, k)]; };
+        auto d = [&](int i, int j, int k) { return (dst()[index(i, j, k)]; };
 
         if (stencil == "copy") {
             f = [&](int i, int j, int k) { return d(i, j, k) == s(i, j, k); };
