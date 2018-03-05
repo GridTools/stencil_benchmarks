@@ -37,14 +37,14 @@ namespace platform {
             dst[i] = LOAD(src[i]) + LOAD(src[i - istride]) + LOAD(src[i + istride]) + LOAD(src[i - jstride]) +
                      LOAD(src[i + jstride]))
 
-#define KERNEL_CALL(name)                                                                       \
-    void name() override {                                                                      \
-        const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);  \
-        const int blocks = (last + m_blocksize) / m_blocksize;                                  \
-        kernel_1d_##name<<<blocks, m_blocksize>>>(                                              \
-            this->dst(), this->src(), last, this->istride(), this->jstride(), this->kstride()); \
-        if (cudaDeviceSynchronize() != cudaSuccess)                                             \
-            throw ERROR("error in cudaDeviceSynchronize");                                      \
+#define KERNEL_CALL(name)                                                                         \
+    void name(unsigned int i) override {                                                          \
+        const int last = this->index(this->isize() - 1, this->jsize() - 1, this->ksize() - 1);    \
+        const int blocks = (last + m_blocksize) / m_blocksize;                                    \
+        kernel_1d_##name<<<blocks, m_blocksize>>>(                                                \
+            this->dst(i), this->src(i), last, this->istride(), this->jstride(), this->kstride()); \
+        if (cudaDeviceSynchronize() != cudaSuccess)                                               \
+            throw ERROR("error in cudaDeviceSynchronize");                                        \
     }
 
         template <class ValueType>
