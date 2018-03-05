@@ -28,17 +28,17 @@ namespace platform {
 
         std::vector<std::string> stencil_list() const override;
 
-        virtual void copy() = 0;
-        virtual void copyi() = 0;
-        virtual void copyj() = 0;
-        virtual void copyk() = 0;
-        virtual void avgi() = 0;
-        virtual void avgj() = 0;
-        virtual void avgk() = 0;
-        virtual void sumi() = 0;
-        virtual void sumj() = 0;
-        virtual void sumk() = 0;
-        virtual void lapij() = 0;
+        virtual void copy(unsigned int) = 0;
+        virtual void copyi(unsigned int) = 0;
+        virtual void copyj(unsigned int) = 0;
+        virtual void copyk(unsigned int) = 0;
+        virtual void avgi(unsigned int) = 0;
+        virtual void avgj(unsigned int) = 0;
+        virtual void avgk(unsigned int) = 0;
+        virtual void sumi(unsigned int) = 0;
+        virtual void sumj(unsigned int) = 0;
+        virtual void sumk(unsigned int) = 0;
+        virtual void lapij(unsigned int) = 0;
 
       protected:
         value_type *src(unsigned int field = 0) { return m_src_data.at(field).m_data.data() + zero_offset(); }
@@ -53,13 +53,14 @@ namespace platform {
 
       private:
         const unsigned int num_storages_per_field;
-        std::vector<data_field<value_type, allocator> > m_src_data, m_dst_data;
+        std::vector<data_field<value_type, allocator>> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
     };
 
     template <class Platform, class ValueType>
     basic_stencil_variant<Platform, ValueType>::basic_stencil_variant(const arguments_map &args)
-        : variant_base(args), num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
+        : variant_base(args),
+          num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
 #pragma omp parallel
         {
