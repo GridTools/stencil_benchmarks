@@ -10,9 +10,9 @@ namespace platform {
             using platform = cuda;
             using value_type = ValueType;
 
-            cuda_basic_blocked(const arguments_map &args) : basic_stencil_variant<cuda, ValueType>(args) {}
+            cuda_basic_variant(const arguments_map &args) : basic_stencil_variant<cuda, ValueType>(args) {}
 
-            ~cuda_basic_blocked() {}
+            ~cuda_basic_variant() {}
 
             void setup() override {
                 basic_stencil_variant<platform, value_type>::setup();
