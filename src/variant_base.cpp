@@ -123,8 +123,10 @@ namespace platform {
             res.add_data("counter-imbalance", "-");
 #endif
 
+            auto tstart = clock::now();
             for (int i = 0; i < m_runs + dry; ++i) {
-                prerun();
+                if(i < dry)
+                  prerun();
 
 #ifdef WITH_PAPI
 #pragma omp parallel
@@ -133,9 +135,8 @@ namespace platform {
                         throw ERROR("PAPI error, could not start counters");
                 }
 #endif
-                auto tstart = clock::now();
+                if(i == dry) tstart = clock::now();
                 f();
-                auto tend = clock::now();
 #ifdef WITH_PAPI
                 std::vector<long long> ctrs;
 #pragma omp parallel shared(ctrs)
@@ -149,27 +150,28 @@ namespace platform {
                     ctrs[omp_get_thread_num()] = ctr;
                 }
 #endif
-
-                postrun();
+                if(i < dry)
+                  postrun();
 
                 if (i == 0) {
                     if (!verify(s))
                         throw ERROR("result of stencil '" + s + "' is wrong");
-                } else if (i >= dry) {
-                    double t = std::chrono::duration<double>(tend - tstart).count();
-                    double gb = touched_bytes(s) / 1.0e9;
-
-#ifdef WITH_PAPI
-                    double ctrs_sum = std::accumulate(ctrs.begin(), ctrs.end(), 0ll);
-                    double ctr = ctrs_sum / ctrs.size();
-                    double ctr_imb = *std::max_element(ctrs.begin(), ctrs.end()) / (ctrs_sum / ctrs.size()) - 1.0;
-
-                    res.push_back(t * 1000.0, gb / t, ctr, ctr_imb);
-#else
-                    res.push_back(t * 1000.0, gb / t);
-#endif
                 }
             }
+
+            auto tend = clock::now();
+            double t = std::chrono::duration<double>(tend - tstart).count() / (double)m_runs;
+            double gb = touched_bytes(s) / 1.0e9;
+
+#ifdef WITH_PAPI
+            double ctrs_sum = std::accumulate(ctrs.begin(), ctrs.end(), 0ll);
+            double ctr = ctrs_sum / ctrs.size();
+            double ctr_imb = *std::max_element(ctrs.begin(), ctrs.end()) / (ctrs_sum / ctrs.size()) - 1.0;
+
+            res.push_back(t * 1000.0, gb / t, ctr, ctr_imb);
+#else
+            res.push_back(t * 1000.0, gb / t);
+#endif
 
             results.push_back(res);
         }
