@@ -44,18 +44,18 @@ namespace platform {
             dst[idx] = LOAD(src[idx]) + LOAD(src[idx - istride]) + LOAD(src[idx + istride]) + LOAD(src[idx - jstride]) +
                        LOAD(src[idx + jstride]))
 
-#define KERNEL_CALL(name)                                        \
-    void name() override {                                       \
-        kernel_ij_##name<<<blocks(), blocksize()>>>(this->dst(), \
-            this->src(),                                         \
-            this->isize(),                                       \
-            this->jsize(),                                       \
-            this->ksize(),                                       \
-            this->istride(),                                     \
-            this->jstride(),                                     \
-            this->kstride());                                    \
-        if (cudaDeviceSynchronize() != cudaSuccess)              \
-            throw ERROR("error in cudaDeviceSynchronize");       \
+#define KERNEL_CALL(name)                                         \
+    void name(unsigned int t) override {                          \
+        kernel_ij_##name<<<blocks(), blocksize()>>>(this->dst(t), \
+            this->src(t),                                         \
+            this->isize(),                                        \
+            this->jsize(),                                        \
+            this->ksize(),                                        \
+            this->istride(),                                      \
+            this->jstride(),                                      \
+            this->kstride());                                     \
+        if (cudaDeviceSynchronize() != cudaSuccess)               \
+            throw ERROR("error in cudaDeviceSynchronize");        \
     }
 
         template <class ValueType>
@@ -82,8 +82,10 @@ namespace platform {
                         cudaSuccess)
                         throw ERROR("error in cudaMemPrefetchAsync");
                 };
-                prefetch(this->src());
-                prefetch(this->dst());
+                for (int i = 0; i < num_storages_per_field; ++i) {
+                    prefetch(this->src(i));
+                    prefetch(this->dst(i));
+                }
 
                 if (cudaDeviceSynchronize() != cudaSuccess)
                     throw ERROR("error in cudaDeviceSynchronize");
