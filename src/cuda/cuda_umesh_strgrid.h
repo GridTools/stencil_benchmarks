@@ -21,7 +21,7 @@ namespace platform {
         const int i = blockIdx.x * blockDim.x + threadIdx.x;      \
         const int j = blockIdx.y * blockDim.y + threadIdx.y;      \
                                                                   \
-        int idx = i * istride + j * jstride;                      \
+        int idx = i * istride + j * jstride * 2;                  \
         for (int k = 0; k < ksize; ++k) {                         \
             if (i < isize && j < jsize) {                         \
                 stmt;                                             \
@@ -33,7 +33,7 @@ namespace platform {
         KERNEL_ILP(copy_ilp, dst[idx] = LOAD(src[idx]); dst[idx + jstride] = LOAD(src[idx + jstride]))
 
 #define KERNEL_ILP_CALL(name)                                     \
-    void name(unsigned int t) {                          \
+    void name(unsigned int t) {                                   \
         kernel_ij_##name<<<blocks(), blocksize()>>>(this->dst(t), \
             this->src(t),                                         \
             this->isize(),                                        \
@@ -76,8 +76,11 @@ namespace platform {
 
           private:
             inline dim3 blocks() const {
+                if (!(this->jsize() % 2))
+                    throw std::runtime_error("jsize should be a multiple of 2 since umesh contains 2 colors");
+
                 return dim3((this->isize() + m_iblocksize - 1) / m_iblocksize,
-                    (this->jsize() + m_jblocksize - 1) / m_jblocksize);
+                    (this->jsize() / 2 + m_jblocksize - 1) / m_jblocksize);
             }
 
             inline dim3 blocksize() const { return dim3(m_iblocksize, m_jblocksize); }
