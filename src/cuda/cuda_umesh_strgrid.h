@@ -62,6 +62,18 @@ namespace platform {
 
             KERNEL_ILP_CALL(copy)
 
+            void copy(unsigned int) override {}
+            void copyi(unsigned int) override {}
+            void copyj(unsigned int) override {}
+            void copyk(unsigned int) override {}
+            void avgi(unsigned int) override {}
+            void avgj(unsigned int) override {}
+            void avgk(unsigned int) override {}
+            void sumi(unsigned int) override {}
+            void sumj(unsigned int) override {}
+            void sumk(unsigned int) override {}
+            void lapij(unsigned int) override {}
+
           private:
             inline dim3 blocks() const {
                 return dim3((this->isize() + m_iblocksize - 1) / m_iblocksize,
