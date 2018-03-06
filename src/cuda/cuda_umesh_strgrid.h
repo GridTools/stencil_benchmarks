@@ -69,16 +69,17 @@ namespace platform {
             dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride]),
             dst[idx + jstride] = LOAD(src[idx]) + LOAD(src[idx + 1]) + LOAD(src[idx + jstride * 2]))
 
-#define KERNEL_CALL(name, blocksmethod)                               \
-    void name(unsigned int t) {                                       \
-        kernel_ij_##name<<<blocksmethod, blocksize()>>>(this->dst(t), \
-            this->src(t),                                             \
-            this->isize(),                                            \
-            this->jsize(),                                            \
-            this->ksize(),                                            \
-            this->istride(),                                          \
-            this->jstride(),                                          \
-            this->kstride());                                         \
+
+#define KERNEL_CALL(name, blocksmethod)                                 \
+    void name(unsigned int t) {                                         \
+        kernel_ij_##name<<<blocksmethod(), blocksize()>>>(this->dst(t), \
+            this->src(t),                                               \
+            this->isize(),                                              \
+            this->jsize(),                                              \
+            this->ksize(),                                              \
+            this->istride(),                                            \
+            this->jstride(),                                            \
+            this->kstride());                                           \
     }
 
         template <class ValueType>
@@ -97,8 +98,8 @@ namespace platform {
 
             inline ~umesh_strgrid() {}
 
-            KERNEL_CALL(copy_ilp, blocks_ilp)
-            KERNEL_CALL(copy, blocks)
+            KERNEL_CALL(copyu_ilp, blocks_ilp)
+            KERNEL_CALL(copyu, blocks)
             KERNEL_CALL(on_cells_ilp, blocks_ilp)
             KERNEL_CALL(on_cells, blocks)
 
@@ -127,4 +128,5 @@ namespace platform {
 
 #undef LOAD
 #undef KERNEL_ILP
-#undef KERNEL_ILP_CALL
+#undef KERNEL
+#undef KERNEL_CALL

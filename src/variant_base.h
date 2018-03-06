@@ -17,11 +17,12 @@ namespace platform {
         virtual std::vector<std::string> stencil_list() const = 0;
         std::vector<result> run(const std::string &kernel);
 
-      protected:
         using stencil_fptr = void (variant_base::*)();
 
+      public:
         inline int index(int i, int j, int k) const { return i * m_istride + j * m_jstride + k * m_kstride; }
 
+      protected:
         inline int zero_offset() const { return m_data_offset + index(m_halo, m_halo, m_halo); }
 
         inline int halo() const { return m_halo; }
