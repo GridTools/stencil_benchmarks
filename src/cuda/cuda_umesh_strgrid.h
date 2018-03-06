@@ -58,7 +58,7 @@ namespace platform {
                 platform::limit_blocksize(m_iblocksize, m_jblocksize);
             }
 
-            inline ~variant_ij_blocked() {}
+            inline ~umesh_strgrid() {}
 
             KERNEL_ILP_CALL(copy)
 

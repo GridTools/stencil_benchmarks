@@ -54,8 +54,6 @@ namespace platform {
             this->istride(),                                      \
             this->jstride(),                                      \
             this->kstride());                                     \
-        if (cudaDeviceSynchronize() != cudaSuccess)               \
-            throw ERROR("error in cudaDeviceSynchronize");        \
     }
 
         template <class ValueType>
