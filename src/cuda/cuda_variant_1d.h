@@ -43,8 +43,6 @@ namespace platform {
         const int blocks = (last + m_blocksize) / m_blocksize;                                    \
         kernel_1d_##name<<<blocks, m_blocksize>>>(                                                \
             this->dst(i), this->src(i), last, this->istride(), this->jstride(), this->kstride()); \
-        if (cudaDeviceSynchronize() != cudaSuccess)                                               \
-            throw ERROR("error in cudaDeviceSynchronize");                                        \
     }
 
         template <class ValueType>
