@@ -33,7 +33,7 @@ namespace platform {
         KERNEL_ILP(copy_ilp, dst[idx] = LOAD(src[idx]); dst[idx + jstride] = LOAD(src[idx + jstride]))
 
 #define KERNEL_ILP_CALL(name)                                     \
-    void name(unsigned int t) override {                          \
+    void name(unsigned int t) {                          \
         kernel_ij_##name<<<blocks(), blocksize()>>>(this->dst(t), \
             this->src(t),                                         \
             this->isize(),                                        \
@@ -60,7 +60,7 @@ namespace platform {
 
             inline ~umesh_strgrid() {}
 
-            KERNEL_ILP_CALL(copy)
+            KERNEL_ILP_CALL(copy_ilp)
 
             void copy(unsigned int) override {}
             void copyi(unsigned int) override {}
