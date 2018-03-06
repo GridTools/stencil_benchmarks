@@ -4,9 +4,9 @@
 #include <limits>
 #include <random>
 
+#include "data_field.h"
 #include "except.h"
 #include "variant_base.h"
-#include "data_field.h"
 
 namespace platform {
 
@@ -23,6 +23,9 @@ namespace platform {
         std::vector<std::string> stencil_list() const override;
 
         virtual void copy_ilp(unsigned int) = 0;
+        virtual void copy(unsigned int) = 0;
+        virtual void on_cells_ilp(unsigned int) = 0;
+        virtual void on_cells(unsigned int) = 0;
 
       protected:
         value_type *src(unsigned int field = 0) {
@@ -70,7 +73,7 @@ namespace platform {
 
     template <class Platform, class ValueType>
     std::vector<std::string> umesh_stencil_variant<Platform, ValueType>::stencil_list() const {
-        return {"copy_ilp"};
+        return {"copy_ilp", "copy", "on_cells_ilp", "on_cells"};
     }
 
     template <class Platform, class ValueType>
