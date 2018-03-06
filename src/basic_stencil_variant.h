@@ -6,15 +6,9 @@
 
 #include "except.h"
 #include "variant_base.h"
+#include "data_field.h"
 
 namespace platform {
-
-    template <typename ValueType, typename Allocator>
-    struct data_field {
-        data_field(unsigned int size) : m_data(size) {}
-
-        std::vector<ValueType, Allocator> m_data;
-    };
 
     template <class Platform, class ValueType>
     class basic_stencil_variant : public variant_base {

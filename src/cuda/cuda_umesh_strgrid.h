@@ -64,9 +64,8 @@ namespace platform {
 
           private:
             inline dim3 blocks() const {
-                if (!(this->jsize() % 2))
+                if ((this->jsize() % 2) != 0) 
                     throw std::runtime_error("jsize should be a multiple of 2 since umesh contains 2 colors");
-
                 return dim3((this->isize() + m_iblocksize - 1) / m_iblocksize,
                     (this->jsize() / 2 + m_jblocksize - 1) / m_jblocksize);
             }
