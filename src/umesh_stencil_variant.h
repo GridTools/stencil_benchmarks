@@ -4,9 +4,9 @@
 #include <limits>
 #include <random>
 
+#include "data_field.h"
 #include "except.h"
 #include "variant_base.h"
-#include "data_field.h"
 
 namespace platform {
 
@@ -22,7 +22,10 @@ namespace platform {
 
         std::vector<std::string> stencil_list() const override;
 
-        virtual void copy_ilp(unsigned int) = 0;
+        virtual void copyu_ilp(unsigned int) = 0;
+        virtual void copyu(unsigned int) = 0;
+        virtual void on_cells_ilp(unsigned int) = 0;
+        virtual void on_cells(unsigned int) = 0;
 
       protected:
         value_type *src(unsigned int field = 0) {
@@ -70,14 +73,20 @@ namespace platform {
 
     template <class Platform, class ValueType>
     std::vector<std::string> umesh_stencil_variant<Platform, ValueType>::stencil_list() const {
-        return {"copy_ilp"};
+        return {"copyu_ilp", "copyu", "on_cells_ilp", "on_cells"};
     }
 
     template <class Platform, class ValueType>
     std::function<void(unsigned int)> umesh_stencil_variant<Platform, ValueType>::stencil_function(
         const std::string &stencil) {
-        if (stencil == "copy_ilp")
-            return std::bind(&umesh_stencil_variant::copy_ilp, this, std::placeholders::_1);
+        if (stencil == "copyu_ilp")
+            return std::bind(&umesh_stencil_variant::copyu_ilp, this, std::placeholders::_1);
+        else if (stencil == "copyu")
+            return std::bind(&umesh_stencil_variant::copyu, this, std::placeholders::_1);
+        else if (stencil == "on_cells_ilp")
+            return std::bind(&umesh_stencil_variant::on_cells_ilp, this, std::placeholders::_1);
+        else if (stencil == "on_cells")
+            return std::bind(&umesh_stencil_variant::on_cells, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 
@@ -87,8 +96,15 @@ namespace platform {
         auto s = [&](int i, int j, int k) { return src()[index(i, j, k)]; };
         auto d = [&](int i, int j, int k) { return dst()[index(i, j, k)]; };
 
-        if (stencil == "copy_ilp") {
+        if (stencil == "copyu_ilp" || stencil == "copyu") {
             f = [&](int i, int j, int k) { return d(i, j, k) == s(i, j, k); };
+        } else if (stencil == "on_cells_ilp" || stencil == "on_cells") {
+
+            f = [&](int i, int j, int k) {
+                std::cout << "HH " << d(i, j, k) << " " << s(i, j, k) << std::endl;
+                return (j % 2 == 0) ? (d(i, j, k) == s(i - 1, j + 1, k) + s(i, j + 1, k) + s(i, j - 1, k))
+                                    : (d(i, j, k) == s(i, j + 1, k) + s(i + 1, j + 1, k) + s(i, j + 1, k));
+            };
         } else {
             throw ERROR("unknown stencil '" + stencil + "'");
         }
@@ -110,7 +126,7 @@ namespace platform {
         std::size_t i = isize();
         std::size_t j = jsize();
         std::size_t k = ksize();
-        if (stencil == "copy_ilp")
+        if (stencil == "copyu_ilp" || stencil == "copyu" || stencil == "on_cells_ilp" || stencil == "on_cells")
             return i * j * k * 2;
         throw ERROR("unknown stencil '" + stencil + "'");
     }
