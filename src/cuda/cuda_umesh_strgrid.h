@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cuda_basic_variant.h"
+#include "cuda_umesh_variant.h"
 
 namespace platform {
 
@@ -45,13 +45,13 @@ namespace platform {
     }
 
         template <class ValueType>
-        class umesh_strgrid final : public cuda_basic_variant<ValueType> {
+        class umesh_strgrid final : public cuda_umesh_variant<ValueType> {
           public:
             using platform = cuda;
             using value_type = ValueType;
 
             inline umesh_strgrid(const arguments_map &args)
-                : cuda_basic_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
+                : cuda_umesh_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
@@ -61,18 +61,6 @@ namespace platform {
             inline ~umesh_strgrid() {}
 
             KERNEL_ILP_CALL(copy_ilp)
-
-            void copy(unsigned int) override {}
-            void copyi(unsigned int) override {}
-            void copyj(unsigned int) override {}
-            void copyk(unsigned int) override {}
-            void avgi(unsigned int) override {}
-            void avgj(unsigned int) override {}
-            void avgk(unsigned int) override {}
-            void sumi(unsigned int) override {}
-            void sumj(unsigned int) override {}
-            void sumk(unsigned int) override {}
-            void lapij(unsigned int) override {}
 
           private:
             inline dim3 blocks() const {
