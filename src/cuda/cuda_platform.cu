@@ -4,6 +4,7 @@
 #include "cuda/cuda_hdiff_variant_ijnoshared.h"
 #include "cuda/cuda_hdiff_variant_incache.h"
 #include "cuda/cuda_hdiff_variant_noshared.h"
+#include "cuda/cuda_umesh_strgrid.h"
 #include "cuda/cuda_vadv_variant.h"
 #include "cuda/cuda_variant_1d.h"
 #include "cuda/cuda_variant_ij_blocked.h"
