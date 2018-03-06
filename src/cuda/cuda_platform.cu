@@ -42,6 +42,11 @@ namespace platform {
             vadv.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
+
+            auto &umesh = args.command("umesh", "variant");
+            umesh.command("strgrid")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
         }
 
         namespace {
@@ -57,6 +62,10 @@ namespace platform {
                         return new variant_ij_blocked<ValueType>(args);
                     if (var == "ijk-blocked")
                         return new variant_ijk_blocked<ValueType>(args);
+                }
+                if (grp == "umesh") {
+                    if (var == "strgrid")
+                        return new umesh_strgrid<ValueType>(args);
                 }
                 if (grp == "hdiff") {
                     if (var == "ij-blocked")
