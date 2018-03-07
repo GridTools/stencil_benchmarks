@@ -1,6 +1,7 @@
 -include Makefile.user
 
-CXXFLAGS=-std=c++11 -O3 -MMD -MP -Wall -fopenmp -DNDEBUG -Isrc $(USERFLAGS)
+OBJDIR=build
+CXXFLAGS=-std=c++11 -MMD -O3 -MP -Wall -fopenmp -DNDEBUG -Isrc $(USERFLAGS)
 NVCCFLAGS=-std=c++11 -arch=sm_60 -O3 -g -Xcompiler -fopenmp -DNDEBUG -Isrc $(USERFLAGS_CUDA)
 LIBS=$(USERLIBS)
 
@@ -8,7 +9,7 @@ CXXFLAGS_KNL=-DPLATFORM_KNL
 LIBS_KNL=
 CXXFLAGS_CUDA=-DPLATFORM_CUDA
 LIBS_CUDA=
-CXXFLAGS_KNLCPU=-DPLATFORM_KNL -DKNL_NO_HBWMALLOC -march=native -mtune=native
+CXXFLAGS_KNLCPU=-DPLATFORM_KNL -DKNL_NO_HBWMALLOC -march=armv8-a+simd #-mfpu=crypto-neon-fp-armv8 -mneon-for-64bits #-mtune=native
 LIBS_KNLCPU=
 
 CXXVERSION=$(shell $(CXX) --version)
@@ -16,38 +17,39 @@ ifneq (,$(findstring icpc,$(CXXVERSION)))
 	CXXFLAGS_KNL+=-xmic-avx512 -ffreestanding
 	CXXFLAGS_KNLCPU+=-ffreestanding
 else ifneq (,$(findstring g++,$(CXXVERSION)))
-	LIBS+=-lgomp
-	CXXFLAGS+=-Wno-unknown-pragmas -Wno-unused-variable
+	LIBS+=-lgomp 
+	CXXFLAGS+=-Wno-unknown-pragmas -Wno-unused-variable 
 	CXXFLAGS_KNL+=-march=knl -mtune=knl -fvect-cost-model=unlimited
-	CXXFLAGS_KNLCPU+=-fvect-cost-model=unlimited
+	#CXXFLAGS_KNLCPU+=-fvect-cost-model=unlimited
 	LIBS_KNL+=-lmemkind
 endif
 
 
 SRCS=$(wildcard src/*.cpp)
-OBJS=$(SRCS:src/%.cpp=%.o)
-DEPS=$(SRCS:src/%.cpp=%.d)
+OBJS=$(SRCS:src/%.cpp=$(OBJDIR)/%.o)
+DEPS=$(SRCS:src/%.cpp=$(OBJDIR)/%.d)
 
 SRCS_KNL=$(wildcard src/knl/*.cpp)
-OBJS_KNL=$(SRCS_KNL:src/knl/%.cpp=%.o)
-DEPS_KNL=$(SRCS_KNL:src/knl/%.cpp=%.d)
+OBJS_KNL=$(SRCS_KNL:src/knl/%.cpp=$(OBJDIR)/%.o)
+DEPS_KNL=$(SRCS_KNL:src/knl/%.cpp=$(OBJDIR)/%.d)
 
 SRCS_CUDA=$(wildcard src/cuda/*.cu)
-OBJS_CUDA=$(SRCS_CUDA:src/cuda/%.cu=%.o)
+OBJS_CUDA=$(SRCS_CUDA:src/cuda/%.cu=$(OBJDIR)/%.o)
 
-%.o: src/%.cpp
+$(OBJDIR)/%.o: src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-%.o: src/knl/%.cpp
+$(OBJDIR)/%.o: src/knl/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-%.o: src/cuda/%.cu
+$(OBJDIR)/%.o: src/cuda/%.cu
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: default
 default:
 	$(error Please specify the target platform, i.e. use 'make knl' for Intel KNL, \
-		'make cuda' for NVIDIA CUDA GPUs or 'make knl-cpu' to compile the KNL implementation for common CPUs)
+		'make cuda' for NVIDIA CUDA GPUs, 'make tx' for ThunderX2  or 'make knl-cpu' \
+		to compile the KNL implementation for common CPUs)
 
 .PHONY: knl
 knl: sbench_knl

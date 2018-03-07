@@ -9,7 +9,7 @@
         const int istride = this->istride();                                                   \
         const int jstride = this->jstride();                                                   \
         const int kstride = this->kstride();                                                   \
-        _Pragma("omp parallel for simd") for (int i = 0; i <= last; ++i) stmt;                 \
+        _Pragma("omp parallel for") for (int i = 0; i <= last; ++i) stmt;                 \
     }
 
 namespace platform {

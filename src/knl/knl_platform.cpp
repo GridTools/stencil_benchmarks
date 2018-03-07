@@ -8,6 +8,7 @@
 #include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
+#include "knl/knl_hdiff_variant_ij_private_blocks.h"
 #include "knl/knl_hdiff_variant_ij_blocked_private_halo.h"
 #include "knl/knl_hdiff_variant_ij_blocked_stacked_layout.h"
 #include "knl/knl_multifield_variant_1d_nontemporal.h"
@@ -99,6 +100,8 @@ namespace platform {
                         return new hdiff_variant_ij_blocked_k_innermost<ValueType>(args);
                     if (var == "ij-blocked-k-outermost")
                         return new hdiff_variant_ij_blocked_k_outermost<ValueType>(args);
+                    if (var == "ij-private-blocks")
+                        return new hdiff_variant_ij_private_blocks<ValueType>(args);
                     if (var == "ij-blocked-non-red")
                         return new hdiff_variant_ij_blocked_non_red<ValueType>(args);
                     if (var == "ij-blocked-private-halo")
@@ -152,6 +155,9 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ij-blocked-k-outermost")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            hdiff.command("ij-private-blocks")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ij-blocked-non-red")

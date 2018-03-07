@@ -40,6 +40,7 @@ namespace platform {
 
         virtual std::function<void()> stencil_function(const std::string &kernel) = 0;
 
+        virtual void prerun_init() {}
         virtual void prerun() {}
         virtual void postrun() {}
         virtual bool verify(const std::string &kernel) = 0;

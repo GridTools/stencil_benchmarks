@@ -31,8 +31,8 @@ namespace platform {
             if (this->istride() != 1)
                 throw ERROR("this variant is only compatible with unit i-stride layout");
 
-            value_type *__restrict__ ccol_cache = this->datacol();
-            value_type *__restrict__ dcol_cache = this->datacol() + kstride;
+            value_type *__restrict__ ccol_cache = this->datacol() + kstride;
+            value_type *__restrict__ dcol_cache = this->datacol() + 2 * kstride;
 
 #pragma omp parallel
             {
@@ -73,7 +73,7 @@ namespace platform {
                         for (int k = ksize - 1; k >= 0; --k) {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
-#pragma vector nontemporal(wtensstage)
+#pragma vector nontemporal(utensstage)
                                 for (int i = ib; i < imax; ++i) {
                                     backward_sweep_k(i,
                                         j,
@@ -124,7 +124,7 @@ namespace platform {
                         for (int k = ksize - 1; k >= 0; --k) {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
-#pragma vector nontemporal(wtensstage)
+#pragma vector nontemporal(vtensstage)
                                 for (int i = ib; i < imax; ++i) {
                                     backward_sweep_k(i,
                                         j,

@@ -20,6 +20,7 @@ namespace platform {
 
         std::vector<std::string> stencil_list() const override;
 
+        void prerun_init() override;
         void prerun() override;
 
         virtual void hdiff() = 0;
@@ -63,9 +64,6 @@ namespace platform {
             int total_size = storage_size();
 #pragma omp for
             for (int i = 0; i < total_size; ++i) {
-                m_in.at(i) = dist(eng);
-                m_out.at(i) = dist(eng);
-                m_coeff.at(i) = dist(eng);
                 m_lap.at(i) = dist(eng);
                 m_flx.at(i) = dist(eng);
                 m_fly.at(i) = dist(eng);
@@ -83,9 +81,8 @@ namespace platform {
     }
 
     template <class Platform, class ValueType>
-    void hdiff_stencil_variant<Platform, ValueType>::prerun() {
+    void hdiff_stencil_variant<Platform, ValueType>::prerun_init() {
         variant_base::prerun();
-        int total_size = storage_size();
         int cnt = 0;
         double dx = 1. / (double)(isize());
         double dy = 1. / (double)(jsize());
@@ -106,6 +103,35 @@ namespace platform {
                                               1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
                                        4.;
                     m_out[cnt] = 5.4;
+                    cnt++;
+                }
+            }
+        }
+    }
+
+    template <class Platform, class ValueType>
+    void hdiff_stencil_variant<Platform, ValueType>::prerun() {
+        variant_base::prerun();
+        int total_size = storage_size();
+        int cnt = 0;
+        double dx = 1. / (double)(isize());
+        double dy = 1. / (double)(jsize());
+        double dz = 1. / (double)(ksize());
+        for (int j = 0; j < isize(); j++) {
+            for (int i = 0; i < jsize(); i++) {
+                double x = dx * (double)(i);
+                double y = dy * (double)(j);
+                for (int k = 0; k < ksize(); k++) {
+                    double z = dz * (double)(k);
+                    // u values between 5 and 9
+                    //m_in[cnt] = 3.0 +
+                    //            1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
+                    //                       0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
+                    //                4.;
+                    //m_coeff[cnt] = 1.4 +
+                    //               0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
+                    //                          1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
+                    //                   4.;
                     m_out_ref[cnt] = 5.4;
                     m_flx[cnt] = 0.0;
                     m_fly[cnt] = 0.0;
