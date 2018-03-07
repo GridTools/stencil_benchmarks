@@ -129,14 +129,15 @@ namespace platform {
                 postrun();
 
                 if (i == 0) {
+                    teardown();
                     if (!verify(s))
                         throw ERROR("result of stencil '" + s + "' is wrong");
+                    setup();
                 }
             }
 
             setup();
             auto tstart = clock::now();
-
             for (int i = 0; i < m_runs; ++i) {
                 prerun();
 
@@ -168,7 +169,6 @@ namespace platform {
 
             double t = std::chrono::duration<double>(tend - tstart).count() / (double)m_runs;
             double gb = touched_bytes(s) / 1.0e9;
-
 #ifdef WITH_PAPI
             double ctrs_sum = std::accumulate(ctrs.begin(), ctrs.end(), 0ll);
             double ctr = ctrs_sum / ctrs.size();
@@ -180,6 +180,7 @@ namespace platform {
 #endif
             results.push_back(res);
         }
+
         return results;
     }
 

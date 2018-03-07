@@ -23,7 +23,7 @@ namespace platform {
                                                                   \
         const int c = j % 2;                                      \
                                                                   \
-        int idx = i * istride + j * jstride * 2;                  \
+        int idx = i * istride + j * jstride * 2 +c*jstride;       \
         if (c == 0)                                               \
             for (int k = 0; k < ksize; ++k) {                     \
                 if (i < isize && j < jsize) {                     \
@@ -40,7 +40,7 @@ namespace platform {
             }                                                     \
     }
 
-#define KERNEL_ILP(name, stmt)                                    \
+#define KERNEL_ILP(name, stmt_c0, stmt_c1)                        \
     template <class ValueType>                                    \
     __global__ void kernel_ij_##name(ValueType *__restrict__ dst, \
         const ValueType *__restrict__ src,                        \
@@ -56,18 +56,20 @@ namespace platform {
         int idx = i * istride + j * jstride * 2;                  \
         for (int k = 0; k < ksize; ++k) {                         \
             if (i < isize && j < jsize) {                         \
-                stmt;                                             \
+                stmt_c0;                                          \
+                stmt_c1;                                          \
                 idx += kstride;                                   \
             }                                                     \
         }                                                         \
     }
 
-        KERNEL_ILP(copy_ilp, dst[idx] = LOAD(src[idx]), dst[idx + jstride] = LOAD(src[idx + jstride]))
-        KERNEL(copy, dst[idx] = LOAD(src[idx]))
-        KERNEL_ILP(on_cells_ilp, dst[idx] = LOAD(src[idx]); dst[idx + jstride] = LOAD(src[idx + jstride]))
+        KERNEL_ILP(copyu_ilp, (dst[idx] = LOAD(src[idx])), (dst[idx + jstride] = LOAD(src[idx + jstride])))
+        KERNEL(copyu, (dst[idx] = LOAD(src[idx])), (dst[idx] = LOAD(src[idx])))
+        KERNEL_ILP(on_cells_ilp, (dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride])),
+            (dst[idx + jstride] = LOAD(src[idx]) + LOAD(src[idx + 1]) + LOAD(src[idx + jstride * 2])))
         KERNEL(on_cells,
             dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride]),
-            dst[idx + jstride] = LOAD(src[idx]) + LOAD(src[idx + 1]) + LOAD(src[idx + jstride * 2]))
+            dst[idx] = LOAD(src[idx-jstride]) + LOAD(src[idx + 1 - jstride]) + LOAD(src[idx + jstride]))
 
 
 #define KERNEL_CALL(name, blocksmethod)                                 \
@@ -111,10 +113,8 @@ namespace platform {
                     (this->jsize() / 2 + m_jblocksize - 1) / m_jblocksize);
             }
             inline dim3 blocks() const {
-                if ((this->jsize() % 2) != 0)
-                    throw std::runtime_error("jsize should be a multiple of 2 since umesh contains 2 colors");
                 return dim3((this->isize() + m_iblocksize - 1) / m_iblocksize,
-                    (this->jsize() / 2 + m_jblocksize - 1) / m_jblocksize);
+                    (this->jsize() + m_jblocksize - 1) / m_jblocksize);
             }
 
             inline dim3 blocksize() const { return dim3(m_iblocksize, m_jblocksize); }

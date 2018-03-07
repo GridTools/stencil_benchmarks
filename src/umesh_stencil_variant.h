@@ -28,6 +28,13 @@ namespace platform {
         virtual void on_cells(unsigned int) = 0;
 
       protected:
+        value_type *src_data(unsigned int field = 0) {
+            return m_src_data.at(field % num_storages_per_field).m_data.data();
+        }
+        value_type *dst_data(unsigned int field = 0) {
+            return m_dst_data.at(field % num_storages_per_field).m_data.data();
+        }
+
         value_type *src(unsigned int field = 0) {
             return m_src_data.at(field % num_storages_per_field).m_data.data() + zero_offset();
         }
@@ -60,12 +67,12 @@ namespace platform {
 
             int total_size = storage_size();
             for (int f = 0; f < num_storages_per_field; ++f) {
-                auto src_field = m_src_data.at(f).m_data;
-                auto dst_field = m_dst_data.at(f).m_data;
+                auto src_field = src_data(f);
+                auto dst_field = dst_data(f);
 #pragma omp for
                 for (int i = 0; i < total_size; ++i) {
-                    src_field.at(i) = dist(eng);
-                    dst_field.at(i) = dist(eng);
+                    src_field[i] = dist(eng);
+                    dst_field[i] = dist(eng);
                 }
             }
         }
@@ -101,9 +108,8 @@ namespace platform {
         } else if (stencil == "on_cells_ilp" || stencil == "on_cells") {
 
             f = [&](int i, int j, int k) {
-                std::cout << "HH " << d(i, j, k) << " " << s(i, j, k) << std::endl;
                 return (j % 2 == 0) ? (d(i, j, k) == s(i - 1, j + 1, k) + s(i, j + 1, k) + s(i, j - 1, k))
-                                    : (d(i, j, k) == s(i, j + 1, k) + s(i + 1, j + 1, k) + s(i, j + 1, k));
+                                    : (d(i, j, k) == s(i, j - 1, k) + s(i + 1, j - 1, k) + s(i, j + 1, k));
             };
         } else {
             throw ERROR("unknown stencil '" + stencil + "'");
