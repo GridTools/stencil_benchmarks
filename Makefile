@@ -9,7 +9,7 @@ CXXFLAGS_KNL=-DPLATFORM_KNL
 LIBS_KNL=
 CXXFLAGS_CUDA=-DPLATFORM_CUDA
 LIBS_CUDA=
-CXXFLAGS_KNLCPU=-DPLATFORM_KNL -DKNL_NO_HBWMALLOC -march=armv8-a+simd #-mfpu=crypto-neon-fp-armv8 -mneon-for-64bits #-mtune=native
+CXXFLAGS_KNLCPU=-DPLATFORM_KNL -DKNL_NO_HBWMALLOC -march=armv8-a+simd -mtune=native #-mfpu=crypto-neon-fp-armv8 -mneon-for-64bits
 LIBS_KNLCPU=
 
 CXXVERSION=$(shell $(CXX) --version)
@@ -20,7 +20,7 @@ else ifneq (,$(findstring g++,$(CXXVERSION)))
 	LIBS+=-lgomp 
 	CXXFLAGS+=-Wno-unknown-pragmas -Wno-unused-variable 
 	CXXFLAGS_KNL+=-march=knl -mtune=knl -fvect-cost-model=unlimited
-	#CXXFLAGS_KNLCPU+=-fvect-cost-model=unlimited
+	CXXFLAGS_KNLCPU+=-fvect-cost-model=unlimited
 	LIBS_KNL+=-lmemkind
 endif
 

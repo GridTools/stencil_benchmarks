@@ -2,6 +2,7 @@
 
 #include "knl/knl_platform.h"
 #include "knl/knl_vadv_variant.h"
+#include "omp.h"
 
 namespace platform {
 
@@ -18,6 +19,14 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
+				//set sizes of caches 
+				int num_threads; 
+#pragma omp parallel 
+				{
+					num_threads = omp_get_num_threads(); 
+				}
+				m_ccol_cache.resize(num_threads * m_iblocksize * m_jblocksize);
+				m_dcol_cache.resize(num_threads * m_iblocksize * m_jblocksize);
             }
             ~vadv_variant_ij_blocked_k_ring() {}
 
@@ -28,6 +37,9 @@ namespace platform {
             static constexpr value_type beta_v = 0;
             static constexpr value_type bet_m = 0.5 * (1.0 - beta_v);
             static constexpr value_type bet_p = 0.5 * (1.0 + beta_v);
+			//allocate per-thread private ccol_cache and dcol_cache
+			std::vector<value_type> m_ccol_cache, m_dcol_cache; 
+
 #pragma omp declare simd linear(i) uniform( \
     j, ccol, dcol, datacol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride)
             __attribute__((always_inline)) inline void backward_sweep_kmax(const int i,
@@ -137,11 +149,14 @@ namespace platform {
                 const int ksize,
                 const int istride,
                 const int jstride,
-                const int kstride) {
+                const int kstride, 
+				const int ib, 
+				const int jb) {
 
                 const int k = 0;
                 const int index = i * istride + j * jstride + k * kstride;
-                const int cache_index = i * istride + j * jstride;
+                const int cache_index = (i - ib) + (j - jb) * m_iblocksize;
+                //const int cache_index = i * istride + j * jstride;
                 value_type gcv = value_type(0.25) *
                                  (wcon[index + ishift * istride + jshift * jstride + kstride] + wcon[index + kstride]);
                 value_type cs = gcv * bet_m;
@@ -200,10 +215,13 @@ namespace platform {
                 const int ksize,
                 const int istride,
                 const int jstride,
-                const int kstride) {
+                const int kstride, 
+				const int ib, 
+				const int jb) {
 
                 const int index = i * istride + j * jstride + k * kstride;
-                const int cache_index = i * istride + j * jstride;
+                const int cache_index = (i - ib) + (j - jb) * m_iblocksize;
+                //const int cache_index = i * istride + j * jstride;
                 value_type gav = value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
                 value_type gcv = value_type(0.25) *
                                  (wcon[index + ishift * istride + jshift * jstride + kstride] + wcon[index + kstride]);
@@ -265,11 +283,14 @@ namespace platform {
                 const int ksize,
                 const int istride,
                 const int jstride,
-                const int kstride) {
+                const int kstride, 
+				const int ib, 
+				const int jb) {
 
                 const int k = ksize - 1;
                 const int index = i * istride + j * jstride + k * kstride;
-                const int cache_index = i * istride + j * jstride;
+                const int cache_index = (i - ib) + (j - jb) * m_iblocksize;
+                //const int cache_index = i * istride + j * jstride;
                 value_type gav = value_type(-0.25) * (wcon[index + ishift * istride + jshift * jstride] + wcon[index]);
 
                 value_type as = gav * bet_m;
@@ -324,7 +345,9 @@ namespace platform {
                 const int ksize,
                 const int istride,
                 const int jstride,
-                const int kstride) {
+                const int kstride, 
+				const int ib, 
+				const int jb) {
 
                 if (k == 0) {
                     forward_sweep_kmin(i,
@@ -345,28 +368,10 @@ namespace platform {
                         ksize,
                         istride,
                         jstride,
-                        kstride);
-                } else if (k == ksize - 1) {
-                    forward_sweep_kmax(i,
-                        j,
-                        ishift,
-                        jshift,
-                        ccol,
-                        ccol_cache,
-                        dcol,
-                        dcol_cache,
-                        wcon,
-                        ustage,
-                        upos,
-                        utens,
-                        utensstage,
-                        isize,
-                        jsize,
-                        ksize,
-                        istride,
-                        jstride,
-                        kstride);
-                } else {
+                        kstride, 
+						ib, 
+						jb);
+                } else if (k > 0 && k < ksize - 1){
                     forward_sweep_kbody(i,
                         j,
                         k,
@@ -386,8 +391,32 @@ namespace platform {
                         ksize,
                         istride,
                         jstride,
-                        kstride);
-                }
+                        kstride, 
+						ib, 
+						jb);
+                } else {
+                    forward_sweep_kmax(i,
+                        j,
+                        ishift,
+                        jshift,
+                        ccol,
+                        ccol_cache,
+                        dcol,
+                        dcol_cache,
+                        wcon,
+                        ustage,
+                        upos,
+                        utens,
+                        utensstage,
+                        isize,
+                        jsize,
+                        ksize,
+                        istride,
+                        jstride,
+                        kstride, 
+						ib, 
+						jb);
+				}
             }
 
             int m_iblocksize, m_jblocksize;

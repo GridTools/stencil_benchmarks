@@ -2,6 +2,7 @@
 
 #include "knl/knl_hdiff_stencil_variant.h"
 #include "knl/knl_platform.h"
+#include "omp.h"
 
 namespace platform {
 
@@ -17,6 +18,14 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
+ 				int num_threads; 
+				#pragma omp parallel 
+				{
+					num_threads = omp_get_num_threads(); 
+				}
+				lap_data.resize(num_threads * (m_iblocksize + 2) * (m_jblocksize + 2));	
+				flx_data.resize(num_threads * (m_iblocksize + 1) * (m_jblocksize));	
+				fly_data.resize(num_threads * (m_iblocksize) * (m_jblocksize + 1));	
             }
 
             void hdiff() override;
@@ -24,6 +33,7 @@ namespace platform {
 
           private:
             int m_iblocksize, m_jblocksize;
+			std::vector<value_type> lap_data, flx_data, fly_data;  
         };
 
         extern template class hdiff_variant_ij_private_blocks<float>;

@@ -31,23 +31,50 @@ namespace platform {
             if (this->istride() != 1)
                 throw ERROR("this variant is only compatible with unit i-stride layout");
 
-            value_type *__restrict__ ccol_cache = this->datacol() + kstride;
-            value_type *__restrict__ dcol_cache = this->datacol() + 2 * kstride;
-
 #pragma omp parallel
             {
-#pragma omp for collapse(2) schedule(static, 1) nowait
+				int thread_id = omp_get_thread_num();
+				value_type *__restrict__ ccol_cache = m_ccol_cache.data() + thread_id * m_iblocksize * m_jblocksize;
+				value_type *__restrict__ dcol_cache = m_dcol_cache.data() + thread_id * m_iblocksize * m_jblocksize;
+#pragma omp for collapse(2) schedule (static, 1) nowait
                 for (int jb = 0; jb < jsize; jb += m_jblocksize) {
                     for (int ib = 0; ib < isize; ib += m_iblocksize) {
                         const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
                         const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
 
-                        for (int k = 0; k < ksize; ++k) {
+                        for (int j = jb; j < jmax; ++j) {
+#pragma omp simd
+#pragma vector nontemporal(ccol, dcol)
+                             for (int i = ib; i < imax; ++i) {
+                                forward_sweep_kmin(i,
+                                    j,
+                                    1,
+                                    0,
+                                    ccol,
+                                    ccol_cache,
+                                    dcol,
+                                    dcol_cache,
+                                    wcon,
+                                    ustage,
+                                    upos,
+                                    utens,
+                                    utensstage,
+                                    isize,
+                                    jsize,
+                                    ksize,
+                                    istride,
+                                    jstride,
+                                    kstride,
+									ib, 
+									jb);
+                            }
+                        }
+                        for (int k = 1; k < ksize - 1; ++k) {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
 #pragma vector nontemporal(ccol, dcol)
                                 for (int i = ib; i < imax; ++i) {
-                                    forward_sweep_k(i,
+                                    forward_sweep_kbody(i,
                                         j,
                                         k,
                                         1,
@@ -66,8 +93,37 @@ namespace platform {
                                         ksize,
                                         istride,
                                         jstride,
-                                        kstride);
+                                        kstride, 
+										ib, 
+										jb);
                                 }
+                            }
+                        }
+                        for (int j = jb; j < jmax; ++j) {
+#pragma omp simd
+#pragma vector nontemporal(ccol, dcol)
+                             for (int i = ib; i < imax; ++i) {
+                                forward_sweep_kmax(i,
+                                    j,
+                                    1,
+                                    0,
+                                    ccol,
+                                    ccol_cache,
+                                    dcol,
+                                    dcol_cache,
+                                    wcon,
+                                    ustage,
+                                    upos,
+                                    utens,
+                                    utensstage,
+                                    isize,
+                                    jsize,
+                                    ksize,
+                                    istride,
+                                    jstride,
+                                    kstride, 
+									ib, 
+									jb);
                             }
                         }
                         for (int k = ksize - 1; k >= 0; --k) {
@@ -92,13 +148,39 @@ namespace platform {
                                 }
                             }
                         }
-
-                        for (int k = 0; k < ksize; ++k) {
+                        for (int j = jb; j < jmax; ++j) {
+#pragma omp simd
+#pragma vector nontemporal(ccol, dcol)
+                             for (int i = ib; i < imax; ++i) {
+                                forward_sweep_kmin(i,
+                                    j,
+                                    0,
+                                    1,
+                                    ccol,
+                                    ccol_cache,
+                                    dcol,
+                                    dcol_cache,
+                                    wcon,
+                                    vstage,
+                                    vpos,
+                                    vtens,
+                                    vtensstage,
+                                    isize,
+                                    jsize,
+                                    ksize,
+                                    istride,
+                                    jstride,
+                                    kstride, 
+									ib,
+									jb);
+                            }
+                        }
+                        for (int k = 1; k < ksize - 1; ++k) {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
 #pragma vector nontemporal(ccol, dcol)
                                 for (int i = ib; i < imax; ++i) {
-                                    forward_sweep_k(i,
+                                    forward_sweep_kbody(i,
                                         j,
                                         k,
                                         0,
@@ -117,8 +199,37 @@ namespace platform {
                                         ksize,
                                         istride,
                                         jstride,
-                                        kstride);
+                                        kstride, 
+										ib, 
+										jb);
                                 }
+                            }
+                        }
+                        for (int j = jb; j < jmax; ++j) {
+#pragma omp simd
+#pragma vector nontemporal(ccol, dcol)
+                             for (int i = ib; i < imax; ++i) {
+                                forward_sweep_kmax(i,
+                                    j,
+                                    0,
+                                    1,
+                                    ccol,
+                                    ccol_cache,
+                                    dcol,
+                                    dcol_cache,
+                                    wcon,
+                                    vstage,
+                                    vpos,
+                                    vtens,
+                                    vtensstage,
+                                    isize,
+                                    jsize,
+                                    ksize,
+                                    istride,
+                                    jstride,
+                                    kstride, 
+									ib, 
+									jb);
                             }
                         }
                         for (int k = ksize - 1; k >= 0; --k) {
@@ -143,13 +254,39 @@ namespace platform {
                                 }
                             }
                         }
-
-                        for (int k = 0; k < ksize; ++k) {
+                        for (int j = jb; j < jmax; ++j) {
+#pragma omp simd
+#pragma vector nontemporal(ccol, dcol)
+                             for (int i = ib; i < imax; ++i) {
+                                forward_sweep_kmin(i,
+                                    j,
+                                    0,
+                                    0,
+                                    ccol,
+                                    ccol_cache,
+                                    dcol,
+                                    dcol_cache,
+                                    wcon,
+                                    wstage,
+                                    wpos,
+                                    wtens,
+                                    wtensstage,
+                                    isize,
+                                    jsize,
+                                    ksize,
+                                    istride,
+                                    jstride,
+                                    kstride,
+									ib, 
+									jb);
+                            }
+                        }
+                        for (int k = 1; k < ksize - 1; ++k) {
                             for (int j = jb; j < jmax; ++j) {
 #pragma omp simd
 #pragma vector nontemporal(ccol, dcol)
                                 for (int i = ib; i < imax; ++i) {
-                                    forward_sweep_k(i,
+                                    forward_sweep_kbody(i,
                                         j,
                                         k,
                                         0,
@@ -168,8 +305,37 @@ namespace platform {
                                         ksize,
                                         istride,
                                         jstride,
-                                        kstride);
+                                        kstride, 
+										ib, 
+										jb);
                                 }
+                            }
+                        }
+                        for (int j = jb; j < jmax; ++j) {
+#pragma omp simd
+#pragma vector nontemporal(ccol, dcol)
+                             for (int i = ib; i < imax; ++i) {
+                                forward_sweep_kmax(i,
+                                    j,
+                                    0,
+                                    0,
+                                    ccol,
+                                    ccol_cache,
+                                    dcol,
+                                    dcol_cache,
+                                    wcon,
+                                    wstage,
+                                    wpos,
+                                    wtens,
+                                    wtensstage,
+                                    isize,
+                                    jsize,
+                                    ksize,
+                                    istride,
+                                    jstride,
+                                    kstride, 
+									ib, 
+									jb);
                             }
                         }
                         for (int k = ksize - 1; k >= 0; --k) {

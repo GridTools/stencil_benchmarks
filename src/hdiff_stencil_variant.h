@@ -123,15 +123,6 @@ namespace platform {
                 double y = dy * (double)(j);
                 for (int k = 0; k < ksize(); k++) {
                     double z = dz * (double)(k);
-                    // u values between 5 and 9
-                    //m_in[cnt] = 3.0 +
-                    //            1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
-                    //                       0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
-                    //                4.;
-                    //m_coeff[cnt] = 1.4 +
-                    //               0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
-                    //                          1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
-                    //                   4.;
                     m_out_ref[cnt] = 5.4;
                     m_flx[cnt] = 0.0;
                     m_fly[cnt] = 0.0;
