@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cuda_umesh_variant.h"
+#include "umesh_stencil_variant.h"
 
 namespace platform {
 
@@ -23,7 +24,7 @@ namespace platform {
                                                                   \
         const int c = j % 2;                                      \
                                                                   \
-        int idx = i * istride + j * jstride * 2 +c*jstride;       \
+        int idx = i * istride + j * jstride * 2 + c * jstride;    \
         if (c == 0)                                               \
             for (int k = 0; k < ksize; ++k) {                     \
                 if (i < isize && j < jsize) {                     \
@@ -65,12 +66,12 @@ namespace platform {
 
         KERNEL_ILP(copyu_ilp, (dst[idx] = LOAD(src[idx])), (dst[idx + jstride] = LOAD(src[idx + jstride])))
         KERNEL(copyu, (dst[idx] = LOAD(src[idx])), (dst[idx] = LOAD(src[idx])))
-        KERNEL_ILP(on_cells_ilp, (dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride])),
+        KERNEL_ILP(on_cells_ilp,
+            (dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride])),
             (dst[idx + jstride] = LOAD(src[idx]) + LOAD(src[idx + 1]) + LOAD(src[idx + jstride * 2])))
         KERNEL(on_cells,
             dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride]),
-            dst[idx] = LOAD(src[idx-jstride]) + LOAD(src[idx + 1 - jstride]) + LOAD(src[idx + jstride]))
-
+            dst[idx] = LOAD(src[idx - jstride]) + LOAD(src[idx + 1 - jstride]) + LOAD(src[idx + jstride]))
 
 #define KERNEL_CALL(name, blocksmethod)                                 \
     void name(unsigned int t) {                                         \
@@ -85,14 +86,14 @@ namespace platform {
     }
 
         template <class ValueType>
-        class umesh_strgrid final : public cuda_umesh_variant<ValueType> {
+        class umesh_strgrid final : public cuda_umesh_variant<ValueType, umesh_stencil_variant> {
           public:
             using platform = cuda;
             using value_type = ValueType;
 
             inline umesh_strgrid(const arguments_map &args)
-                : cuda_umesh_variant<ValueType>(args), m_iblocksize(args.get<int>("i-blocksize")),
-                  m_jblocksize(args.get<int>("j-blocksize")) {
+                : cuda_umesh_variant<ValueType, umesh_stencil_variant>(args),
+                  m_iblocksize(args.get<int>("i-blocksize")), m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
                 platform::limit_blocksize(m_iblocksize, m_jblocksize);
