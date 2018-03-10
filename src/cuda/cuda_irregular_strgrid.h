@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cuda_umesh_variant.h"
-#include "umesh_stencil_variant.h"
+#include "irrstrgrid_stencil_variant.h"
 
 namespace platform {
 
@@ -24,7 +24,7 @@ namespace platform {
                                                                   \
         const int c = j % 2;                                      \
                                                                   \
-        int idx = i * istride + j * jstride * 2 + c * jstride;    \
+        int idx = i * istride + j * jstride;                      \
         if (c == 0)                                               \
             for (int k = 0; k < ksize; ++k) {                     \
                 if (i < isize && j < jsize) {                     \
@@ -86,20 +86,20 @@ namespace platform {
     }
 
         template <class ValueType>
-        class umesh_strgrid final : public cuda_umesh_variant<ValueType, umesh_stencil_variant> {
+        class irregular_strgrid final : public cuda_umesh_variant<ValueType, irrstrgrid_stencil_variant> {
           public:
             using platform = cuda;
             using value_type = ValueType;
 
-            inline umesh_strgrid(const arguments_map &args)
-                : cuda_umesh_variant<ValueType, umesh_stencil_variant>(args),
+            inline irregular_strgrid(const arguments_map &args)
+                : cuda_umesh_variant<ValueType, irrstrgrid_stencil_variant>(args),
                   m_iblocksize(args.get<int>("i-blocksize")), m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
                 platform::limit_blocksize(m_iblocksize, m_jblocksize);
             }
 
-            inline ~umesh_strgrid() {}
+            inline ~irregular_strgrid() {}
 
             KERNEL_CALL(copyu_ilp, blocks_ilp)
             KERNEL_CALL(copyu, blocks)

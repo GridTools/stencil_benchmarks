@@ -11,14 +11,14 @@
 namespace platform {
 
     template <class Platform, class ValueType>
-    class umesh_stencil_variant : public variant_base {
+    class irrstrgrid_stencil_variant : public variant_base {
       public:
         using platform = Platform;
         using value_type = ValueType;
         using allocator = typename platform::template allocator<value_type>;
 
-        umesh_stencil_variant(const arguments_map &args);
-        virtual ~umesh_stencil_variant() {}
+        irrstrgrid_stencil_variant(const arguments_map &args);
+        virtual ~irrstrgrid_stencil_variant() {}
 
         std::vector<std::string> stencil_list() const override;
 
@@ -50,16 +50,24 @@ namespace platform {
         std::size_t bytes_per_element() const override { return sizeof(value_type); }
         const unsigned int num_storages_per_field;
 
+        void initialize_fields();
+        void setup() override;
+
       private:
         std::vector<data_field<value_type, allocator>> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
     };
 
     template <class Platform, class ValueType>
-    umesh_stencil_variant<Platform, ValueType>::umesh_stencil_variant(const arguments_map &args)
+    irrstrgrid_stencil_variant<Platform, ValueType>::irrstrgrid_stencil_variant(const arguments_map &args)
         : variant_base(args),
           num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
+        initialize_fields();
+    }
+
+    template <class Platform, class ValueType>
+    void irrstrgrid_stencil_variant<Platform, ValueType>::initialize_fields() {
 #pragma omp parallel
         {
             std::minstd_rand eng;
@@ -72,33 +80,39 @@ namespace platform {
 #pragma omp for
                 for (int i = 0; i < total_size; ++i) {
                     src_field[i] = dist(eng);
-                    dst_field[i] = dist(eng);
+                    dst_field[i] = -1;
                 }
             }
         }
     }
 
     template <class Platform, class ValueType>
-    std::vector<std::string> umesh_stencil_variant<Platform, ValueType>::stencil_list() const {
+    void irrstrgrid_stencil_variant<Platform, ValueType>::setup() {
+        initialize_fields();
+        variant_base::setup();
+    }
+
+    template <class Platform, class ValueType>
+    std::vector<std::string> irrstrgrid_stencil_variant<Platform, ValueType>::stencil_list() const {
         return {"copyu_ilp", "copyu", "on_cells_ilp", "on_cells"};
     }
 
     template <class Platform, class ValueType>
-    std::function<void(unsigned int)> umesh_stencil_variant<Platform, ValueType>::stencil_function(
+    std::function<void(unsigned int)> irrstrgrid_stencil_variant<Platform, ValueType>::stencil_function(
         const std::string &stencil) {
         if (stencil == "copyu_ilp")
-            return std::bind(&umesh_stencil_variant::copyu_ilp, this, std::placeholders::_1);
+            return std::bind(&irrstrgrid_stencil_variant::copyu_ilp, this, std::placeholders::_1);
         else if (stencil == "copyu")
-            return std::bind(&umesh_stencil_variant::copyu, this, std::placeholders::_1);
+            return std::bind(&irrstrgrid_stencil_variant::copyu, this, std::placeholders::_1);
         else if (stencil == "on_cells_ilp")
-            return std::bind(&umesh_stencil_variant::on_cells_ilp, this, std::placeholders::_1);
+            return std::bind(&irrstrgrid_stencil_variant::on_cells_ilp, this, std::placeholders::_1);
         else if (stencil == "on_cells")
-            return std::bind(&umesh_stencil_variant::on_cells, this, std::placeholders::_1);
+            return std::bind(&irrstrgrid_stencil_variant::on_cells, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 
     template <class Platform, class ValueType>
-    bool umesh_stencil_variant<Platform, ValueType>::verify(const std::string &stencil) {
+    bool irrstrgrid_stencil_variant<Platform, ValueType>::verify(const std::string &stencil) {
         std::function<bool(int, int, int)> f;
         auto s = [&](int i, int j, int k) { return src()[index(i, j, k)]; };
         auto d = [&](int i, int j, int k) { return dst()[index(i, j, k)]; };
@@ -128,7 +142,7 @@ namespace platform {
     }
 
     template <class Platform, class ValueType>
-    std::size_t umesh_stencil_variant<Platform, ValueType>::touched_elements(const std::string &stencil) const {
+    std::size_t irrstrgrid_stencil_variant<Platform, ValueType>::touched_elements(const std::string &stencil) const {
         std::size_t i = isize();
         std::size_t j = jsize();
         std::size_t k = ksize();

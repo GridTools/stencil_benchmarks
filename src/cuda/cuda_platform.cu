@@ -4,7 +4,9 @@
 #include "cuda/cuda_hdiff_variant_ijnoshared.h"
 #include "cuda/cuda_hdiff_variant_incache.h"
 #include "cuda/cuda_hdiff_variant_noshared.h"
-#include "cuda/cuda_umesh_strgrid.h"
+#include "cuda/cuda_irregular_strgrid.h"
+#include "cuda/cuda_irregular_umesh.h"
+#include "cuda/cuda_umesh_umesh.h"
 #include "cuda/cuda_vadv_variant.h"
 #include "cuda/cuda_variant_1d.h"
 #include "cuda/cuda_variant_ij_blocked.h"
@@ -44,8 +46,11 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
 
-            auto &umesh = args.command("umesh", "variant");
+            auto &umesh = args.command("irregular", "variant");
             umesh.command("strgrid")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            umesh.command("umesh")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
         }
@@ -64,9 +69,11 @@ namespace platform {
                     if (var == "ijk-blocked")
                         return new variant_ijk_blocked<ValueType>(args);
                 }
-                if (grp == "umesh") {
+                if (grp == "irregular") {
                     if (var == "strgrid")
-                        return new umesh_strgrid<ValueType>(args);
+                        return new irregular_strgrid<ValueType>(args);
+                    if (var == "umesh   ")
+                        return new irregular_umesh<ValueType>(args);
                 }
                 if (grp == "hdiff") {
                     if (var == "ij-blocked")
