@@ -6,7 +6,6 @@
 #include "cuda/cuda_hdiff_variant_noshared.h"
 #include "cuda/cuda_irregular_strgrid.h"
 #include "cuda/cuda_irregular_umesh.h"
-#include "cuda/cuda_umesh_umesh.h"
 #include "cuda/cuda_vadv_variant.h"
 #include "cuda/cuda_variant_1d.h"
 #include "cuda/cuda_variant_ij_blocked.h"
@@ -72,7 +71,7 @@ namespace platform {
                 if (grp == "irregular") {
                     if (var == "strgrid")
                         return new irregular_strgrid<ValueType>(args);
-                    if (var == "umesh   ")
+                    if (var == "umesh")
                         return new irregular_umesh<ValueType>(args);
                 }
                 if (grp == "hdiff") {
