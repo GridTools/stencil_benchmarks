@@ -18,6 +18,7 @@
 #include "knl/knl_vadv_variant_ij_blocked_colopt.h"
 #include "knl/knl_vadv_variant_ij_blocked_k.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_ring.h"
+#include "knl/knl_vadv_variant_ij_blocked_i_vector.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_split.h"
 #include "knl/knl_vadv_variant_ij_blocked_split.h"
 #include "knl/knl_variant_1d.h"
@@ -124,6 +125,8 @@ namespace platform {
                         return new vadv_variant_2d<ValueType>(args);
                     if (var == "ij-blocked")
                         return new vadv_variant_ij_blocked<ValueType>(args);
+                    if (var == "ij-blocked-i-vector")
+                        return new vadv_variant_ij_blocked_i_vector<ValueType>(args);
                     if (var == "ij-blocked-split")
                         return new vadv_variant_ij_blocked_split<ValueType>(args);
                     if (var == "ij-blocked-colopt")
@@ -185,6 +188,9 @@ namespace platform {
             auto &vadv = args.command("vadv", "variant");
             vadv.command("2d");
             vadv.command("ij-blocked")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            vadv.command("ij-blocked-i-vector")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             vadv.command("ij-blocked-split")
