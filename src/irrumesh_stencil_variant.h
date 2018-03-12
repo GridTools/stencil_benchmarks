@@ -6,6 +6,7 @@
 
 #include "data_field.h"
 #include "except.h"
+#include "unstructured/mesh.hpp"
 #include "variant_base.h"
 
 namespace platform {
@@ -24,6 +25,8 @@ namespace platform {
 
         virtual void copyu2_ilp(unsigned int) = 0;
         virtual void copyu2(unsigned int) = 0;
+        virtual void copy_umesh(unsigned int) = 0;
+
         //        virtual void on_cells2_ilp(unsigned int) = 0;
         //        virtual void on_cells2(unsigned int) = 0;
 
@@ -57,13 +60,17 @@ namespace platform {
       private:
         std::vector<data_field<value_type, allocator>> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
+
+      protected:
+        mesh mesh_;
     };
 
     template <class Platform, class ValueType>
     irrumesh_stencil_variant<Platform, ValueType>::irrumesh_stencil_variant(const arguments_map &args)
         : variant_base(args),
           num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
-          m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
+          m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()),
+          mesh_(this->isize(), this->jsize() / 2, this->halo()) {
         initialize_fields();
     }
 
@@ -94,7 +101,7 @@ namespace platform {
     }
     template <class Platform, class ValueType>
     std::vector<std::string> irrumesh_stencil_variant<Platform, ValueType>::stencil_list() const {
-        return {"copyu2_ilp", "copyu2"};
+        return {/*"copyu2_ilp", "copyu2", */ "copy_umesh"};
     }
 
     template <class Platform, class ValueType>
@@ -104,6 +111,8 @@ namespace platform {
             return std::bind(&irrumesh_stencil_variant::copyu2_ilp, this, std::placeholders::_1);
         else if (stencil == "copyu2")
             return std::bind(&irrumesh_stencil_variant::copyu2, this, std::placeholders::_1);
+        else if (stencil == "copy_umesh")
+            return std::bind(&irrumesh_stencil_variant::copy_umesh, this, std::placeholders::_1);
         //        else if (stencil == "on_cells2_ilp")
         //            return std::bind(&irrumesh_stencil_variant::on_cells2_ilp, this, std::placeholders::_1);
         //        else if (stencil == "on_cells2")
@@ -113,19 +122,20 @@ namespace platform {
 
     template <class Platform, class ValueType>
     bool irrumesh_stencil_variant<Platform, ValueType>::verify(const std::string &stencil) {
-        std::function<bool(int, int, int)> f;
-        auto s = [&](int i, int j, int k) { return src()[index(i, j, k)]; };
-        auto d = [&](int i, int j, int k) { return dst()[index(i, j, k)]; };
+        std::function<bool(int, int)> f;
+        auto s = [&](int idx, int k) { return src_data()[idx + k * kstride()]; };
+        auto d = [&](int idx, int k) { return dst_data()[idx + k * kstride()]; };
 
-        if (stencil == "copyu2_ilp" || stencil == "copyu2") {
-            f = [&](int i, int j, int k) { return d(i, j, k) == s(i, j, k); };
-        } else if (stencil == "on_cells2_ilp" || stencil == "on_cells2") {
+        if (stencil == "copyu2_ilp" || stencil == "copyu2" || stencil == "copy_umesh") {
+            f = [&](int idx, int k) { return d(idx, k) == s(idx, k); };
+        }
+        /*        else if (stencil == "on_cells2_ilp" || stencil == "on_cells2") {
 
             f = [&](int i, int j, int k) {
                 return (j % 2 == 0) ? (d(i, j, k) == s(i - 1, j + 1, k) + s(i, j + 1, k) + s(i, j - 1, k))
                                     : (d(i, j, k) == s(i, j - 1, k) + s(i + 1, j - 1, k) + s(i, j + 1, k));
             };
-        } else {
+        }*/ else {
             throw ERROR("unknown stencil '" + stencil + "'");
         }
 
@@ -133,11 +143,12 @@ namespace platform {
         const int jsize = this->jsize();
         const int ksize = this->ksize();
         bool success = true;
-#pragma omp parallel for collapse(3) reduction(&& : success)
-        for (int k = 0; k < ksize; ++k)
-            for (int j = 0; j < jsize; ++j)
-                for (int i = 0; i < isize; ++i)
-                    success = success && f(i, j, k);
+        //#pragma omp parallel for collapse(3) reduction(&& : success)
+        for (int k = 0; k < ksize; ++k) {
+            for (size_t idx = 0; idx < mesh_.compd_size(); ++idx) {
+                success = success && f(idx, k);
+            }
+        }
         return success;
     }
 
@@ -146,7 +157,8 @@ namespace platform {
         std::size_t i = isize();
         std::size_t j = jsize();
         std::size_t k = ksize();
-        if (stencil == "copyu2_ilp" || stencil == "copyu2" || stencil == "on_cells2_ilp" || stencil == "on_cells2")
+        if (stencil == "copyu2_ilp" || stencil == "copyu2" || stencil == "copy_umesh" || stencil == "on_cells2_ilp" ||
+            stencil == "on_cells2")
             return i * j * k * 2;
         throw ERROR("unknown stencil '" + stencil + "'");
     }
