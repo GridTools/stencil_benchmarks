@@ -2,8 +2,9 @@
 
 #include "knl/knl_platform.h"
 #include "knl/knl_vadv_variant.h"
+#include "omp.h"
 
-#define eproma 64 
+#define eproma 128 
 
 namespace platform {
 
@@ -20,6 +21,23 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
+				int num_threads;
+                #pragma omp parallel 
+                {
+                    num_threads = omp_get_num_threads();
+                }
+				m_ccol0.resize(num_threads * eproma); 
+				m_ccol1.resize(num_threads * eproma); 
+				m_dcol0.resize(num_threads * eproma); 
+				m_dcol1.resize(num_threads * eproma); 
+				m_ustage0.resize(num_threads * eproma); 
+				m_ustage1.resize(num_threads * eproma); 
+				m_ustage2.resize(num_threads * eproma); 
+				m_wcon0.resize(num_threads * eproma); 
+				m_wcon1.resize(num_threads * eproma); 
+				m_wcon_shift0.resize(num_threads * eproma); 
+				m_wcon_shift1.resize(num_threads * eproma); 
+				m_datacol.resize(num_threads * eproma); 
             }
             ~vadv_variant_ij_blocked_i_vector() {}
 
@@ -31,6 +49,13 @@ namespace platform {
             static constexpr value_type bet_m = 0.5 * (1.0 - beta_v);
             static constexpr value_type bet_p = 0.5 * (1.0 + beta_v);
             int m_iblocksize, m_jblocksize;
+            std::vector<value_type> m_ccol0, m_ccol1;
+            std::vector<value_type> m_dcol0, m_dcol1;
+            std::vector<value_type> m_ustage0, m_ustage1, m_ustage2;
+            std::vector<value_type> m_wcon0, m_wcon1;
+            std::vector<value_type> m_wcon_shift0, m_wcon_shift1;
+            std::vector<value_type> m_datacol;
+
 
             __attribute__((always_inline)) void forward_sweep_vec(const int i,
                 const int j,
@@ -49,14 +74,20 @@ namespace platform {
                 const int istride,
                 const int jstride,
                 const int kstride, 
-				const int vec_size) {
+				const int vec_size, 
+				const int thread_id) {
 
-                std::vector<value_type> ccol0(eproma), ccol1(eproma);
-                std::vector<value_type> dcol0(eproma), dcol1(eproma);
-                std::vector<value_type> ustage0(eproma), ustage1(eproma), ustage2(eproma);
-                std::vector<value_type> wcon0(eproma), wcon1(eproma);
-                std::vector<value_type> wcon_shift0(eproma), wcon_shift1(eproma);
-
+				value_type *__restrict__ ccol0 = m_ccol0.data() + thread_id * eproma;
+				value_type *__restrict__ ccol1 = m_ccol1.data() + thread_id * eproma;
+				value_type *__restrict__ dcol0 = m_dcol0.data() + thread_id * eproma;
+				value_type *__restrict__ dcol1 = m_dcol1.data() + thread_id * eproma;
+				value_type *__restrict__ ustage0 = m_ustage0.data() + thread_id * eproma;
+				value_type *__restrict__ ustage1 = m_ustage1.data() + thread_id * eproma;
+				value_type *__restrict__ ustage2 = m_ustage2.data() + thread_id * eproma;
+				value_type *__restrict__ wcon0 = m_wcon0.data() + thread_id * eproma;
+				value_type *__restrict__ wcon1 = m_wcon1.data() + thread_id * eproma;
+				value_type *__restrict__ wcon_shift0 = m_wcon_shift0.data() + thread_id * eproma;
+				value_type *__restrict__ wcon_shift1 = m_wcon_shift1.data() + thread_id * eproma;
                 int index = i * istride + j * jstride;
 
                 // k minimum
@@ -87,12 +118,15 @@ namespace platform {
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
-                    ccol1 = ccol0;
-                    dcol1 = dcol0;
-                    ustage2 = ustage1;
-                    ustage1 = ustage0;
-                    wcon1 = wcon0;
-                    wcon_shift1 = wcon_shift0;
+#pragma omp simd
+					for (int iv = 0; iv < vec_size; ++iv){
+                    	ccol1[iv] = ccol0[iv];
+                    	dcol1[iv] = dcol0[iv];
+                    	ustage2[iv] = ustage1[iv];
+                    	ustage1[iv] = ustage0[iv];
+                    	wcon1[iv] = wcon0[iv];
+                    	wcon_shift1[iv] = wcon_shift0[iv];
+					}
 #pragma omp simd
                 	for (int iv = 0; iv < vec_size; ++iv) {
                     	ValueType gav = ValueType(-0.25) * (wcon_shift1[iv] + wcon1[iv]);
@@ -123,12 +157,15 @@ namespace platform {
                 }
 
                 // k maximum
-                ccol1 = ccol0;
-                dcol1 = dcol0;
-                ustage2 = ustage1;
-                ustage1 = ustage0;
-                wcon1 = wcon0;
-                wcon_shift1 = wcon_shift0;
+#pragma omp simd
+				for (int iv = 0; iv < vec_size; ++iv){
+                 	ccol1[iv] = ccol0[iv];
+                   	dcol1[iv] = dcol0[iv];
+                   	ustage2[iv] = ustage1[iv];
+                   	ustage1[iv] = ustage0[iv];
+                   	wcon1[iv] = wcon0[iv];
+                   	wcon_shift1[iv] = wcon_shift0[iv];
+				}
 
 #pragma omp simd
                 for (int iv = 0; iv < vec_size; ++iv) {
@@ -163,10 +200,11 @@ namespace platform {
                 const int istride,
                 const int jstride,
                 const int kstride, 
-				const int vec_size) {
+				const int vec_size, 
+				const int thread_id) {
                 constexpr value_type dtr_stage = 3.0 / 20.0;
 
-                std::vector<value_type> datacol(eproma);
+				value_type *__restrict__ datacol = m_datacol.data() + thread_id * eproma;
 
                 int index = i * istride + j * jstride + (ksize - 1) * kstride;
                 // k

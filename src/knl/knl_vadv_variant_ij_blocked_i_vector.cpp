@@ -41,8 +41,8 @@ namespace platform {
                     for (int j = jb; j < jmax; ++j) {
 //#pragma omp simd
                         for (int i = ib; i < imax; i += eproma) {
+							int thread_id = omp_get_thread_num();
 							int vec_size = i + eproma <= imax ? eproma : imax - i; 
-						    //std::cout<<vec_size<<std::endl;
                             this->forward_sweep_vec(i,
                                 j,
                                 1,
@@ -60,9 +60,10 @@ namespace platform {
                                 istride,
                                 jstride,
                                 kstride, 
-								vec_size);
+								vec_size, 
+								thread_id);
                             this->backward_sweep_vec(
-                                i, j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size);
+                                i, j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size, thread_id);
                             this->forward_sweep_vec(i,
                                 j,
                                 0,
@@ -80,9 +81,10 @@ namespace platform {
                                 istride,
                                 jstride,
                                 kstride, 
-								vec_size);
+								vec_size, 
+								thread_id);
                             this->backward_sweep_vec(
-                                i, j, ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size);
+                                i, j, ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size, thread_id);
                             this->forward_sweep_vec(i,
                                 j,
                                 0,
@@ -100,9 +102,10 @@ namespace platform {
                                 istride,
                                 jstride,
                                 kstride, 
-								vec_size);
+								vec_size, 
+								thread_id);
                             this->backward_sweep_vec(
-                                i, j, ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size);
+                                i, j, ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size, thread_id);
                             index += istride;
                         }
                         index += jstride - (imax - ib) * istride;
