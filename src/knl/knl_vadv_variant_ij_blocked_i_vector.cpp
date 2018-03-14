@@ -31,15 +31,13 @@ namespace platform {
             if (this->istride() != 1)
                 throw ERROR("this variant is only compatible with unit i-stride layout");
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) schedule (static, 1) 
             for (int jb = 0; jb < jsize; jb += m_jblocksize) {
                 for (int ib = 0; ib < isize; ib += m_iblocksize) {
                     const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
                     const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
-                    int index = ib * istride + jb * jstride;
 
                     for (int j = jb; j < jmax; ++j) {
-//#pragma omp simd
                         for (int i = ib; i < imax; i += eproma) {
 							int thread_id = omp_get_thread_num();
 							int vec_size = i + eproma <= imax ? eproma : imax - i; 
@@ -64,6 +62,12 @@ namespace platform {
 								thread_id);
                             this->backward_sweep_vec(
                                 i, j, ccol, dcol, upos, utensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size, thread_id);
+                        }
+                    }
+                    for (int j = jb; j < jmax; ++j) {
+                        for (int i = ib; i < imax; i += eproma) {
+							int thread_id = omp_get_thread_num();
+							int vec_size = i + eproma <= imax ? eproma : imax - i; 
                             this->forward_sweep_vec(i,
                                 j,
                                 0,
@@ -85,6 +89,12 @@ namespace platform {
 								thread_id);
                             this->backward_sweep_vec(
                                 i, j, ccol, dcol, vpos, vtensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size, thread_id);
+                        }
+                    }
+                    for (int j = jb; j < jmax; ++j) {
+                        for (int i = ib; i < imax; i += eproma) {
+							int thread_id = omp_get_thread_num();
+							int vec_size = i + eproma <= imax ? eproma : imax - i; 
                             this->forward_sweep_vec(i,
                                 j,
                                 0,
@@ -106,11 +116,8 @@ namespace platform {
 								thread_id);
                             this->backward_sweep_vec(
                                 i, j, ccol, dcol, wpos, wtensstage, isize, jsize, ksize, istride, jstride, kstride, vec_size, thread_id);
-                            index += istride;
                         }
-                        index += jstride - (imax - ib) * istride;
                     }
-                    index += kstride - (jmax - jb) * jstride;
                 }
             }
         }
