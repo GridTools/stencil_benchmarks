@@ -61,7 +61,10 @@ public:
   GT_FUNCTION
   size_t size() const { return m_size; }
   GT_FUNCTION
-  size_t &raw_data(const unsigned int idx) { return m_data[idx]; }
+  size_t &raw_data(const unsigned int idx) { 
+    assert(idx < m_size);
+    return m_data[idx]; 
+  }
 
   GT_FUNCTION
   size_t *data() { return m_data; }

@@ -30,83 +30,41 @@ namespace platform {
             }
         }
 
-#define KERNEL(name, stmt_c0, stmt_c1)                            \
-    template <class ValueType>                                    \
-    __global__ void kernel_ij_##name(ValueType *__restrict__ dst, \
-        const ValueType *__restrict__ src,                        \
-        int isize,                                                \
-        int jsize,                                                \
-        int ksize,                                                \
-        int istride,                                              \
-        int jstride,                                              \
-        int kstride,                                              \
-        sneighbours_table table) {                                \
-        const int i = blockIdx.x * blockDim.x + threadIdx.x;      \
-        const int j = blockIdx.y * blockDim.y + threadIdx.y;      \
-                                                                  \
-        const int c = j % 2;                                      \
-        int idx = i * istride + j * jstride;                      \
-        if (c == 0)                                               \
-            for (int k = 0; k < ksize; ++k) {                     \
-                if (i < isize && j < jsize) {                     \
-                    stmt_c0;                                      \
-                    idx += kstride;                               \
-                }                                                 \
-            }                                                     \
-        else                                                      \
-            for (int k = 0; k < ksize; ++k) {                     \
-                if (i < isize && j < jsize) {                     \
-                    stmt_c1;                                      \
-                    idx += kstride;                               \
-                }                                                 \
-            }                                                     \
-    }
+        template <class ValueType>
+        __global__ void kernel_ij_on_cells_umesh(ValueType *__restrict__ dst,
+            const ValueType *__restrict__ src,
+            int isize,
+            int jsize,
+            int ksize,
+            int istride,
+            int jstride,
+            int kstride,
+            size_t mesh_size,
+            sneighbours_table table) {
 
-#define KERNEL_ILP(name, stmt_c0, stmt_c1)                        \
-    template <class ValueType>                                    \
-    __global__ void kernel_ij_##name(ValueType *__restrict__ dst, \
-        const ValueType *__restrict__ src,                        \
-        int isize,                                                \
-        int jsize,                                                \
-        int ksize,                                                \
-        int istride,                                              \
-        int jstride,                                              \
-        int kstride,                                              \
-        sneighbours_table table) {                                \
-        const int i = blockIdx.x * blockDim.x + threadIdx.x;      \
-        const int j = blockIdx.y * blockDim.y + threadIdx.y;      \
-                                                                  \
-        int idx = i * istride + j * jstride * 2;                  \
-        for (int k = 0; k < ksize; ++k) {                         \
-            if (i < isize && j < jsize) {                         \
-                stmt_c0;                                          \
-                stmt_c1;                                          \
-                idx += kstride;                                   \
-            }                                                     \
-        }                                                         \
-    }
+            const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned int idx = idx2;
 
-        KERNEL_ILP(copyu2_ilp, (dst[idx] = LOAD(src[idx])), (dst[idx + jstride] = LOAD(src[idx + jstride])))
-        KERNEL(copyu2, (dst[idx] = LOAD(src[idx])), (dst[idx] = LOAD(src[idx])))
-//        KERNEL_ILP(on_cells2_ilp,
-//            (dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride])),
-//            (dst[idx + jstride] = LOAD(src[idx]) + LOAD(src[idx + 1]) + LOAD(src[idx + jstride * 2])))
-//        KERNEL(on_cells2,
-//            dst[idx] = LOAD(src[idx + jstride - 1]) + LOAD(src[idx + jstride]) + LOAD(src[idx - jstride]),
-//            dst[idx] = LOAD(src[idx - jstride]) + LOAD(src[idx + 1 - jstride]) + LOAD(src[idx + jstride]))
+            extern __shared__ size_t tab[];
+            const size_t shared_stride = blockDim.x;
+            const size_t stride = table.isize() * table.jsize() * num_colors(table.nloc());
 
-#define KERNEL_CALL(name, blocksmethod)                                               \
-    void name(unsigned int t) {                                                       \
-        kernel_ij_##name<<<blocksmethod(location::cell), blocksize()>>>(this->dst(t), \
-            this->src(t),                                                             \
-            this->isize(),                                                            \
-            this->jsize(),                                                            \
-            this->ksize(),                                                            \
-            this->istride(),                                                          \
-            this->jstride(),                                                          \
-            this->kstride(),                                                          \
-            this->mesh_.get_elements(location::cell).table(location::cell));          \
-    }
+            tab[threadIdx.x + shared_stride * 0] = table.raw_data(idx2 + 0 * stride);
+            tab[threadIdx.x + shared_stride * 1] = table.raw_data(idx2 + 1 * stride);
+            tab[threadIdx.x + shared_stride * 2] = table.raw_data(idx2 + 2 * stride);
+
+            __syncthreads();
+
+            if (idx < mesh_size) {
+                for (int k = 0; k < ksize; ++k) {
+                    dst[idx] = src[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                               src[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                               src[k * kstride + tab[threadIdx.x + 2 * shared_stride]];
+
+                    idx += kstride;
+                }
+            }
+        }
 
         template <class ValueType>
         class irregular_umesh final : public cuda_umesh_variant<ValueType, irrumesh_stencil_variant> {
@@ -129,6 +87,22 @@ namespace platform {
 
             inline ~irregular_umesh() {}
 
+            void on_cells_umesh(unsigned int t) {
+                kernel_ij_on_cells_umesh<<<blocks(location::cell),
+                    blocksize(),
+                    blocksize().x * num_neighbours(location::cell, location::cell) * sizeof(size_t)>>>(
+                    this->dst_data(t),
+                    this->src_data(t),
+                    this->isize(),
+                    this->jsize(),
+                    this->ksize(),
+                    this->istride(),
+                    this->jstride(),
+                    this->kstride(),
+                    this->mesh_.mesh_size(location::cell),
+                    this->mesh_.get_elements(location::cell).table(location::cell));
+            }
+
             void copy_umesh(unsigned int t) {
                 kernel_ij_copy_umesh<<<blocks(location::cell), blocksize()>>>(this->dst_data(t),
                     this->src_data(t),
@@ -141,11 +115,6 @@ namespace platform {
                     this->mesh_.mesh_size(location::cell),
                     this->mesh_.get_elements(location::cell).table(location::cell));
             }
-
-            KERNEL_CALL(copyu2_ilp, blocks_ilp)
-            KERNEL_CALL(copyu2, blocks)
-            //            KERNEL_CALL(on_cells2_ilp, blocks_ilp)
-            //            KERNEL_CALL(on_cells2, blocks)
 
           private:
             inline dim3 blocks_ilp(location loc) const {

@@ -23,9 +23,8 @@ namespace platform {
 
         std::vector<std::string> stencil_list() const override;
 
-        virtual void copyu2_ilp(unsigned int) = 0;
-        virtual void copyu2(unsigned int) = 0;
         virtual void copy_umesh(unsigned int) = 0;
+        virtual void on_cells_umesh(unsigned int) = 0;
 
         //        virtual void on_cells2_ilp(unsigned int) = 0;
         //        virtual void on_cells2(unsigned int) = 0;
@@ -101,18 +100,16 @@ namespace platform {
     }
     template <class Platform, class ValueType>
     std::vector<std::string> irrumesh_stencil_variant<Platform, ValueType>::stencil_list() const {
-        return {/*"copyu2_ilp", "copyu2", */ "copy_umesh"};
+        return {"copy_umesh", "on_cells_umesh"};
     }
 
     template <class Platform, class ValueType>
     std::function<void(unsigned int)> irrumesh_stencil_variant<Platform, ValueType>::stencil_function(
         const std::string &stencil) {
-        if (stencil == "copyu2_ilp")
-            return std::bind(&irrumesh_stencil_variant::copyu2_ilp, this, std::placeholders::_1);
-        else if (stencil == "copyu2")
-            return std::bind(&irrumesh_stencil_variant::copyu2, this, std::placeholders::_1);
-        else if (stencil == "copy_umesh")
+        if (stencil == "copy_umesh")
             return std::bind(&irrumesh_stencil_variant::copy_umesh, this, std::placeholders::_1);
+        else if (stencil == "on_cells_umesh")
+            return std::bind(&irrumesh_stencil_variant::on_cells_umesh, this, std::placeholders::_1);
         //        else if (stencil == "on_cells2_ilp")
         //            return std::bind(&irrumesh_stencil_variant::on_cells2_ilp, this, std::placeholders::_1);
         //        else if (stencil == "on_cells2")
@@ -125,17 +122,17 @@ namespace platform {
         std::function<bool(int, int)> f;
         auto s = [&](int idx, int k) { return src_data()[idx + k * kstride()]; };
         auto d = [&](int idx, int k) { return dst_data()[idx + k * kstride()]; };
+        auto &table = mesh_.get_elements(location::cell).table(location::cell);
 
-        if (stencil == "copyu2_ilp" || stencil == "copyu2" || stencil == "copy_umesh") {
+        if (stencil == "copy_umesh") {
             f = [&](int idx, int k) { return d(idx, k) == s(idx, k); };
-        }
-        /*        else if (stencil == "on_cells2_ilp" || stencil == "on_cells2") {
-
-            f = [&](int i, int j, int k) {
-                return (j % 2 == 0) ? (d(i, j, k) == s(i - 1, j + 1, k) + s(i, j + 1, k) + s(i, j - 1, k))
-                                    : (d(i, j, k) == s(i, j - 1, k) + s(i + 1, j - 1, k) + s(i, j + 1, k));
+        } else if (stencil == "on_cells_umesh") {
+            f = [&](int idx, int k) {
+                return (d(idx, k) ==
+                       src_data()[table(idx, 0) + k * kstride()] + src_data()[table(idx, 1) + k * kstride()] +
+                           src_data()[table(idx, 2) + k * kstride()]);
             };
-        }*/ else {
+        } else {
             throw ERROR("unknown stencil '" + stencil + "'");
         }
 
@@ -157,8 +154,7 @@ namespace platform {
         std::size_t i = isize();
         std::size_t j = jsize();
         std::size_t k = ksize();
-        if (stencil == "copyu2_ilp" || stencil == "copyu2" || stencil == "copy_umesh" || stencil == "on_cells2_ilp" ||
-            stencil == "on_cells2")
+        if (stencil == "copy_umesh" || stencil == "on_cells_umesh")
             return i * j * k * 2;
         throw ERROR("unknown stencil '" + stencil + "'");
     }

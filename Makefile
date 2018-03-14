@@ -63,7 +63,7 @@ sbench_knl: $(OBJS) $(OBJS_KNL)
 	$(CXX) $(CXXFLAGS) $+ $(LIBS) $(LIBS_KNL) -o $@
 
 sbench_cuda: CXX=nvcc
-sbench_cuda: CXXFLAGS=$(NVCCFLAGS) $(CXXFLAGS_CUDA)
+sbench_cuda: CXXFLAGS=$(NVCCFLAGS) $(CXXFLAGS_CUDA) -DENABLE_GPU
 sbench_cuda: $(OBJS) $(OBJS_CUDA)
 	$(CXX) $(CXXFLAGS) $+ $(LIBS) $(LIBC_CUDA) -o $@
 
