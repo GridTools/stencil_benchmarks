@@ -25,6 +25,8 @@ namespace platform {
                     prefetch(this->src(i));
                     prefetch(this->dst(i));
                 }
+                if (cudaDeviceSynchronize() != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize");
             }
             void teardown() override {
                 Base<platform, value_type>::teardown();
