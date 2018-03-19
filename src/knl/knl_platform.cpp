@@ -32,7 +32,7 @@ namespace platform {
 
         void knl::flush_cache() {
 #ifdef KNL_CLASSIC_CFLUSHER
-            constexpr int cache_size = 32 * 1024 * 1024;
+            constexpr int cache_size = 64 * 1024 * 1024;
             constexpr int n = cache_size / sizeof(float);
             std::vector<float, flat_allocator<float>> a(n), b(n);
             volatile float *a_ptr = a.data();
@@ -46,9 +46,8 @@ namespace platform {
                 for (int i = 0; i < n; ++i) {
                     b_ptr[i] = a_ptr[offset];
                 }
-
-				__sync_synchronize();
             }
+		    __sync_synchronize();
 #else
 #pragma omp parallel
             { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }
