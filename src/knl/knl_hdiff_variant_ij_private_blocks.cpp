@@ -4,6 +4,7 @@
 namespace platform {
 
 	namespace knl {
+        using clock = std::chrono::high_resolution_clock;
 
         template <class ValueType>                                                                                            
     	void hdiff_variant_ij_private_blocks<ValueType>::prerun_init() {	
@@ -19,7 +20,7 @@ namespace platform {
         	double dx = 1. / (double)(isize);                                                                                              
         	double dy = 1. / (double)(jsize);                                                                                              
         	double dz = 1. / (double)(ksize);      
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for schedule (static) collapse(3)
             for (int jb = 0; jb < jsize; jb += m_jblocksize) {
         	    for (int k = 0; k < ksize; ++k) {
                 	for (int ib = 0; ib < isize; ib += m_iblocksize) {
@@ -77,7 +78,7 @@ namespace platform {
 				value_type *__restrict__ lap = lap_data.data() + thread_id * (m_iblocksize + 2) * (m_jblocksize + 2);
 				value_type *__restrict__ flx = flx_data.data() + thread_id * (m_iblocksize + 1) * (m_jblocksize);
 				value_type *__restrict__ fly = fly_data.data() + thread_id * (m_iblocksize) * (m_jblocksize + 1);
-#pragma omp for collapse(3)
+#pragma omp for schedule (static) collapse(3)
 				for (int jb = 0; jb < jsize; jb += m_jblocksize) {
 					for (int k = 0; k < ksize; ++k) {
 						for (int ib = 0; ib < isize; ib += m_iblocksize) {

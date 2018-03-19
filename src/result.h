@@ -17,6 +17,7 @@ class result_array {
     double min() const;
     double max() const;
     double avg() const;
+    double stdev() const;
 
     const std::string &name() const { return m_name; }
     const std::string &unit() const { return m_unit; }

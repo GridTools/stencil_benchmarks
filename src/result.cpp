@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <limits>
 #include <numeric>
+#include <cmath>
 #include <ostream>
 
 #include "result.h"
@@ -19,6 +20,14 @@ double result_array::max() const {
 }
 
 double result_array::avg() const { return std::accumulate(m_data.begin(), m_data.end(), 0.0) / m_data.size(); }
+
+double result_array::stdev() const { 
+    std::vector<double> c_data = m_data; 
+    double avg = this->avg();
+    std::for_each(c_data.begin(), c_data.end(), [avg](double& d) { d-=avg; d *= d;});
+    double stdev2 = std::accumulate(c_data.begin(), c_data.end(), 0.0) / c_data.size(); 
+    return std::sqrt(stdev2);
+}
 
 result::result(const std::string &stencil) : m_stencil(stencil) {}
 

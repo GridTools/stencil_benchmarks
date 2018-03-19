@@ -46,6 +46,7 @@ namespace platform {
                 for (int i = 0; i < n; ++i) {
                     b_ptr[i] = a_ptr[offset];
                 }
+		        __sync_synchronize();
             }
 		    __sync_synchronize();
 #else
