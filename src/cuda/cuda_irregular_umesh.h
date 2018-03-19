@@ -21,7 +21,7 @@ namespace platform {
             int kstride,
             size_t mesh_size,
             sneighbours_table table) {
-            unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned int idx = threadIdx.x + threadIdx.y * blockDim.x + blockIdx.x * blockDim.x * blockDim.y;
             if (idx < mesh_size) {
                 for (int k = 0; k < ksize; ++k) {
                     dst[idx] = src[idx];
@@ -42,24 +42,25 @@ namespace platform {
             size_t mesh_size,
             sneighbours_table table) {
 
-            const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
+            const unsigned int idx2 = threadIdx.x + threadIdx.y * blockDim.x + blockIdx.x * blockDim.x * blockDim.y;
+
             unsigned int idx = idx2;
 
             extern __shared__ size_t tab[];
-            const size_t shared_stride = blockDim.x;
+            const size_t shared_stride = blockDim.x * blockDim.y;
             const size_t stride = table.isize() * table.jsize() * num_colors(table.nloc());
 
-            tab[threadIdx.x + shared_stride * 0] = table.raw_data(idx2 + 0 * stride);
-            tab[threadIdx.x + shared_stride * 1] = table.raw_data(idx2 + 1 * stride);
-            tab[threadIdx.x + shared_stride * 2] = table.raw_data(idx2 + 2 * stride);
+            tab[threadIdx.x + threadIdx.y * blockDim.x + shared_stride * 0] = table.raw_data(idx2 + 0 * stride);
+            tab[threadIdx.x + threadIdx.y * blockDim.x + shared_stride * 1] = table.raw_data(idx2 + 1 * stride);
+            tab[threadIdx.x + threadIdx.y * blockDim.x + shared_stride * 2] = table.raw_data(idx2 + 2 * stride);
 
             __syncthreads();
 
             if (idx < mesh_size) {
                 for (int k = 0; k < ksize; ++k) {
-                    dst[idx] = src[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
-                               src[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
-                               src[k * kstride + tab[threadIdx.x + 2 * shared_stride]];
+                    dst[idx] = src[k * kstride + tab[threadIdx.x + threadIdx.y * blockDim.x + 0 * shared_stride]] +
+                               src[k * kstride + tab[threadIdx.x + threadIdx.y * blockDim.x + 1 * shared_stride]] +
+                               src[k * kstride + tab[threadIdx.x + threadIdx.y * blockDim.x + 2 * shared_stride]];
 
                     idx += kstride;
                 }
@@ -101,7 +102,7 @@ namespace platform {
             void on_cells_umesh(unsigned int t) {
                 kernel_ij_on_cells_umesh<<<blocks(location::cell),
                     blocksize(),
-                    blocksize().x * num_neighbours(location::cell, location::cell) * sizeof(size_t)>>>(
+                    blocksize().x * blocksize().y * num_neighbours(location::cell, location::cell) * sizeof(size_t)>>>(
                     this->dst_data(t),
                     this->src_data(t),
                     this->isize(),
