@@ -126,7 +126,6 @@ class elements {
           m_elements_to_vertices(primary_loc, location::vertex, isize, jsize, nhalo),
           m_indexer(primary_loc, isize, jsize, nhalo, nhalo, nhalo, nhalo) {
 #ifdef ENABLE_GPU
-std::cout << "ALL ELEM " << size_of_array(primary_loc, isize, jsize, nhalo) << std::endl;
         cudaMallocManaged(&m_idx, size_of_array(primary_loc, isize, jsize, nhalo));
 #else
         m_idx = (size_t *)malloc(size_of_array(primary_loc, isize, jsize, nhalo));

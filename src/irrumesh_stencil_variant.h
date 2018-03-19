@@ -129,8 +129,8 @@ namespace platform {
         } else if (stencil == "on_cells_umesh") {
             f = [&](int idx, int k) {
                 return (d(idx, k) ==
-                       src_data()[table(idx, 0) + k * kstride()] + src_data()[table(idx, 1) + k * kstride()] +
-                           src_data()[table(idx, 2) + k * kstride()]);
+                        src_data()[table(idx, 0) + k * kstride()] + src_data()[table(idx, 1) + k * kstride()] +
+                            src_data()[table(idx, 2) + k * kstride()]);
             };
         } else {
             throw ERROR("unknown stencil '" + stencil + "'");

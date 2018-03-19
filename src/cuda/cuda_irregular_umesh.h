@@ -87,6 +87,17 @@ namespace platform {
 
             inline ~irregular_umesh() {}
 
+            void setup() override {
+                cuda_umesh_variant<ValueType, irrumesh_stencil_variant>::setup();
+
+                sneighbours_table table = this->mesh_.get_elements(location::cell).table(location::cell);
+                if (cudaMemPrefetchAsync(table.data(), table.size_of_array(), 0) != cudaSuccess)
+                    throw ERROR("error in cudaMemPrefetchAsync");
+
+                if (cudaDeviceSynchronize() != cudaSuccess)
+                    throw ERROR("error in cudaDeviceSynchronize");
+            }
+
             void on_cells_umesh(unsigned int t) {
                 kernel_ij_on_cells_umesh<<<blocks(location::cell),
                     blocksize(),
