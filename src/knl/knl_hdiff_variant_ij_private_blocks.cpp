@@ -11,43 +11,42 @@ namespace platform {
 			variant_base::prerun();                                                                                                           
 			value_type *__restrict__ in = this->in();
 			value_type *__restrict__ coeff = this->coeff();
+			value_type *__restrict__ out = this->out();
+			constexpr int istride = 1;
+			const int jstride = this->jstride();
+			const int kstride = this->kstride();
 			const int isize = this->isize(); 
 			const int jsize = this->jsize(); 
 			const int ksize = this->ksize(); 
-			const int istride = this->istride(); 
-			const int jstride = this->jstride(); 
-			const int kstride = this->kstride(); 
+			const int h = this->halo();
         	double dx = 1. / (double)(isize);                                                                                              
         	double dy = 1. / (double)(jsize);                                                                                              
         	double dz = 1. / (double)(ksize);      
-#pragma omp parallel for schedule (static) collapse(3)
-            for (int jb = 0; jb < jsize; jb += m_jblocksize) {
-        	    for (int k = 0; k < ksize; ++k) {
-                	for (int ib = 0; ib < isize; ib += m_iblocksize) {
-                   		const int imax = ib + m_iblocksize <= isize ? ib + m_iblocksize : isize;
-                    	const int jmax = jb + m_jblocksize <= jsize ? jb + m_jblocksize : jsize;
+            int total_size = this->storage_size();
+            int zero_offset = this->zero_offset();
 
-                        int index = ib * istride + jb * jstride + k * kstride;
-                    	for (int j = jb; j < jmax; ++j) {
-                        	for (int i = ib; i < imax; ++i) {
-                            	double x = dx * (double)(i);
-                            	double y = dy * (double)(j);
-                            	double z = dz * (double)(k);
-                            	in[index] = 3.0 +
-                                        	1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
-                                    	            0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
-                                	                4.;
-                            	coeff[index] = 1.4 +
-                                        	    0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
-                                    	                1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
-                                	                    4.;
-                                index++;
-                        	}
-                            index += jstride - imax; 
-                	    }
-            	    }
-        	    }
-        	}
+
+#pragma omp parallel for 
+            for (int i = -zero_offset; i < total_size - zero_offset; ++i) {
+                int z_q = i / kstride; 
+                int z_r = i % kstride; 
+                int y_q = z_r / jstride; 
+                int y_r = z_r % jstride; 
+                int x_q = y_r; 
+                double x = dx * (double)(x_q);
+                double y = dy * (double)(y_q);
+                double z = dz * (double)(z_q);
+                in[i] = 3.0 +
+                           	1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
+                            0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
+                            4.;
+                coeff[i] = 1.4 +
+                      	    0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
+                            1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
+                            4.;
+                out[i] = 5.4;
+            
+            }
 		}
 
 		template <class ValueType>
@@ -79,8 +78,8 @@ namespace platform {
 				value_type *__restrict__ flx = flx_data.data() + thread_id * (m_iblocksize + 1) * (m_jblocksize);
 				value_type *__restrict__ fly = fly_data.data() + thread_id * (m_iblocksize) * (m_jblocksize + 1);
 #pragma omp for schedule (static) collapse(3)
-				for (int jb = 0; jb < jsize; jb += m_jblocksize) {
-					for (int k = 0; k < ksize; ++k) {
+			    for (int k = 0; k < ksize; ++k) {
+				    for (int jb = 0; jb < jsize; jb += m_jblocksize) {
 						for (int ib = 0; ib < isize; ib += m_iblocksize) {
 
 							const int i_blocksize_lap = ib + m_iblocksize <= isize + 2 ? m_iblocksize + 2 : isize + 2 - ib; //possibly optimize

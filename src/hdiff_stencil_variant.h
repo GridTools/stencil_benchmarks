@@ -80,6 +80,7 @@ namespace platform {
         return {"hdiff"};
     }
 
+    //TODO - fix this
     template <class Platform, class ValueType>
     void hdiff_stencil_variant<Platform, ValueType>::prerun_init() {
         variant_base::prerun();
@@ -117,22 +118,14 @@ namespace platform {
         double dx = 1. / (double)(isize());
         double dy = 1. / (double)(jsize());
         double dz = 1. / (double)(ksize());
-        for (int j = 0; j < isize(); j++) {
-            for (int i = 0; i < jsize(); i++) {
-                double x = dx * (double)(i);
-                double y = dy * (double)(j);
-                for (int k = 0; k < ksize(); k++) {
-                    double z = dz * (double)(k);
-                    m_out_ref[cnt] = 5.4;
-                    m_flx[cnt] = 0.0;
-                    m_fly[cnt] = 0.0;
-                    m_lap[cnt] = 0.0;
-                    m_flx_ref[cnt] = 0.0;
-                    m_fly_ref[cnt] = 0.0;
-                    m_lap_ref[cnt] = 0.0;
-                    cnt++;
-                }
-            }
+        for (int i = 0; i < total_size; ++i) {
+            m_out_ref[i] = 5.4;
+            m_flx[i] = 0.0;
+            m_fly[i] = 0.0;
+            m_lap[i] = 0.0;
+            m_flx_ref[i] = 0.0;
+            m_fly_ref[i] = 0.0;
+            m_lap_ref[i] = 0.0;
         }
     }
 
