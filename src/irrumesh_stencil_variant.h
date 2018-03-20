@@ -5,6 +5,7 @@
 #include <random>
 
 #include "data_field.h"
+#include "defs.h"
 #include "except.h"
 #include "unstructured/mesh.hpp"
 #include "variant_base.h"
@@ -25,9 +26,6 @@ namespace platform {
 
         virtual void copy_umesh(unsigned int) = 0;
         virtual void on_cells_umesh(unsigned int) = 0;
-
-        //        virtual void on_cells2_ilp(unsigned int) = 0;
-        //        virtual void on_cells2(unsigned int) = 0;
 
       protected:
         value_type *src_data(unsigned int field = 0) {
@@ -67,7 +65,7 @@ namespace platform {
     template <class Platform, class ValueType>
     irrumesh_stencil_variant<Platform, ValueType>::irrumesh_stencil_variant(const arguments_map &args)
         : variant_base(args),
-          num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
+          num_storages_per_field(std::max(1, (int)(CACHE_SIZE / (storage_size() * sizeof(value_type))))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()),
           mesh_(this->isize(), this->jsize() / 2, this->halo()) {
         initialize_fields();
@@ -110,10 +108,6 @@ namespace platform {
             return std::bind(&irrumesh_stencil_variant::copy_umesh, this, std::placeholders::_1);
         else if (stencil == "on_cells_umesh")
             return std::bind(&irrumesh_stencil_variant::on_cells_umesh, this, std::placeholders::_1);
-        //        else if (stencil == "on_cells2_ilp")
-        //            return std::bind(&irrumesh_stencil_variant::on_cells2_ilp, this, std::placeholders::_1);
-        //        else if (stencil == "on_cells2")
-        //            return std::bind(&irrumesh_stencil_variant::on_cells2, this, std::placeholders::_1);
         throw ERROR("unknown stencil '" + stencil + "'");
     }
 
@@ -140,7 +134,7 @@ namespace platform {
         const int jsize = this->jsize();
         const int ksize = this->ksize();
         bool success = true;
-        //#pragma omp parallel for collapse(3) reduction(&& : success)
+#pragma omp parallel for collapse(3) reduction(&& : success)
         for (int k = 0; k < ksize; ++k) {
             for (size_t idx = 0; idx < mesh_.compd_size(); ++idx) {
                 success = success && f(idx, k);

@@ -22,19 +22,6 @@
 #endif
 #endif
 
-// enum ustencils {
-//  ucopy_st = 0,
-//  ucopymesh_st,
-//  uoncells_st,
-//  uoncells_ilp_st,
-//  uoncellsmesh_st,
-//  uoncellsmesh_hilbert_st,
-//  complex_uoncells_st,
-//  complex_uoncellsmesh_st,
-//  complex_uoncellsmesh_hilbert_st,
-//  unum_bench_st
-//};
-
 enum class location { cell = 0, edge, vertex };
 
 GT_FUNCTION

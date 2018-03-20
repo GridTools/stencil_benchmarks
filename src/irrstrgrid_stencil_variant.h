@@ -5,6 +5,7 @@
 #include <random>
 
 #include "data_field.h"
+#include "defs.h"
 #include "except.h"
 #include "variant_base.h"
 
@@ -61,7 +62,7 @@ namespace platform {
     template <class Platform, class ValueType>
     irrstrgrid_stencil_variant<Platform, ValueType>::irrstrgrid_stencil_variant(const arguments_map &args)
         : variant_base(args),
-          num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
+          num_storages_per_field(std::max(1, (int)(CACHE_SIZE / (storage_size() * sizeof(value_type))))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
         initialize_fields();
     }

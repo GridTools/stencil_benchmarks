@@ -4,9 +4,10 @@
 #include <limits>
 #include <random>
 
+#include "data_field.h"
+#include "defs.h"
 #include "except.h"
 #include "variant_base.h"
-#include "data_field.h"
 
 namespace platform {
 
@@ -35,8 +36,12 @@ namespace platform {
         virtual void lapij(unsigned int) = 0;
 
       protected:
-        value_type *src(unsigned int field = 0) { return m_src_data.at(field%num_storages_per_field).m_data.data() + zero_offset(); }
-        value_type *dst(unsigned int field = 0) { return m_dst_data.at(field%num_storages_per_field).m_data.data() + zero_offset(); }
+        value_type *src(unsigned int field = 0) {
+            return m_src_data.at(field % num_storages_per_field).m_data.data() + zero_offset();
+        }
+        value_type *dst(unsigned int field = 0) {
+            return m_dst_data.at(field % num_storages_per_field).m_data.data() + zero_offset();
+        }
 
         std::function<void(unsigned int)> stencil_function(const std::string &stencil) override;
 
@@ -45,6 +50,7 @@ namespace platform {
         std::size_t touched_elements(const std::string &stencil) const override;
         std::size_t bytes_per_element() const override { return sizeof(value_type); }
         const unsigned int num_storages_per_field;
+
       private:
         std::vector<data_field<value_type, allocator>> m_src_data, m_dst_data;
         value_type *m_src, *m_dst;
@@ -53,7 +59,7 @@ namespace platform {
     template <class Platform, class ValueType>
     basic_stencil_variant<Platform, ValueType>::basic_stencil_variant(const arguments_map &args)
         : variant_base(args),
-          num_storages_per_field(std::max(1, (int)(6 * 1e6 / (storage_size() * sizeof(value_type))))),
+          num_storages_per_field(std::max(1, (int)(CACHE_SIZE / (storage_size() * sizeof(value_type))))),
           m_src_data(num_storages_per_field, storage_size()), m_dst_data(num_storages_per_field, storage_size()) {
 #pragma omp parallel
         {
