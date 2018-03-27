@@ -9,7 +9,7 @@ CXXFLAGS_KNL=-DPLATFORM_KNL
 LIBS_KNL=
 CXXFLAGS_CUDA=-DPLATFORM_CUDA
 LIBS_CUDA=
-CXXFLAGS_KNLCPU=-DPLATFORM_KNL -DKNL_NO_HBWMALLOC -march=armv8-a+simd -mtune=native #-mfpu=crypto-neon-fp-armv8 -mneon-for-64bits
+CXXFLAGS_KNLCPU=-DPLATFORM_KNL -DKNL_NO_HBWMALLOC -march=native -mtune=native -mcpu=native#-mfpu=crypto-neon-fp-armv8 -mneon-for-64bits
 LIBS_KNLCPU=
 
 CXXVERSION=$(shell $(CXX) --version)

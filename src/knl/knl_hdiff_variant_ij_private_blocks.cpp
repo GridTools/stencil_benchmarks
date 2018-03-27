@@ -45,7 +45,7 @@ namespace platform {
                             1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
                             4.;
                 out[i] = 5.4;
-            
+
             }
 		}
 
@@ -70,16 +70,13 @@ namespace platform {
 
 #pragma omp parallel 
 			{
-				/*std::vector<value_type> lap_data ((m_iblocksize + 2) * (m_jblocksize + 2)); 
-				std::vector<value_type> flx_data ((m_iblocksize + 1) * (m_jblocksize)); 
-				std::vector<value_type> fly_data ((m_iblocksize) * (m_jblocksize + 1)); */
 				int thread_id = omp_get_thread_num();
 				value_type *__restrict__ lap = lap_data.data() + thread_id * (m_iblocksize + 2) * (m_jblocksize + 2);
 				value_type *__restrict__ flx = flx_data.data() + thread_id * (m_iblocksize + 1) * (m_jblocksize);
 				value_type *__restrict__ fly = fly_data.data() + thread_id * (m_iblocksize) * (m_jblocksize + 1);
-#pragma omp for schedule (static) collapse(3)
-			    for (int k = 0; k < ksize; ++k) {
-				    for (int jb = 0; jb < jsize; jb += m_jblocksize) {
+#pragma omp for collapse(3)
+				for (int jb = 0; jb < jsize; jb += m_jblocksize) {
+			        for (int k = 0; k < ksize; ++k) {
 						for (int ib = 0; ib < isize; ib += m_iblocksize) {
 
 							const int i_blocksize_lap = ib + m_iblocksize <= isize + 2 ? m_iblocksize + 2 : isize + 2 - ib; //possibly optimize

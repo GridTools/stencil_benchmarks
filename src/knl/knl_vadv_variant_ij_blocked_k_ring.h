@@ -31,7 +31,6 @@ namespace platform {
             ~vadv_variant_ij_blocked_k_ring() {}
 
             void vadv() override;
-            void prerun_init() override;
 
           private:
             static constexpr value_type dtr_stage = 3.0 / 20.0;
