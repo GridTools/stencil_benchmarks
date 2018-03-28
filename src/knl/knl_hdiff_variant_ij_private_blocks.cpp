@@ -9,9 +9,11 @@ namespace platform {
         template <class ValueType>                                                                                            
     	void hdiff_variant_ij_private_blocks<ValueType>::prerun_init() {	
 			variant_base::prerun();                                                                                                           
-			value_type *__restrict__ in = this->in();
-			value_type *__restrict__ coeff = this->coeff();
-			value_type *__restrict__ out = this->out();
+            const int total_size = this->storage_size();
+            const int zero_offset = this->zero_offset();
+			value_type *__restrict__ in = this->in() - zero_offset;
+			value_type *__restrict__ coeff = this->coeff() - zero_offset;
+			value_type *__restrict__ out = this->out() - zero_offset;
 			constexpr int istride = 1;
 			const int jstride = this->jstride();
 			const int kstride = this->kstride();
@@ -19,15 +21,13 @@ namespace platform {
 			const int jsize = this->jsize(); 
 			const int ksize = this->ksize(); 
 			const int h = this->halo();
-        	double dx = 1. / (double)(isize);                                                                                              
-        	double dy = 1. / (double)(jsize);                                                                                              
-        	double dz = 1. / (double)(ksize);      
-            int total_size = this->storage_size();
-            int zero_offset = this->zero_offset();
+        	double dx = 1. / (double)(isize);
+            double dy = 1. / (double)(jsize);
+            double dz = 1. / (double)(ksize);      
 
 
 #pragma omp parallel for 
-            for (int i = -zero_offset; i < total_size - zero_offset; ++i) {
+            for (int i = 0; i < total_size; ++i) {
                 int z_q = i / kstride; 
                 int z_r = i % kstride; 
                 int y_q = z_r / jstride; 
@@ -44,8 +44,6 @@ namespace platform {
                       	    0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
                             1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
                             4.;
-                out[i] = 5.4;
-
             }
 		}
 

@@ -9,7 +9,7 @@
         const int jstride = this->jstride();                                                                 \
         const int kstride = this->kstride();                                                                 \
         value_type *__restrict__ dst = this->dst();                                                          \
-        _Pragma("omp parallel for") _Pragma("vector nontemporal") for (int i = 0; i <= last; ++i) stmt; \
+        _Pragma("omp parallel for simd") _Pragma("vector nontemporal") for (int i = 0; i <= last; ++i) stmt; \
     }
 
 namespace platform {

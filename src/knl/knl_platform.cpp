@@ -17,6 +17,7 @@
 #include "knl/knl_vadv_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_ij_blocked_colopt.h"
 #include "knl/knl_vadv_variant_ij_blocked_k.h"
+#include "knl/knl_vadv_variant_ik_blocked_j.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_ring.h"
 #include "knl/knl_vadv_variant_ij_blocked_i_vector.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_split.h"
@@ -133,6 +134,8 @@ namespace platform {
                         return new vadv_variant_ij_blocked_colopt<ValueType>(args);
                     if (var == "ij-blocked-k")
                         return new vadv_variant_ij_blocked_k<ValueType>(args);
+                    if (var == "ik-blocked-j")
+                        return new vadv_variant_ik_blocked_j<ValueType>(args);
                     if (var == "ij-blocked-k-ring")
                         return new vadv_variant_ij_blocked_k_ring<ValueType>(args);
                     if (var == "ij-blocked-k-split")
@@ -200,6 +203,9 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             vadv.command("ij-blocked-k")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            vadv.command("ik-blocked-j")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             vadv.command("ij-blocked-k-ring")

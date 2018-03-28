@@ -83,30 +83,31 @@ namespace platform {
     //TODO - fix this
     template <class Platform, class ValueType>
     void hdiff_stencil_variant<Platform, ValueType>::prerun_init() {
+        //split input-initialization and output-reseting between prerun_init and preun
+        //cos and sin functions take a long time on arm and dont need to be repeated for every run.
         variant_base::prerun();
-        int cnt = 0;
         double dx = 1. / (double)(isize());
         double dy = 1. / (double)(jsize());
         double dz = 1. / (double)(ksize());
-        for (int j = 0; j < isize(); j++) {
-            for (int i = 0; i < jsize(); i++) {
-                double x = dx * (double)(i);
-                double y = dy * (double)(j);
-                for (int k = 0; k < ksize(); k++) {
-                    double z = dz * (double)(k);
-                    // u values between 5 and 9
-                    m_in[cnt] = 3.0 +
-                                1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
-                                           0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
-                                    4.;
-                    m_coeff[cnt] = 1.4 +
-                                   0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
-                                              1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
-                                       4.;
-                    m_out[cnt] = 5.4;
-                    cnt++;
-                }
-            }
+
+        int total_size = storage_size();
+        for (int i = 0; i < total_size; ++i) {
+            int z_q = i / kstride(); 
+            int z_r = i % kstride(); 
+            int y_q = z_r / jstride(); 
+            int y_r = z_r % jstride(); 
+            int x_q = y_r; 
+            double x = dx * (double)(x_q);
+            double y = dy * (double)(y_q);
+            double z = dz * (double)(z_q);
+            m_in[i] = 3.0 +
+                   	   1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
+                       0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
+                       4.;
+            m_coeff[i] = 1.4 +
+                 	   0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
+                       1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
+                       4.;
         }
     }
 
@@ -114,11 +115,8 @@ namespace platform {
     void hdiff_stencil_variant<Platform, ValueType>::prerun() {
         variant_base::prerun();
         int total_size = storage_size();
-        int cnt = 0;
-        double dx = 1. / (double)(isize());
-        double dy = 1. / (double)(jsize());
-        double dz = 1. / (double)(ksize());
         for (int i = 0; i < total_size; ++i) {
+            m_out[i] = 5.4;
             m_out_ref[i] = 5.4;
             m_flx[i] = 0.0;
             m_fly[i] = 0.0;
