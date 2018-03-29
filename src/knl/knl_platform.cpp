@@ -32,8 +32,15 @@ namespace platform {
     namespace knl {
 
         void knl::flush_cache() {
-#ifdef KNL_CLASSIC_CFLUSHER
+#ifdef PLATFORM_KNL
+            constexpr int cache_size = 1 * 1024 * 1024;
+#elif defined(PLATFORM_TX2)
             constexpr int cache_size = 64 * 1024 * 1024;
+#else 
+            constexpr int cache_size = 32 * 1024 * 1024;
+#endif
+
+#ifdef CLASSIC_CFLUSHER
             constexpr int n = cache_size / sizeof(float);
             std::vector<float, flat_allocator<float>> a(n), b(n);
             volatile float *a_ptr = a.data();
