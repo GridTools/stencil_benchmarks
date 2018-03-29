@@ -8,20 +8,20 @@
 #include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
-#include "knl/knl_hdiff_variant_ij_private_blocks.h"
 #include "knl/knl_hdiff_variant_ij_blocked_private_halo.h"
 #include "knl/knl_hdiff_variant_ij_blocked_stacked_layout.h"
+#include "knl/knl_hdiff_variant_ij_private_blocks.h"
 #include "knl/knl_multifield_variant_1d_nontemporal.h"
 #include "knl/knl_multifield_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_2d.h"
 #include "knl/knl_vadv_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_ij_blocked_colopt.h"
-#include "knl/knl_vadv_variant_ij_blocked_k.h"
-#include "knl/knl_vadv_variant_ik_blocked_j.h"
-#include "knl/knl_vadv_variant_ij_blocked_k_ring.h"
 #include "knl/knl_vadv_variant_ij_blocked_i_vector.h"
+#include "knl/knl_vadv_variant_ij_blocked_k.h"
+#include "knl/knl_vadv_variant_ij_blocked_k_ring.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_split.h"
 #include "knl/knl_vadv_variant_ij_blocked_split.h"
+#include "knl/knl_vadv_variant_ik_blocked_j.h"
 #include "knl/knl_variant_1d.h"
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
@@ -36,7 +36,7 @@ namespace platform {
             constexpr int cache_size = 1 * 1024 * 1024;
 #elif defined(PLATFORM_TX2)
             constexpr int cache_size = 64 * 1024 * 1024;
-#else 
+#else
             constexpr int cache_size = 32 * 1024 * 1024;
 #endif
 
@@ -54,9 +54,8 @@ namespace platform {
                 for (int i = 0; i < n; ++i) {
                     b_ptr[i] = a_ptr[offset];
                 }
-		        __sync_synchronize();
+                __sync_synchronize();
             }
-		    __sync_synchronize();
 #else
 #pragma omp parallel
             { std::this_thread::sleep_for(std::chrono::duration<double>(0.02)); }

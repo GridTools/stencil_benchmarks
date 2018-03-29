@@ -19,8 +19,8 @@ ifneq (,$(findstring icpc,$(CXXVERSION)))
 	CXXFLAGS_KNL+=-xmic-avx512 -ffreestanding
 	CXXFLAGS_KNLCPU+=-ffreestanding
 else ifneq (,$(findstring g++,$(CXXVERSION)))
-	LIBS+=-lgomp 
-	CXXFLAGS+=-Wno-unknown-pragmas -Wno-unused-variable 
+	LIBS+=-lgomp
+	CXXFLAGS+=-Wno-unknown-pragmas -Wno-unused-variable
 	CXXFLAGS_KNL+=-march=knl -mtune=knl -fvect-cost-model=unlimited
 	CXXFLAGS_KNLCPU+=-fvect-cost-model=unlimited
 	CXXFLAGS_TX2+=-fvect-cost-model=unlimited -DKNL_NO_HBWMALLOC -march=native -mtune=native -mcpu=native
@@ -63,8 +63,8 @@ cuda: sbench_cuda
 .PHONY: knl-cpu
 knl-cpu: sbench_knlcpu
 
-.PHONY: knl-tx2
-knl-tx2: sbench_tx2
+.PHONY: tx2
+tx2: sbench_tx2
 
 sbench_knl: CXXFLAGS+=$(CXXFLAGS_KNL)
 sbench_knl: $(OBJS) $(OBJS_KNL)

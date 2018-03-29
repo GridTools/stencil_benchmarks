@@ -20,7 +20,6 @@ namespace platform {
 
         std::vector<std::string> stencil_list() const override;
 
-        void prerun_init() override;
         void prerun() override;
 
         virtual void hdiff() = 0;
@@ -61,9 +60,22 @@ namespace platform {
             std::minstd_rand eng;
             std::uniform_real_distribution<value_type> dist(-1, 1);
 
+            double dx = 1. / (double)(isize());
+            double dy = 1. / (double)(jsize());
+            double dz = 1. / (double)(ksize());
+
             int total_size = storage_size();
 #pragma omp for
             for (int i = 0; i < total_size; ++i) {
+                int z_q = i / kstride();
+                int z_r = i % kstride();
+                int y_q = z_r / jstride();
+                int y_r = z_r % jstride();
+                int x_q = y_r;
+                double x = dx * (double)(x_q);
+                double y = dy * (double)(y_q);
+                double z = dz * (double)(z_q);
+
                 m_lap.at(i) = dist(eng);
                 m_flx.at(i) = dist(eng);
                 m_fly.at(i) = dist(eng);
@@ -71,6 +83,14 @@ namespace platform {
                 m_flx_ref.at(i) = dist(eng);
                 m_fly_ref.at(i) = dist(eng);
                 m_lap_ref.at(i) = dist(eng);
+                m_in[i] = 3.0 +
+                          1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
+                                     0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
+                              4.;
+                m_coeff[i] =
+                    1.4 +
+                    0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) + 1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
+                        4.;
             }
         }
     }
@@ -78,37 +98,6 @@ namespace platform {
     template <class Platform, class ValueType>
     std::vector<std::string> hdiff_stencil_variant<Platform, ValueType>::stencil_list() const {
         return {"hdiff"};
-    }
-
-    //TODO - fix this
-    template <class Platform, class ValueType>
-    void hdiff_stencil_variant<Platform, ValueType>::prerun_init() {
-        //split input-initialization and output-reseting between prerun_init and preun
-        //cos and sin functions take a long time on arm and dont need to be repeated for every run.
-        variant_base::prerun();
-        double dx = 1. / (double)(isize());
-        double dy = 1. / (double)(jsize());
-        double dz = 1. / (double)(ksize());
-
-        int total_size = storage_size();
-        for (int i = 0; i < total_size; ++i) {
-            int z_q = i / kstride(); 
-            int z_r = i % kstride(); 
-            int y_q = z_r / jstride(); 
-            int y_r = z_r % jstride(); 
-            int x_q = y_r; 
-            double x = dx * (double)(x_q);
-            double y = dy * (double)(y_q);
-            double z = dz * (double)(z_q);
-            m_in[i] = 3.0 +
-                   	   1.25 * (2.5 + cos(M_PI * (18.4 * x + 20.3 * y)) +
-                       0.78 * sin(2 * M_PI * (18.4 * x + 20.3 * y) * z)) /
-                       4.;
-            m_coeff[i] = 1.4 +
-                 	   0.87 * (0.3 + cos(M_PI * (1.4 * x + 2.3 * y)) +
-                       1.11 * sin(2 * M_PI * (1.4 * x + 2.3 * y) * z)) /
-                       4.;
-        }
     }
 
     template <class Platform, class ValueType>

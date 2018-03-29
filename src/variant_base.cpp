@@ -124,8 +124,6 @@ namespace platform {
 #endif
 
             for (int i = 0; i < m_runs + dry; ++i) {
-				if (i == 0) 
-                	prerun_init();
                 prerun();
 
 #ifdef WITH_PAPI

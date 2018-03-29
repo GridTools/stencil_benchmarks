@@ -4,8 +4,6 @@
 #include "knl/knl_vadv_variant.h"
 #include "omp.h"
 
-#define eproma 64 
-
 namespace platform {
 
     namespace knl {
@@ -21,14 +19,10 @@ namespace platform {
                   m_jblocksize(args.get<int>("j-blocksize")) {
                 if (m_iblocksize <= 0 || m_jblocksize <= 0)
                     throw ERROR("invalid block size");
-				int num_threads;
-                #pragma omp parallel 
-                {
-                    num_threads = omp_get_num_threads();
-                }
-				ccol_v.resize(num_threads * eproma);	
-				dcol_v.resize(num_threads * eproma);	
-				datacol_v.resize(num_threads * eproma);	
+                int num_threads = omp_get_max_threads();
+                ccol_v.resize(num_threads * vec_size);
+                dcol_v.resize(num_threads * vec_size);
+                datacol_v.resize(num_threads * vec_size);
             }
             ~vadv_variant_ij_blocked_i_vector() {}
             std::vector<value_type> ccol_v, dcol_v, datacol_v;
@@ -40,6 +34,7 @@ namespace platform {
             static constexpr value_type beta_v = 0;
             static constexpr value_type bet_m = 0.5 * (1.0 - beta_v);
             static constexpr value_type bet_p = 0.5 * (1.0 + beta_v);
+            static constexpr int vec_size = 64; 
             int m_iblocksize, m_jblocksize;
 
             __attribute__((always_inline)) void forward_sweep_vec(const int i,
@@ -60,22 +55,25 @@ namespace platform {
                 const int ksize,
                 const int istride,
                 const int jstride,
-                const int kstride, 
-				const int vec_size) { 
+                const int kstride,
+                const int vec_size) {
 
                 int index = i * istride + j * jstride;
 
-                // k minimum
+// k minimum
 #pragma omp simd
                 for (int iv = 0; iv < vec_size; ++iv) {
-                    ValueType gcv   = ValueType(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride + iv] + wcon[index + kstride + iv]);
-                    ValueType cs    = gcv * bet_m;
+                    ValueType gcv =
+                        ValueType(0.25) *
+                        (wcon[index + ishift * istride + jshift * jstride + kstride + iv] + wcon[index + kstride + iv]);
+                    ValueType cs = gcv * bet_m;
 
                     ValueType ccol0 = gcv * bet_p;
                     ValueType bcol = dtr_stage - ccol0;
 
                     ValueType correction_term = -cs * (ustage[index + kstride + iv] - ustage[index + iv]);
-                    ValueType dcol0 = dtr_stage * upos[index + iv] + utens[index + iv] + utensstage[index + iv] + correction_term;
+                    ValueType dcol0 =
+                        dtr_stage * upos[index + iv] + utens[index + iv] + utensstage[index + iv] + correction_term;
 
                     ValueType divided = ValueType(1.0) / bcol;
                     ccol0 = ccol0 * divided;
@@ -85,44 +83,48 @@ namespace platform {
                     dcol[index + iv] = dcol0;
                     ccol_vector[iv] = ccol0;
                     dcol_vector[iv] = dcol0;
-
                 }
                 index += kstride;
 
                 // k body
                 for (int k = 1; k < ksize - 1; ++k) {
 #pragma omp simd
-                	for (int iv = 0; iv < vec_size; ++iv) {
-                    	ValueType gav = ValueType(-0.25) * (wcon[index + ishift * istride + jshift * jstride + iv] + wcon[index + iv]);
-                    	ValueType gcv = ValueType(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride +iv] + wcon[index + kstride + iv]);
+                    for (int iv = 0; iv < vec_size; ++iv) {
+                        ValueType gav = ValueType(-0.25) *
+                                        (wcon[index + ishift * istride + jshift * jstride + iv] + wcon[index + iv]);
+                        ValueType gcv =
+                            ValueType(0.25) * (wcon[index + ishift * istride + jshift * jstride + kstride + iv] +
+                                                  wcon[index + kstride + iv]);
 
-                    	ValueType as = gav * bet_m;
-                   	 	ValueType cs = gcv * bet_m;
+                        ValueType as = gav * bet_m;
+                        ValueType cs = gcv * bet_m;
 
-                    	ValueType acol = gav * bet_p;
-        	            ValueType ccol0 = gcv * bet_p;
-    	                ValueType bcol = dtr_stage - acol - ccol0;
-	
-        	            ValueType correction_term = -as * (ustage[index - kstride + iv] - ustage[index + iv]) - cs * (ustage[index + kstride + iv] - ustage[index + iv]);
-    	                ValueType dcol0 = dtr_stage * upos[index + iv] + utens[index + iv] + utensstage[index + iv] + correction_term;
-	
-    	                ValueType divided = ValueType(1.0) / (bcol - ccol_vector[iv] * acol);
-	                    ccol0 = ccol0 * divided;
-                    	dcol0 = (dcol0 - dcol_vector[iv] * acol) * divided;
+                        ValueType acol = gav * bet_p;
+                        ValueType ccol0 = gcv * bet_p;
+                        ValueType bcol = dtr_stage - acol - ccol0;
 
-                    	ccol[index + iv] = ccol0;
-                    	dcol[index + iv] = dcol0;
-                    	ccol_vector[iv] = ccol0;
-                    	dcol_vector[iv] = dcol0;
+                        ValueType correction_term = -as * (ustage[index - kstride + iv] - ustage[index + iv]) -
+                                                    cs * (ustage[index + kstride + iv] - ustage[index + iv]);
+                        ValueType dcol0 =
+                            dtr_stage * upos[index + iv] + utens[index + iv] + utensstage[index + iv] + correction_term;
 
-					}
+                        ValueType divided = ValueType(1.0) / (bcol - ccol_vector[iv] * acol);
+                        ccol0 = ccol0 * divided;
+                        dcol0 = (dcol0 - dcol_vector[iv] * acol) * divided;
+
+                        ccol[index + iv] = ccol0;
+                        dcol[index + iv] = dcol0;
+                        ccol_vector[iv] = ccol0;
+                        dcol_vector[iv] = dcol0;
+                    }
                     index += kstride;
                 }
 
-                // k maximum
+// k maximum
 #pragma omp simd
                 for (int iv = 0; iv < vec_size; ++iv) {
-                    ValueType gav = ValueType(-0.25) * (wcon[index + ishift * istride + jshift * jstride + iv] + wcon[index + iv]);
+                    ValueType gav =
+                        ValueType(-0.25) * (wcon[index + ishift * istride + jshift * jstride + iv] + wcon[index + iv]);
 
                     ValueType as = gav * bet_m;
 
@@ -130,7 +132,8 @@ namespace platform {
                     ValueType bcol = dtr_stage - acol;
 
                     ValueType correction_term = -as * (ustage[index - kstride + iv] - ustage[index + iv]);
-                    ValueType dcol0 = dtr_stage * upos[index + iv] + utens[index + iv] + utensstage[index + iv] + correction_term;
+                    ValueType dcol0 =
+                        dtr_stage * upos[index + iv] + utens[index + iv] + utensstage[index + iv] + correction_term;
 
                     ValueType divided = ValueType(1.0) / (bcol - ccol_vector[iv] * acol);
                     dcol0 = (dcol0 - dcol_vector[iv] * acol) * divided;
@@ -138,8 +141,7 @@ namespace platform {
                     ccol[index + iv] = ccol_vector[iv];
                     dcol[index + iv] = dcol0;
                 }
-			}
-
+            }
 
             __attribute__((always_inline)) inline void backward_sweep_vec(const int i,
                 const int j,
@@ -153,30 +155,29 @@ namespace platform {
                 const int ksize,
                 const int istride,
                 const int jstride,
-                const int kstride, 
-				const int vec_size) { 
+                const int kstride,
+                const int vec_size) {
                 constexpr value_type dtr_stage = 3.0 / 20.0;
 
                 int index = i * istride + j * jstride + (ksize - 1) * kstride;
-                // k
+// k
 #pragma omp simd
-                for (int iv = 0; iv < vec_size; ++iv){
+                for (int iv = 0; iv < vec_size; ++iv) {
                     datacol_vector[iv] = dcol[index + iv];
                     utensstage[index + iv] = dtr_stage * (datacol_vector[iv] - upos[index + iv]);
-
                 }
                 index -= kstride;
 
-                // k body
+// k body
 #pragma omp simd
                 for (int k = ksize - 2; k >= 0; --k) {
-                	for (int iv = 0; iv < vec_size; ++iv){
-                    	datacol_vector[iv] = dcol[index + iv] - ccol[index + iv] * datacol_vector[iv];
-                    	utensstage[index + iv] = dtr_stage * (datacol_vector[iv] - upos[index + iv]);
-					}
+                    for (int iv = 0; iv < vec_size; ++iv) {
+                        datacol_vector[iv] = dcol[index + iv] - ccol[index + iv] * datacol_vector[iv];
+                        utensstage[index + iv] = dtr_stage * (datacol_vector[iv] - upos[index + iv]);
+                    }
 
                     index -= kstride;
-				}
+                }
             }
         };
 
