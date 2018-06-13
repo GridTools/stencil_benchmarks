@@ -25,9 +25,11 @@ namespace platform {
             const int isize = this->isize();
             const int jsize = this->jsize();
             const int ksize = this->ksize();
-            const int istride = this->istride();
+            constexpr int istride = 1;
             const int jstride = this->jstride();
             const int kstride = this->kstride();
+            if (this->istride() != 1)
+                throw ERROR("this variant is only compatible with unit i-stride layout");
 
 #pragma omp parallel for collapse(2)
             for (int jb = 0; jb < jsize; jb += m_jblocksize) {
