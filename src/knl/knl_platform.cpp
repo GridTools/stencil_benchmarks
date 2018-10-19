@@ -5,6 +5,7 @@
 
 #include "knl/knl_hdiff_variant_ij_blocked_ddfused.h"
 #include "knl/knl_hdiff_variant_ij_blocked_fused.h"
+#include "knl/knl_hdiff_variant_ij_blocked_dycore.h"
 #include "knl/knl_hdiff_variant_ij_blocked_k_innermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_k_outermost.h"
 #include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
@@ -107,6 +108,8 @@ namespace platform {
                         return new hdiff_variant_ij_blocked_stacked_layout<ValueType>(args);
                     if (var == "ij-blocked-fused")
                         return new hdiff_variant_ij_blocked_fused<ValueType>(args);
+                    if (var == "ij-blocked-dycore")
+                        return new hdiff_variant_ij_blocked_dycore<ValueType>(args);
                     if (var == "ij-blocked-ddfused")
                         return new hdiff_variant_ij_blocked_ddfused<ValueType>(args);
                 }
@@ -164,6 +167,9 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ij-blocked-fused")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            hdiff.command("ij-blocked-dycore")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ij-blocked-ddfused")
