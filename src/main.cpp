@@ -67,16 +67,16 @@ void run_single_size(const arguments_map &args, std::ostream &out) {
     out << "# times are given in milliseconds, bandwidth in GB/s" << std::endl;
 
     const auto res = run_stencils(args);
-    table t(res.front().size() * 3 + 1);
+    table t(res.front().size() * 4 + 1);
     t << "stencil";
     for (auto &ri : res.front()) {
-        t << (ri.name() + "-avg") << (ri.name() + "-min") << (ri.name() + "-max");
+        t << (ri.name() + "-avg") << (ri.name() + "-min") << (ri.name() + "-max") << (ri.name() + "-stdev");
     }
 
     for (auto &r : res) {
         t << r.stencil();
         for (auto &ri : r)
-            t << ri.avg() << ri.min() << ri.max();
+            t << ri.avg() << ri.min() << ri.max() << ri.stdev();
     }
 
     out << t;

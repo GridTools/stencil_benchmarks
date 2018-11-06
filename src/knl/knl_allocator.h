@@ -20,7 +20,11 @@ namespace platform {
         class flat_allocator {
           public:
             using value_type = ValueType;
+#ifdef PLATFORM_TX2
+            static constexpr std::size_t alignment = 64 * 1024;
+#else
             static constexpr std::size_t alignment = 2048 * 1024;
+#endif
 
             template <class OtherValueType>
             struct rebind {

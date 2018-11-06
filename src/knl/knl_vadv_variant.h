@@ -109,14 +109,14 @@ namespace platform {
                 // k body
                 for (int k = ksize - 2; k >= 0; --k) {
 #ifdef __SSE__
-                    /*constexpr int prefdist = 6;
-                    if (k >= prefdist) {
-                        const int prefindex = index - prefdist * kstride;
-                        _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
-                        _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
-                        _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_NTA);
-                        _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_NTA);
-                    }*/
+/*constexpr int prefdist = 6;
+if (k >= prefdist) {
+    const int prefindex = index - prefdist * kstride;
+    _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
+    _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
+    _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_NTA);
+    _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_NTA);
+}*/
 #endif
                     datacol = dcol[index] - ccol[index] * datacol;
                     utensstage[index] = dtr_stage * (datacol - upos[index]);

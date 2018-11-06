@@ -10,15 +10,18 @@
 #include "knl/knl_hdiff_variant_ij_blocked_non_red.h"
 #include "knl/knl_hdiff_variant_ij_blocked_private_halo.h"
 #include "knl/knl_hdiff_variant_ij_blocked_stacked_layout.h"
+#include "knl/knl_hdiff_variant_ij_private_blocks.h"
 #include "knl/knl_multifield_variant_1d_nontemporal.h"
 #include "knl/knl_multifield_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_2d.h"
 #include "knl/knl_vadv_variant_ij_blocked.h"
 #include "knl/knl_vadv_variant_ij_blocked_colopt.h"
+#include "knl/knl_vadv_variant_ij_blocked_i_vector.h"
 #include "knl/knl_vadv_variant_ij_blocked_k.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_ring.h"
 #include "knl/knl_vadv_variant_ij_blocked_k_split.h"
 #include "knl/knl_vadv_variant_ij_blocked_split.h"
+#include "knl/knl_vadv_variant_ik_blocked_j.h"
 #include "knl/knl_variant_1d.h"
 #include "knl/knl_variant_1d_nontemporal.h"
 #include "knl/knl_variant_ij_blocked.h"
@@ -29,8 +32,15 @@ namespace platform {
     namespace knl {
 
         void knl::flush_cache() {
-#ifdef KNL_CLASSIC_CFLUSHER
+#ifdef PLATFORM_KNL
             constexpr int cache_size = 1 * 1024 * 1024;
+#elif defined(PLATFORM_TX2)
+            constexpr int cache_size = 64 * 1024 * 1024;
+#else
+            constexpr int cache_size = 32 * 1024 * 1024;
+#endif
+
+#ifdef CLASSIC_CFLUSHER
             constexpr int n = cache_size / sizeof(float);
             std::vector<float, flat_allocator<float>> a(n), b(n);
             volatile float *a_ptr = a.data();
@@ -44,8 +54,7 @@ namespace platform {
                 for (int i = 0; i < n; ++i) {
                     b_ptr[i] = a_ptr[offset];
                 }
-
-                _mm_mfence();
+                __sync_synchronize();
             }
 #else
 #pragma omp parallel
@@ -99,6 +108,8 @@ namespace platform {
                         return new hdiff_variant_ij_blocked_k_innermost<ValueType>(args);
                     if (var == "ij-blocked-k-outermost")
                         return new hdiff_variant_ij_blocked_k_outermost<ValueType>(args);
+                    if (var == "ij-private-blocks")
+                        return new hdiff_variant_ij_private_blocks<ValueType>(args);
                     if (var == "ij-blocked-non-red")
                         return new hdiff_variant_ij_blocked_non_red<ValueType>(args);
                     if (var == "ij-blocked-private-halo")
@@ -121,12 +132,16 @@ namespace platform {
                         return new vadv_variant_2d<ValueType>(args);
                     if (var == "ij-blocked")
                         return new vadv_variant_ij_blocked<ValueType>(args);
+                    if (var == "ij-blocked-i-vector")
+                        return new vadv_variant_ij_blocked_i_vector<ValueType>(args);
                     if (var == "ij-blocked-split")
                         return new vadv_variant_ij_blocked_split<ValueType>(args);
                     if (var == "ij-blocked-colopt")
                         return new vadv_variant_ij_blocked_colopt<ValueType>(args);
                     if (var == "ij-blocked-k")
                         return new vadv_variant_ij_blocked_k<ValueType>(args);
+                    if (var == "ik-blocked-j")
+                        return new vadv_variant_ik_blocked_j<ValueType>(args);
                     if (var == "ij-blocked-k-ring")
                         return new vadv_variant_ij_blocked_k_ring<ValueType>(args);
                     if (var == "ij-blocked-k-split")
@@ -152,6 +167,9 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ij-blocked-k-outermost")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            hdiff.command("ij-private-blocks")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             hdiff.command("ij-blocked-non-red")
@@ -181,6 +199,9 @@ namespace platform {
             vadv.command("ij-blocked")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
+            vadv.command("ij-blocked-i-vector")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
             vadv.command("ij-blocked-split")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
@@ -188,6 +209,9 @@ namespace platform {
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             vadv.command("ij-blocked-k")
+                .add("i-blocksize", "block size in i-direction", "32")
+                .add("j-blocksize", "block size in j-direction", "8");
+            vadv.command("ik-blocked-j")
                 .add("i-blocksize", "block size in i-direction", "32")
                 .add("j-blocksize", "block size in j-direction", "8");
             vadv.command("ij-blocked-k-ring")

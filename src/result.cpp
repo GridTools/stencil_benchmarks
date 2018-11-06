@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <numeric>
 #include <ostream>
@@ -19,6 +20,14 @@ double result_array::max() const {
 }
 
 double result_array::avg() const { return std::accumulate(m_data.begin(), m_data.end(), 0.0) / m_data.size(); }
+
+double result_array::stdev() const {
+    double mean = avg();
+    double sum = 0;
+    for (double d : m_data)
+        sum += (d - mean) * (d - mean);
+    return std::sqrt(sum / m_data.size());
+}
 
 result::result(const std::string &stencil) : m_stencil(stencil) {}
 
