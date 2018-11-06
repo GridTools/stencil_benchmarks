@@ -22,6 +22,7 @@ namespace platform {
         std::vector<std::string> stencil_list() const override;
 
         void prerun() override;
+        void prerun_init() override;
 
         virtual void vadv() = 0;
 
@@ -68,7 +69,10 @@ namespace platform {
           m_vtensstage(storage_size()), m_wstage(storage_size()), m_wpos(storage_size()), m_wtens(storage_size()),
           m_wtensstage(storage_size()), m_ccol(storage_size()), m_dcol(storage_size()), m_wcon(storage_size()),
           m_datacol(storage_size()), m_utensstage_ref(storage_size()), m_vtensstage_ref(storage_size()),
-          m_wtensstage_ref(storage_size()) {
+          m_wtensstage_ref(storage_size()) {}
+
+    template <class Platform, class ValueType>
+    void vadv_stencil_variant<Platform, ValueType>::prerun_init() {
 
         const int isize = this->isize();
         const int jsize = this->jsize();

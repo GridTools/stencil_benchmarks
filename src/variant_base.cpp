@@ -123,6 +123,7 @@ namespace platform {
             res.add_data("counter-imbalance", "-");
 #endif
 
+            prerun_init();
             for (int i = 0; i < m_runs + dry; ++i) {
                 prerun();
 
