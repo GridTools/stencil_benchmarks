@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+import importlib
+
+import click
+
+
+@click.group()
+@click.argument('benchmark-group')
+def cli(benchmark_group):
+    pass
+
+if __name__ == '__main__':
+    cli()
