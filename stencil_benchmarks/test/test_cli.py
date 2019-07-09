@@ -7,7 +7,7 @@ class TestMain(unittest.TestCase):
     def test_basic(self):
         main = cli.main()
         main(args=[
-            '--executions', '10', 'stencils', 'copy', 'numpy', 'numpy',
-            '--runs', '10', '--domain', '1000', '1000', '80'
+            '--executions', '10', 'stencils', 'numpy', 'copy', '--runs', '10',
+            '--domain', '10', '10', '10'
         ],
              standalone_mode=False)

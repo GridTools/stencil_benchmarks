@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 
-import importlib
+import stencil_benchmarks.benchmarks_collection
+import stencil_benchmarks.cli
 
-import click
-
-
-@click.group()
-@click.argument('benchmark-group')
-def cli(benchmark_group):
-    pass
+MAIN = stencil_benchmarks.cli.main()
 
 if __name__ == '__main__':
-    cli()
+    MAIN()

@@ -1,7 +1,7 @@
 import abc
 import inspect
 
-# pylint: disable=arguments-differ
+# pylint: disable=arguments-differ,access-member-before-definition
 
 REGISTRY = set()
 
@@ -31,6 +31,13 @@ class Parameter:
                 raise ValueError('Wrong type')
         return value
 
+    def __repr__(self):
+        return (f'{type(self).__name__}('
+                f'description={self.description!r}, '
+                f'dtype={self.dtype!r}, '
+                f'nargs={self.nargs!r}, '
+                f'default={self.default!r})')
+
     def __eq__(self, other):
         return (self.description == other.description
                 and self.dtype == other.dtype and self.nargs == other.nargs)
@@ -43,41 +50,18 @@ class BenchmarkMeta(abc.ABCMeta):
                 'Benchmark classes must not define an attribute `parameters`')
 
         parameters = dict()
+
+        for base in bases:
+            if hasattr(base, 'parameters'):
+                parameters.update(base.parameters)
+
         transformed_attr_dict = dict()
-        original_init = None
         for attr_name, attr_value in namespace.items():
             if isinstance(attr_value, Parameter):
                 parameters[attr_name] = attr_value
-            elif attr_name == '__init__':
-                original_init = attr_value
             else:
                 transformed_attr_dict[attr_name] = attr_value
 
-        if original_init is not None:
-            if len(inspect.signature(original_init).parameters) != 1:
-                raise ValueError(
-                    '__init__ method must take only one argument (self)')
-
-        def __init__(self, **kwargs):
-            if parameters.keys() != kwargs.keys():
-                required = set(parameters.keys())
-                provided = set(kwargs.keys())
-
-                if required - provided:
-                    missing = ', '.join(f'“{arg}”'
-                                        for arg in required - provided)
-                    raise ValueError(
-                        f'Missig values for required arguments {missing}')
-
-                unexpected = ', '.join(f'“{arg}”'
-                                       for arg in provided - required)
-                raise ValueError(f'Unexpected arguments {unexpected}')
-            for arg, value in kwargs.items():
-                setattr(self, arg, parameters[arg].validate(value))
-            if original_init is not None:
-                original_init(self)
-
-        transformed_attr_dict['__init__'] = __init__
         transformed_attr_dict['parameters'] = parameters
         benchmark = super().__new__(cls, name, bases, transformed_attr_dict)
         if not inspect.isabstract(benchmark):
@@ -86,6 +70,33 @@ class BenchmarkMeta(abc.ABCMeta):
 
 
 class Benchmark(metaclass=BenchmarkMeta):
+    def __init__(self, **kwargs):
+        missing_args = set(self.parameters) - set(kwargs)
+        if missing_args:
+            raise ValueError('Missing values for arguments ' +
+                             ', '.join(f'"{arg}"' for arg in missing_args))
+
+        unsupported_args = set(kwargs) - set(self.parameters)
+        if unsupported_args:
+            raise ValueError('Unsupported arguments ' +
+                             ', '.join(f'"{arg}"' for arg in unsupported_args))
+
+        self.parameters = {
+            arg: param.validate(kwargs[arg])
+            for arg, param in self.parameters.items()
+        }
+        for arg, value in self.parameters.items():
+            setattr(self, arg, value)
+        self.setup()
+
+    def setup(self):
+        """Set up the benchmark before running."""
+
     @abc.abstractmethod
     def run(self):
         """Run the benchmark and return time."""
+
+    def __repr__(self):
+        return f'{type(self).__name__}(' + ', '.join(
+            f'{param}={value!r}'
+            for param, value in self.parameters.items()) + ')'

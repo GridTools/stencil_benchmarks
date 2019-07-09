@@ -1,3 +1,3 @@
-from . import copy
+from . import numpy
 
-__all__ = ['copy']
+__all__ = ['numpy']
