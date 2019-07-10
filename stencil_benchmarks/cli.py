@@ -11,7 +11,7 @@ from . import benchmark
 
 def _cli_command(bmark):
     command_path = bmark.__module__.split('.')[2:]
-    command_name = re.sub('(?!^)([A-Z]+)', r'-\1', bmark.__name__).lower()
+    command_name = re.sub('(?!^)([A-Z1-9]+)', r'-\1', bmark.__name__).lower()
     return command_path + [command_name]
 
 
