@@ -1,0 +1,14 @@
+#include <cstddef>
+#include <cstdint>
+
+extern "C" void kernel(const {{ ctype }} * __restrict__ inp,
+                       {{ ctype }} * __restrict__ out) {
+  constexpr std::ptrdiff_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
+                                  {{ strides[1] }} * ({{ domain[1] }} - 1) +
+                                  {{ strides[2] }} * ({{ domain[2] }} - 1);
+
+#pragma omp parallel for simd
+  for (std::ptrdiff_t index = 0; index <= last; ++index) {
+    {{ body }}
+  }
+}

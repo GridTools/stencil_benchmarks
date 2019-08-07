@@ -24,14 +24,13 @@ def version():
     raise RuntimeError('Unable to find version string')
 
 
-setuptools.setup(
-    name='stencil_benchmarks',
-    version=version(),
-    author='Felix Thaler',
-    author_email='thaler@cscs.ch',
-    description='Stencil code benchmarks.',
-    long_description=long_description(),
-    long_description_content_type='text/markdown',
-    packages=setuptools.find_packages(),
-    install_requires=['click', 'numpy']
-)
+setuptools.setup(name='stencil_benchmarks',
+                 version=version(),
+                 author='Felix Thaler',
+                 author_email='thaler@cscs.ch',
+                 description='Stencil code benchmarks.',
+                 long_description=long_description(),
+                 long_description_content_type='text/markdown',
+                 packages=setuptools.find_packages(),
+                 scripts=['bin/sbench'],
+                 install_requires=['click', 'numba', 'numpy', 'pandas'])

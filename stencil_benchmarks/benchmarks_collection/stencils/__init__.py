@@ -1,3 +1,3 @@
-from . import numpy
+from . import numba_cpu, numpy, openmp
 
-__all__ = ['numpy']
+__all__ = ['numba_cpu', 'numpy', 'openmp']

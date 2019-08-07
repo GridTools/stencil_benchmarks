@@ -39,12 +39,18 @@ def _cli_func(bmark):
 
     func = run_bmark
     for name, param in bmark.parameters.items():
-        option = click.option('--' + name.replace('_', '-'),
-                              type=param.dtype,
-                              nargs=param.nargs,
-                              help=param.description,
-                              required=param.default is None,
-                              default=param.default)
+        name = '--' + name.replace('_', '-')
+        if param.dtype is bool:
+            option = click.option(name + '/' + name.replace('--', '--no-'),
+                                  default=param.default,
+                                  help=param.description)
+        else:
+            option = click.option(name,
+                                  type=param.dtype,
+                                  nargs=param.nargs,
+                                  help=param.description,
+                                  required=param.default is None,
+                                  default=param.default)
         func = option(func)
     return func
 
@@ -73,7 +79,7 @@ def _build(commands):
         for subcommand, subcommand_subcommands in subcommands.items():
             if isinstance(subcommand_subcommands, dict):
                 build_click_hierarchy(
-                    group.group(name=subcommand)(empty),
+                    group.group(name=subcommand.replace('_', '-'))(empty),
                     subcommand_subcommands)
             else:
                 group.command(name=subcommand)(subcommand_subcommands)
@@ -83,11 +89,30 @@ def _build(commands):
     return main_group
 
 
+def _get_all_commands(name, command):
+    if isinstance(command, click.core.Group):
+        commands = []
+        for subname, subcommand in command.commands.items():
+            commands += _get_all_commands(name + ' ' + subname, subcommand)
+        return commands
+
+    else:
+        return [(name, command)]
+
+
 def main():
     commands = [(_cli_command(bmark), _cli_func(bmark))
                 for bmark in benchmark.REGISTRY]
-
     main_group = _build(commands)
+
+    subcommands = _get_all_commands('', main_group)
+
+    @main_group.command()
+    @click.pass_context
+    def run_all(ctx):
+        for subname, subcommand in subcommands:
+            print(f'---{subname}:')
+            ctx.invoke(subcommand)
 
     def func(*args, **kwargs):
         return main_group(*args, **kwargs, obj=types.SimpleNamespace())
