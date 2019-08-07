@@ -107,6 +107,8 @@ def main():
 
     subcommands = _get_all_commands('', main_group)
 
+    # pylint: disable=unused-variable
+
     @main_group.command()
     @click.pass_context
     def run_all(ctx):
