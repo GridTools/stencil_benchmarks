@@ -6,8 +6,8 @@ from stencil_benchmarks import benchmark
 
 
 class SomeBenchmark(benchmark.Benchmark):
-    parameter1 = benchmark.Parameter('some parameter', bool, False)
-    parameter2 = benchmark.Parameter('some other parameter', int, 1)
+    parameter1 = benchmark.Parameter('some parameter', False)
+    parameter2 = benchmark.Parameter('some other parameter', 1)
 
     def setup(self):
         self.somevalue = self.parameter2 // 2
@@ -17,7 +17,7 @@ class SomeBenchmark(benchmark.Benchmark):
 
 
 class DerivedBenchmark(SomeBenchmark):
-    parameter3 = benchmark.Parameter('third parameter', str, '0')
+    parameter3 = benchmark.Parameter('third parameter', '0')
 
     def setup(self):
         super().setup()
@@ -33,23 +33,19 @@ class BenchmarkTest(unittest.TestCase):
         self.assertIn(DerivedBenchmark, benchmark.REGISTRY)
 
     def test_params(self):
-        self.assertEqual(
-            SomeBenchmark.parameters, {
-                'parameter1': benchmark.Parameter('some parameter', bool,
-                                                  False),
-                'parameter2': benchmark.Parameter('some other parameter', int,
-                                                  1)
-            })
+        expected = {
+            'parameter1': benchmark.Parameter('some parameter', False),
+            'parameter2': benchmark.Parameter('some other parameter', 1)
+        }
+        self.assertEqual(SomeBenchmark.parameters, expected)
 
     def test_derived_params(self):
-        self.assertEqual(
-            DerivedBenchmark.parameters, {
-                'parameter1': benchmark.Parameter('some parameter', bool,
-                                                  False),
-                'parameter2': benchmark.Parameter('some other parameter', int,
-                                                  1),
-                'parameter3': benchmark.Parameter('third parameter', str, '0')
-            })
+        expected = {
+            'parameter1': benchmark.Parameter('some parameter', False, bool),
+            'parameter2': benchmark.Parameter('some other parameter', 1, int),
+            'parameter3': benchmark.Parameter('third parameter', '0', str)
+        }
+        self.assertEqual(DerivedBenchmark.parameters, expected)
 
     def test_init(self):
         bmark = SomeBenchmark(parameter1=True, parameter2=42)

@@ -11,14 +11,10 @@ from ....tools import cpphelpers, compilation, template
 
 
 class StencilMixin(benchmark.Benchmark):
-    compiler = benchmark.Parameter('compiler path', str, default='g++')
+    compiler = benchmark.Parameter('compiler path', 'g++')
     compiler_flags = benchmark.Parameter(
-        'compiler flags',
-        str,
-        default='-xc++ -Ofast -fopenmp -Wall -march=native')
-    print_code = benchmark.Parameter('print generated code',
-                                     bool,
-                                     default=False)
+        'compiler flags', '-xc++ -Ofast -fopenmp -Wall -march=native')
+    print_code = benchmark.Parameter('print generated code', False)
 
     def setup(self):
         super().setup()
@@ -63,11 +59,8 @@ class StencilMixin(benchmark.Benchmark):
 
 
 class BasicStencilMixin(StencilMixin):
-    loop = benchmark.Parameter('loop kind', str, default='1d')
-    block_size = benchmark.Parameter('block_size',
-                                     int,
-                                     nargs=3,
-                                     default=(1, 1, 1))
+    loop = benchmark.Parameter('loop kind', '1d')
+    block_size = benchmark.Parameter('block_size', (1, 1, 1))
 
     def generate_code(self):
         template_file = os.path.join(

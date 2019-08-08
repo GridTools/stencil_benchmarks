@@ -10,14 +10,14 @@ from ...tools import validation
 
 
 class Stencil(Benchmark):
-    domain = Parameter('domain size', int, (128, 128, 80), nargs=3)
-    runs = Parameter('number of runs', int, 1)
-    data_sets = Parameter('number of data sets', int, 1)
-    halo = Parameter('halo size along horizontal dimensions', int, 3)
-    dtype = Parameter('data type', str, 'float64')
-    layout = Parameter('data layout', int, (2, 1, 0), nargs=3)
-    alignment = Parameter('data alignment (in bytes)', int, 0)
-    verify = Parameter('enable verification', bool, True)
+    domain = Parameter('domain size', (128, 128, 80))
+    runs = Parameter('number of runs', 1)
+    data_sets = Parameter('number of data sets', 1)
+    halo = Parameter('halo size along horizontal dimensions', 3)
+    dtype = Parameter('data type', 'float64')
+    layout = Parameter('data layout', (2, 1, 0))
+    alignment = Parameter('data alignment (in bytes)', 0)
+    verify = Parameter('enable verification', True)
 
     def setup(self):
         super().setup()
@@ -96,7 +96,7 @@ class CopyStencil(BasicStencil):
 
 
 class OnesidedAverageStencil(BasicStencil):
-    axis = Parameter('axis along which to average', int, default=0)
+    axis = Parameter('axis along which to average', 0)
 
     def setup(self):
         super().setup()
@@ -113,7 +113,7 @@ class OnesidedAverageStencil(BasicStencil):
 
 
 class SymmetricAverageStencil(BasicStencil):
-    axis = Parameter('axis along which to average', int, default=0)
+    axis = Parameter('axis along which to average', 0)
 
     def setup(self):
         super().setup()
@@ -130,9 +130,9 @@ class SymmetricAverageStencil(BasicStencil):
 
 
 class LaplacianStencil(BasicStencil):
-    along_x = Parameter('include x-axis in Laplacian', bool, default=True)
-    along_y = Parameter('include y-axis in Laplacian', bool, default=True)
-    along_z = Parameter('include z-axis in Laplacian', bool, default=False)
+    along_x = Parameter('include x-axis in Laplacian', True)
+    along_y = Parameter('include y-axis in Laplacian', True)
+    along_z = Parameter('include z-axis in Laplacian', False)
 
     def setup(self):
         super().setup()

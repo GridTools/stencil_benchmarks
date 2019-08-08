@@ -11,11 +11,38 @@ class ValidationError(ValueError):
 
 
 class Parameter:
-    def __init__(self, description, dtype, default=None, nargs=1):
+    def __init__(self, description, default=None, dtype=None, nargs=None):
+        if default is None:
+            if dtype is None or nargs is None:
+                raise ValueError(
+                    'dtype and nargs must be given if default is None')
+        else:
+            if isinstance(default, (tuple, list)):
+                if not default:
+                    raise ValueError('can not use empty tuple as default')
+                default_dtypes = set(type(d) for d in default)
+                if len(default_dtypes) > 1:
+                    raise ValueError('different types in default tuple')
+                expected_dtype = next(iter(default_dtypes))
+                expected_nargs = len(default)
+            else:
+                expected_dtype = type(default)
+                expected_nargs = 1
+
+            if dtype is None:
+                dtype = expected_dtype
+            elif dtype is not expected_dtype:
+                raise ValueError('iconsistent default and dtype values')
+
+            if nargs is None:
+                nargs = expected_nargs
+            elif nargs != expected_nargs:
+                raise ValueError('inconsistent default and nargs values')
+
         self.description = description
+        self.default = default
         self.dtype = dtype
         self.nargs = nargs
-        self.default = default
 
     def validate(self, value):
         if value is None:
@@ -44,7 +71,7 @@ class Parameter:
 
     def __eq__(self, other):
         return (self.description == other.description
-                and self.dtype == other.dtype and self.nargs == other.nargs
+                and self.dtype is other.dtype and self.nargs == other.nargs
                 and self.default == other.default)
 
 
