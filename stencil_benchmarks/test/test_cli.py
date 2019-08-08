@@ -11,7 +11,3 @@ class TestMain(unittest.TestCase):
             '--domain', '10', '10', '10'
         ],
              standalone_mode=False)
-
-    def test_run_all(self):
-        main = cli.main()
-        main(args=['run-all'], standalone_mode=False)

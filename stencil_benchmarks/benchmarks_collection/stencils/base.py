@@ -10,18 +10,24 @@ from ...tools import validation
 
 
 class Stencil(Benchmark):
-    domain = Parameter('domain size', int, nargs=3, default=(128, 128, 80))
-    runs = Parameter('number of runs', int, default=1)
-    data_sets = Parameter('number of data sets', int, default=1)
-    halo = Parameter('halo size along horizontal dimensions', int, default=3)
-    dtype = Parameter('data type', str, default='float64')
-    verify = Parameter('enable verification', bool, default=True)
+    domain = Parameter('domain size', int, (128, 128, 80), nargs=3)
+    runs = Parameter('number of runs', int, 1)
+    data_sets = Parameter('number of data sets', int, 1)
+    halo = Parameter('halo size along horizontal dimensions', int, 3)
+    dtype = Parameter('data type', str, 'float64')
+    layout = Parameter('data layout', int, (2, 1, 0), nargs=3)
+    alignment = Parameter('data alignment (in bytes)', int, 0)
+    verify = Parameter('enable verification', bool, True)
 
     def setup(self):
         super().setup()
         self.dtype = np.dtype(self.dtype)
+        if tuple(sorted(self.layout)) != (0, 1, 2):
+            raise ValueError('invalid layout specification')
+        if self.alignment % self.dtype.itemsize != 0:
+            raise ValueError('alignment not divisible by dtype itemsize')
 
-    def _random_field(self):
+    def random_field(self):
         return np.random.uniform(-100, 100,
                                  size=self.domain_with_halo).astype(self.dtype)
 
@@ -29,12 +35,16 @@ class Stencil(Benchmark):
     def domain_with_halo(self):
         return tuple(np.array(self.domain) + 2 * self.halo)
 
-    def inner_slice(self, shift=None):
+    def inner_slice(self, shift=None, expand=None):
         if shift is None:
             shift = [0] * len(self.domain)
+        if expand is None:
+            expand = [0] * len(self.domain)
+        elif isinstance(expand, int):
+            expand = [expand] * len(self.domain)
         return tuple(
-            slice(self.halo + s, self.halo + d + s)
-            for d, s in zip(self.domain, shift))
+            slice(self.halo + s - e, self.halo + d + s + e)
+            for d, s, e in zip(self.domain, shift, expand))
 
     @abc.abstractmethod
     def run_stencil(self, data_set):
@@ -70,7 +80,7 @@ class BasicStencil(Stencil):
     def setup(self):
         super().setup()
 
-        self.inouts = [(self._random_field(), self._random_field())
+        self.inouts = [(self.random_field(), self.random_field())
                        for _ in range(self.data_sets)]
 
     @property
@@ -141,3 +151,40 @@ class LaplacianStencil(BasicStencil):
                            inp[self.inner_slice(shift)] -
                            inp[self.inner_slice(-shift)])
         validation.check_equality(out[self.inner_slice()], result)
+
+
+class HorizontalDiffusionStencil(Stencil):
+    def setup(self):
+        super().setup()
+
+        if self.halo < 2:
+            raise ValueError('halo size must be at least 2')
+
+        self.inouts = [(self.random_field(), self.random_field(),
+                        self.random_field()) for _ in range(self.data_sets)]
+
+    @property
+    def data_size(self):
+        return 3 * np.product(self.domain) * self.dtype.itemsize
+
+    def verify_stencil(self, data_set):
+        inp, coeff, out = self.inouts[data_set]
+
+        lap = 4 * inp[1:-1, 1:-1, :] - (inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] +
+                                        inp[1:-1, 2:, :] + inp[1:-1, :-2, :])
+
+        flx = lap[1:, :-1, :] - lap[:-1, :-1, :]
+        flx = np.where(flx * (inp[2:-1, 1:-2, :] - inp[1:-2, 1:-2, :]) > 0, 0,
+                       flx)
+
+        fly = lap[:-1, 1:, :] - lap[:-1, :-1, :]
+        fly = np.where(fly * (inp[1:-2, 2:-1, :] - inp[1:-2, 1:-2, :]) > 0, 0,
+                       fly)
+
+        result = np.empty_like(out)
+        result[2:-2, 2:-2, :] = inp[2:-2, 2:-2, :] - coeff[2:-2, 2:-2, :] * (
+            flx[1:, 1:, :] - flx[:-1, 1:, :] + fly[1:, 1:, :] -
+            fly[1:, :-1, :])
+
+        validation.check_equality(out[self.inner_slice()],
+                                  result[self.inner_slice()])

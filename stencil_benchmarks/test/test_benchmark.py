@@ -6,8 +6,8 @@ from stencil_benchmarks import benchmark
 
 
 class SomeBenchmark(benchmark.Benchmark):
-    parameter1 = benchmark.Parameter('some parameter', bool)
-    parameter2 = benchmark.Parameter('some other parameter', int)
+    parameter1 = benchmark.Parameter('some parameter', bool, False)
+    parameter2 = benchmark.Parameter('some other parameter', int, 1)
 
     def setup(self):
         self.somevalue = self.parameter2 // 2
@@ -17,7 +17,7 @@ class SomeBenchmark(benchmark.Benchmark):
 
 
 class DerivedBenchmark(SomeBenchmark):
-    parameter3 = benchmark.Parameter('third parameter', str)
+    parameter3 = benchmark.Parameter('third parameter', str, '0')
 
     def setup(self):
         super().setup()
@@ -35,16 +35,20 @@ class BenchmarkTest(unittest.TestCase):
     def test_params(self):
         self.assertEqual(
             SomeBenchmark.parameters, {
-                'parameter1': benchmark.Parameter('some parameter', bool),
-                'parameter2': benchmark.Parameter('some other parameter', int)
+                'parameter1': benchmark.Parameter('some parameter', bool,
+                                                  False),
+                'parameter2': benchmark.Parameter('some other parameter', int,
+                                                  1)
             })
 
     def test_derived_params(self):
         self.assertEqual(
             DerivedBenchmark.parameters, {
-                'parameter1': benchmark.Parameter('some parameter', bool),
-                'parameter2': benchmark.Parameter('some other parameter', int),
-                'parameter3': benchmark.Parameter('third parameter', str)
+                'parameter1': benchmark.Parameter('some parameter', bool,
+                                                  False),
+                'parameter2': benchmark.Parameter('some other parameter', int,
+                                                  1),
+                'parameter3': benchmark.Parameter('third parameter', str, '0')
             })
 
     def test_init(self):

@@ -1,9 +1,11 @@
-#include <cstddef>
+#include <algorithm>
 #include <cstdint>
 
-extern "C" void kernel(const {{ ctype }} * __restrict__ inp,
-                       {{ ctype }} * __restrict__ out) {
-
+extern "C" void kernel(
+  {% for arg in args %}
+    {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+  {% endfor %}
+) {
 #pragma omp parallel for simd collapse(3)
   for (std::ptrdiff_t i = 0; i < {{ domain[0] }}; ++i) {
     for (std::ptrdiff_t j = 0; j < {{ domain[1] }}; ++j) {

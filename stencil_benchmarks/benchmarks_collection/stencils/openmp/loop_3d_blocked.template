@@ -1,0 +1,44 @@
+#include <algorithm>
+#include <cstdint>
+
+extern "C" void kernel(
+  {%- for arg in args %}
+    {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+  {%- endfor %}
+) {
+#pragma omp parallel for collapse(3)
+  for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+    for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+      for (std::ptrdiff_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
+        {%- if block_size[0] > 1 %}
+          const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+          for (std::ptrdiff_t i = ib; i < imax; ++i) {
+        {%- else %}
+          const std::ptrdiff_t i = ib;
+          {
+        {%- endif %}
+            {%- if block_size[1] > 1 %}
+              const std::ptrdiff_t jmax = std::min((std::ptrdiff_t){{ domain[1] }}, jb + {{ block_size[1] }});
+              for (std::ptrdiff_t j = jb; j < jmax; ++j) {
+            {%- else %}
+              const std::ptrdiff_t j = jb;
+              {
+            {%- endif %}
+                {%- if block_size[2] > 1 %}
+                  const std::ptrdiff_t kmax = std::min((std::ptrdiff_t){{ domain[2] }}, kb + {{ block_size[2] }});
+                  #pragma omp simd
+                  for (std::ptrdiff_t k = kb; k < kmax; ++k) {
+                {%- else %}
+                  const std::ptrdiff_t k = kb;
+                  {
+                {%- endif %}
+                    std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+
+                    {{ body }}
+                  }
+              }
+          }
+      }
+    }
+  }
+}

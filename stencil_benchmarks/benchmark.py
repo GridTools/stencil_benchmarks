@@ -6,8 +6,12 @@ import inspect
 REGISTRY = set()
 
 
+class ValidationError(ValueError):
+    pass
+
+
 class Parameter:
-    def __init__(self, description, dtype, nargs=1, default=None):
+    def __init__(self, description, dtype, default=None, nargs=1):
         self.description = description
         self.dtype = dtype
         self.nargs = nargs
@@ -16,19 +20,19 @@ class Parameter:
     def validate(self, value):
         if value is None:
             if self.default is None:
-                raise ValueError('Value is required')
+                raise ValidationError('value is required')
             return self.default
 
         if self.nargs == 1:
             if not isinstance(value, self.dtype):
-                raise ValueError('Wrong type')
+                raise ValidationError('wrong type')
             return value
 
         if len(value) != self.nargs:
-            raise ValueError('Wrong number of arguments')
+            raise ValidationError('wrong number of arguments')
         for val in value:
             if not isinstance(val, self.dtype):
-                raise ValueError('Wrong type')
+                raise ValidationError('wrong type')
         return value
 
     def __repr__(self):
@@ -40,7 +44,8 @@ class Parameter:
 
     def __eq__(self, other):
         return (self.description == other.description
-                and self.dtype == other.dtype and self.nargs == other.nargs)
+                and self.dtype == other.dtype and self.nargs == other.nargs
+                and self.default == other.default)
 
 
 class BenchmarkMeta(abc.ABCMeta):
@@ -71,31 +76,31 @@ class BenchmarkMeta(abc.ABCMeta):
 
 class Benchmark(metaclass=BenchmarkMeta):
     def __init__(self, **kwargs):
-        missing_args = set(self.parameters) - set(kwargs)
-        if missing_args:
-            raise ValueError('Missing values for arguments ' +
-                             ', '.join(f'"{arg}"' for arg in missing_args))
-
         unsupported_args = set(kwargs) - set(self.parameters)
         if unsupported_args:
-            raise ValueError('Unsupported arguments ' +
+            raise ValueError('unsupported arguments ' +
                              ', '.join(f'"{arg}"' for arg in unsupported_args))
 
-        self.parameters = {
-            arg: param.validate(kwargs[arg])
-            for arg, param in self.parameters.items()
-        }
+        parameter_values = dict()
+        for arg, param in self.parameters.items():
+            try:
+                parameter_values[arg] = param.validate(kwargs.get(arg, None))
+            except ValidationError as error:
+                raise ValidationError(
+                    f'validation of parameter "{arg}"" failed: ' +
+                    error.args[0]) from None
+
+        self.parameters = parameter_values
+
         for arg, value in self.parameters.items():
             setattr(self, arg, value)
         self.setup()
 
     def setup(self):
         """Set up the benchmark before running."""
-
     @abc.abstractmethod
     def run(self):
         """Run the benchmark and return time."""
-
     def __repr__(self):
         return f'{type(self).__name__}(' + ', '.join(
             f'{param}={value!r}'
