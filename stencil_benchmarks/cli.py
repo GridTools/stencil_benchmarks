@@ -3,7 +3,6 @@ import re
 import types
 
 import click
-import numpy as np
 import pandas as pd
 
 from . import benchmark
@@ -21,21 +20,8 @@ def _cli_func(bmark):
         bmark_instance = bmark(**kwargs)
         results = [bmark_instance.run() for _ in range(ctx.obj.executions)]
 
-        grouped = {
-            key: [result[key] for result in results]
-            for key in results[0].keys()
-        }
-
-        def reduced(func):
-            return {key: func(data) for key, data in grouped.items()}
-
-        table = pd.DataFrame.from_dict(
-            dict(mean=reduced(np.mean),
-                 std=reduced(np.std),
-                 relstd=reduced(lambda x: np.std(x) / np.mean(x)),
-                 min=reduced(np.amin),
-                 max=reduced(np.amax)))
-        print(table)
+        table = pd.DataFrame(results)
+        print(table.agg(['median', 'min', 'max']).T)
 
     func = run_bmark
     for name, param in bmark.parameters.items():
