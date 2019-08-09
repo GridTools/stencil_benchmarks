@@ -7,18 +7,6 @@ from . import base
 
 
 @numba.njit(parallel=True)
-def copy_1d_apply_kernel(inp, out):
-    for i in numba.prange(out.size):
-        out[i] = inp[i]
-
-
-class Copy1D(base.CopyStencil):
-    def run_stencil(self, data_set):
-        inp, out = self.inouts[data_set]
-        copy_1d_apply_kernel(np.ravel(inp), np.ravel(out))
-
-
-@numba.njit(parallel=True)
 def copy_apply_kernel(domain, halo, inp, out):
     domain_x, domain_y, domain_z = domain
     for i in numba.prange(halo, domain_x + halo):
