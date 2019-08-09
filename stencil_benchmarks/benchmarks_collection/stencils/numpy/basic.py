@@ -1,23 +1,22 @@
 import numpy as np
 
-from . import base
+from ..base import (CopyStencil, OnesidedAverageStencil,
+                    SymmetricAverageStencil, LaplacianStencil)
 
-# pylint: disable=no-member,invalid-name
 
-
-class Copy1D(base.CopyStencil):
+class Copy1D(CopyStencil):
     def run_stencil(self, data_set):
         inp, out = self.inouts[data_set]
         out[:] = inp[:]
 
 
-class Copy(base.CopyStencil):
+class Copy(CopyStencil):
     def run_stencil(self, data_set):
         inp, out = self.inouts[data_set]
         out[self.inner_slice()] = inp[self.inner_slice()]
 
 
-class OnesidedAverage(base.OnesidedAverageStencil):
+class OnesidedAverage(OnesidedAverageStencil):
     def run_stencil(self, data_set):
         inp, out = self.inouts[data_set]
         shift = np.zeros(3, dtype=int)
@@ -26,7 +25,7 @@ class OnesidedAverage(base.OnesidedAverageStencil):
                                    inp[self.inner_slice()]) / 2
 
 
-class SymmetricAverage(base.SymmetricAverageStencil):
+class SymmetricAverage(SymmetricAverageStencil):
     def run_stencil(self, data_set):
         inp, out = self.inouts[data_set]
         shift = np.zeros(3, dtype=int)
@@ -35,7 +34,7 @@ class SymmetricAverage(base.SymmetricAverageStencil):
                                    inp[self.inner_slice(-shift)]) / 2
 
 
-class Laplacian(base.LaplacianStencil):
+class Laplacian(LaplacianStencil):
     def run_stencil(self, data_set):
         inp, out = self.inouts[data_set]
         along_axes = (self.along_x, self.along_y, self.along_z)
@@ -47,23 +46,3 @@ class Laplacian(base.LaplacianStencil):
                 shift[axis] = 1
                 out[self.inner_slice()] -= inp[self.inner_slice(shift)]
                 out[self.inner_slice()] -= inp[self.inner_slice(-shift)]
-
-
-class HorizontalDiffusion(base.HorizontalDiffusionStencil):
-    def run_stencil(self, data_set):
-        inp, coeff, out = self.inouts[data_set]
-
-        lap = 4 * inp[1:-1, 1:-1, :] - (inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] +
-                                        inp[1:-1, 2:, :] + inp[1:-1, :-2, :])
-
-        flx = lap[1:, :-1, :] - lap[:-1, :-1, :]
-        flx = np.where(flx * (inp[2:-1, 1:-2, :] - inp[1:-2, 1:-2, :]) > 0, 0,
-                       flx)
-
-        fly = lap[:-1, 1:, :] - lap[:-1, :-1, :]
-        fly = np.where(fly * (inp[1:-2, 2:-1, :] - inp[1:-2, 1:-2, :]) > 0, 0,
-                       fly)
-
-        out[2:-2, 2:-2, :] = inp[2:-2, 2:-2, :] - coeff[2:-2, 2:-2, :] * (
-            flx[1:, 1:, :] - flx[:-1, 1:, :] + fly[1:, 1:, :] -
-            fly[1:, :-1, :])

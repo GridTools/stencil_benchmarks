@@ -1,6 +1,6 @@
 import numba
 
-from . import base
+from .. import base
 
 # pylint: disable=not-an-iterable
 
