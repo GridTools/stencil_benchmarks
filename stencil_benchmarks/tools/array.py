@@ -12,14 +12,20 @@ def alloc_buffer(nbytes, alloc, free):
 
 
 _LIBC = ctypes.cdll.LoadLibrary('libc.so.6')
+_LIBC.malloc.restype = ctypes.c_void_p
+_LIBC.malloc.argtypes = [ctypes.c_size_t]
+_LIBC.free.argtypes = [ctypes.c_void_p]
 
 
 def cmalloc(nbytes):
-    return _LIBC.malloc(int(nbytes))
+    pointer = _LIBC.malloc(nbytes)
+    if not pointer:
+        raise RuntimeError('could not allocate memory')
+    return pointer
 
 
 def cfree(pointer):
-    _LIBC.free(int(pointer))
+    _LIBC.free(pointer)
 
 
 def alloc_array(shape,
