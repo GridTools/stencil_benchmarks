@@ -7,10 +7,10 @@ extern "C" void kernel(
   {% endfor %}
 ) {
 #pragma omp parallel for simd collapse(3)
-  for (std::ptrdiff_t i = 0; i < {{ domain[0] }}; ++i) {
-    for (std::ptrdiff_t j = 0; j < {{ domain[1] }}; ++j) {
-      for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
-        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+  for (std::ptrdiff_t i = 0; i < {{ sorted_domain[0] }}; ++i) {
+    for (std::ptrdiff_t j = 0; j < {{ sorted_domain[1] }}; ++j) {
+      for (std::ptrdiff_t k = 0; k < {{ sorted_domain[2] }}; ++k) {
+        std::ptrdiff_t index = i * {{ sorted_strides[0] }} + j * {{ sorted_strides[1] }} + k * {{ sorted_strides[2] }};
         {{ body }}
       }
     }

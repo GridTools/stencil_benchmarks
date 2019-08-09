@@ -42,6 +42,20 @@ class StencilMixin(benchmark.Benchmark):
             np.array(self.inouts[0][0].strides) // self.dtype.itemsize)
 
     @property
+    def sorted_domain(self):
+        indices = np.argsort(-np.array(self.strides))
+        return tuple(np.array(self.domain)[indices])
+
+    @property
+    def sorted_strides(self):
+        return tuple(sorted(self.strides, key=lambda x: -x))
+
+    @property
+    def sorted_block_size(self):
+        indices = np.argsort(-np.array(self.strides))
+        return tuple(np.array(self.block_size)[indices])
+
+    @property
     @abc.abstractproperty
     def args(self):
         pass
@@ -70,8 +84,11 @@ class BasicStencilMixin(StencilMixin):
                                args=self.args,
                                ctype=self.ctype_name,
                                strides=self.strides,
+                               sorted_strides=self.sorted_strides,
                                domain=self.domain,
+                               sorted_domain=self.sorted_domain,
                                block_size=self.block_size,
+                               sorted_block_size=self.sorted_block_size,
                                body=self.stencil_body())
 
     @property
