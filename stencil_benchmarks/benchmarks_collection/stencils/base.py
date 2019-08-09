@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from ...benchmark import Benchmark, Parameter
-from ...tools import validation
+from ...tools import array, validation
 
 # pylint: disable=abstract-method
 
@@ -27,9 +27,19 @@ class Stencil(Benchmark):
         if self.alignment % self.dtype.itemsize != 0:
             raise ValueError('alignment not divisible by dtype itemsize')
 
+    def empty_field(self):
+        return array.alloc_array(self.domain_with_halo,
+                                 self.dtype,
+                                 self.layout,
+                                 self.alignment,
+                                 index_to_align=(self.halo, self.halo,
+                                                 self.halo))
+
     def random_field(self):
-        return np.random.uniform(-100, 100,
-                                 size=self.domain_with_halo).astype(self.dtype)
+        data = self.empty_field()
+        data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
+            self.dtype)
+        return data
 
     @property
     def domain_with_halo(self):
