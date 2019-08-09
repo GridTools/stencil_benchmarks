@@ -44,12 +44,13 @@ class TestAllocBuffer(unittest.TestCase):
 
 class TestCmallocCfree(unittest.TestCase):
     def test_alloc_free(self):
-        pointer = array.cmalloc(16)
-        buffer = (ctypes.c_int32 * 4).from_address(pointer)
-        for i in range(4):
+        size = 10000
+        pointer = array.cmalloc(size * 4)
+        buffer = (ctypes.c_int32 * size).from_address(pointer)
+        for i in range(size):
             buffer[i] = 42 * i
 
-        for i in range(4):
+        for i in range(size):
             self.assertEqual(buffer[i], 42 * i)
 
         array.cfree(pointer)
