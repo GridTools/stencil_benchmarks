@@ -55,7 +55,9 @@ class StencilMixin(benchmark.Benchmark):
 
 
 class BasicStencilMixin(StencilMixin):
-    loop = benchmark.Parameter('loop kind', '1d')
+    loop = benchmark.Parameter('loop kind',
+                               '1D',
+                               choices=['1D', '3D', '3D-blocked'])
     block_size = benchmark.Parameter('block_size', (1, 1, 1))
 
     @abc.abstractmethod
@@ -65,7 +67,7 @@ class BasicStencilMixin(StencilMixin):
     def generate_code(self):
         template_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            f'loop_{self.loop.lower().replace("-", "_")}.template')
+            'basic_' + self.loop.lower().replace("-", "_") + '.template')
         return template.render(template_file,
                                args=self.args,
                                ctype=self.ctype_name,

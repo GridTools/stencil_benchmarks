@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-from ...benchmark import Benchmark, Parameter
+from ...benchmark import Benchmark, Parameter, ParameterError
 from ...tools import array, validation
 
 # pylint: disable=abstract-method
@@ -18,16 +18,23 @@ class Stencil(Benchmark):
     halo = Parameter('halo size along horizontal dimensions', 3)
     dtype = Parameter('data type', 'float64')
     layout = Parameter('data layout', (2, 1, 0))
-    alignment = Parameter('data alignment (in bytes)', 0)
+    alignment = Parameter('data alignment in bytes', 0)
     verify = Parameter('enable verification', True)
 
     def setup(self):
         super().setup()
         self.dtype = np.dtype(self.dtype)
+        if self.halo < 0:
+            raise ParameterError(f'negative halo size given ({self.halo}')
         if tuple(sorted(self.layout)) != (0, 1, 2):
-            raise ValueError('invalid layout specification')
+            raise ParameterError(f'invalid layout specification {self.layout}')
+        if self.alignment < 0:
+            raise ParameterError(
+                f'negative alignment given ({self.alignment} bytes)')
         if self.alignment % self.dtype.itemsize != 0:
-            raise ValueError('alignment not divisible by dtype itemsize')
+            raise ParameterError(
+                f'alignment ({self.alignment} bytes) not divisible '
+                f'by dtype itemsize ({self.dtype.itemsize} bytes)')
 
         stencil_data = collections.namedtuple('StencilData', self.args)
         self._data = [
@@ -118,12 +125,7 @@ class CopyStencil(BasicStencil):
 
 
 class OnesidedAverageStencil(BasicStencil):
-    axis = Parameter('axis along which to average', 0)
-
-    def setup(self):
-        super().setup()
-        if not 0 <= self.axis <= 2:
-            raise ValueError('invalid axis')
+    axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality(data_before.inp, data_after.inp)
@@ -138,12 +140,7 @@ class OnesidedAverageStencil(BasicStencil):
 
 
 class SymmetricAverageStencil(BasicStencil):
-    axis = Parameter('axis along which to average', 0)
-
-    def setup(self):
-        super().setup()
-        if not 0 <= self.axis <= 2:
-            raise ValueError('invalid axis')
+    axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality(data_before.inp, data_after.inp)
@@ -165,7 +162,8 @@ class LaplacianStencil(BasicStencil):
     def setup(self):
         super().setup()
         if self.halo < 1:
-            raise ValueError(f'positive halo size required')
+            raise ParameterError(
+                f'positive halo size required (given halo: {self.halo})')
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality(data_before.inp, data_after.inp)
@@ -189,7 +187,8 @@ class HorizontalDiffusionStencil(Stencil):
         super().setup()
 
         if self.halo < 2:
-            raise ValueError('halo size must be at least 2')
+            raise ValueError(
+                f'halo size must be at least 2 (given halo: {self.halo})')
 
     @property
     def args(self):
@@ -228,7 +227,8 @@ class VerticalAdvectionStencil(Stencil):
         super().setup()
 
         if self.halo < 1:
-            raise ValueError('halo size must be at least 1')
+            raise ParameterError(
+                f'positive halo size required (given halo: {self.halo})')
 
     @property
     def args(self):

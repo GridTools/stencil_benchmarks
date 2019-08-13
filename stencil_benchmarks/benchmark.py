@@ -6,12 +6,17 @@ import inspect
 REGISTRY = set()
 
 
-class ValidationError(ValueError):
+class ParameterError(ValueError):
     pass
 
 
 class Parameter:
-    def __init__(self, description, default=None, dtype=None, nargs=None):
+    def __init__(self,
+                 description,
+                 default=None,
+                 dtype=None,
+                 nargs=None,
+                 choices=None):
         if default is None:
             if dtype is None or nargs is None:
                 raise ValueError(
@@ -43,23 +48,29 @@ class Parameter:
         self.default = default
         self.dtype = dtype
         self.nargs = nargs
+        self.choices = choices
 
     def validate(self, value):
         if value is None:
             if self.default is None:
-                raise ValidationError('value is required')
-            return self.default
+                raise ParameterError('value is required')
+            value = self.default
 
         if self.nargs == 1:
             if not isinstance(value, self.dtype):
-                raise ValidationError('wrong type')
-            return value
+                raise ParameterError(f'wrong type of argument "{value}"')
+        else:
+            if len(value) != self.nargs:
+                raise ParameterError(
+                    f'wrong number of arguments in argument "{value}"')
+            for val in value:
+                if not isinstance(val, self.dtype):
+                    raise ParameterError(f'wrong type in argument "{value}"')
 
-        if len(value) != self.nargs:
-            raise ValidationError('wrong number of arguments')
-        for val in value:
-            if not isinstance(val, self.dtype):
-                raise ValidationError('wrong type')
+        if self.choices is not None and value not in self.choices:
+            choices_str = ', '.join(f'"{choice}"' for choice in self.choices)
+            raise ParameterError(f'unsupported argument value "{value}", '
+                                 f'choices are {choices_str}')
         return value
 
     def __repr__(self):
@@ -112,10 +123,9 @@ class Benchmark(metaclass=BenchmarkMeta):
         for arg, param in self.parameters.items():
             try:
                 parameter_values[arg] = param.validate(kwargs.get(arg, None))
-            except ValidationError as error:
-                raise ValidationError(
-                    f'validation of parameter "{arg}"" failed: ' +
-                    error.args[0]) from None
+            except ParameterError as error:
+                raise ParameterError(f'invalid value for argument "{arg}": ' +
+                                     error.args[0]) from None
 
         self.parameters = parameter_values
 

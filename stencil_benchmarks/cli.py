@@ -1,5 +1,6 @@
 import copy
 import re
+import sys
 import types
 
 import click
@@ -17,7 +18,11 @@ def _cli_command(bmark):
 def _cli_func(bmark):
     @click.pass_context
     def run_bmark(ctx, **kwargs):
-        bmark_instance = bmark(**kwargs)
+        try:
+            bmark_instance = bmark(**kwargs)
+        except benchmark.ParameterError as error:
+            print(*error.args)
+            sys.exit(1)
         results = [bmark_instance.run() for _ in range(ctx.obj.executions)]
 
         table = pd.DataFrame(results)
