@@ -1,0 +1,320 @@
+#include <algorithm>
+#include <cstdint>
+
+#include <xmmintrin.h>
+
+static constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+static constexpr {{ ctype }} beta_v = 0;
+static constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
+static constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
+
+#pragma omp declare simd linear(i) uniform(j, ishift, jshift, ccol, wcon, ustage, upos, utens, utensstage)
+__attribute__((always_inline)) inline void forward_sweep_kmin(int i,
+    const int j,
+    const int ishift,
+    const int jshift,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+
+    const int k = 0;
+    const int index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+    {{ ctype }} gcv = {{ ctype }}(0.25) *
+                        (wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}] + wcon[index + {{ strides[2] }}]);
+    {{ ctype }} cs = gcv * bet_m;
+
+    ccol[index] = gcv * bet_p;
+    {{ ctype }} bcol = dtr_stage - ccol[index];
+
+    {{ ctype }} correction_term = -cs * (ustage[index + {{ strides[2] }}] - ustage[index]);
+    dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+    {{ ctype }} divided = {{ ctype }}(1.0) / bcol;
+    ccol[index] = ccol[index] * divided;
+    dcol[index] = dcol[index] * divided;
+}
+
+#pragma omp declare simd linear(i) uniform(j, k, ishift, jshift, ccol, wcon, ustage, upos, utens, utensstage)
+__attribute__((always_inline)) inline void forward_sweep_kbody(int i,
+    const int j,
+    const int k,
+    const int ishift,
+    const int jshift,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+
+    const int index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+    {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }}] + wcon[index]);
+    {{ ctype }} gcv = {{ ctype }}(0.25) *
+                        (wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}] + wcon[index + {{ strides[2] }}]);
+
+    {{ ctype }} as = gav * bet_m;
+    {{ ctype }} cs = gcv * bet_m;
+
+    {{ ctype }} acol = gav * bet_p;
+    ccol[index] = gcv * bet_p;
+    {{ ctype }} bcol = dtr_stage - acol - ccol[index];
+
+    {{ ctype }} correction_term =
+        -as * (ustage[index - {{ strides[2] }}] - ustage[index]) - cs * (ustage[index + {{ strides[2] }}] - ustage[index]);
+    dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+    {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol[index - {{ strides[2] }}] * acol);
+    ccol[index] = ccol[index] * divided;
+    dcol[index] = (dcol[index] - dcol[index - {{ strides[2] }}] * acol) * divided;
+}
+
+#pragma omp declare simd linear(i) uniform(j, ishift, jshift, ccol, wcon, ustage, upos, utens, utensstage)
+__attribute__((always_inline)) inline void forward_sweep_kmax(int i,
+    const int j,
+    const int ishift,
+    const int jshift,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+
+    const int k = {{ domain[2] }} - 1;
+    const int index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+    {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }}] + wcon[index]);
+
+    {{ ctype }} as = gav * bet_m;
+
+    {{ ctype }} acol = gav * bet_p;
+    {{ ctype }} bcol = dtr_stage - acol;
+
+    {{ ctype }} correction_term = -as * (ustage[index - {{ strides[2] }}] - ustage[index]);
+    dcol[index] = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+    {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol[index - {{ strides[2] }}] * acol);
+    dcol[index] = (dcol[index] - dcol[index - {{ strides[2] }}] * acol) * divided;
+}
+
+#pragma omp declare simd linear(i) uniform(j, k, ishift, jshift, ccol, wcon, ustage, upos, utens, utensstage)
+__attribute__((always_inline)) inline void forward_sweep_k(int i,
+    const int j,
+    const int k,
+    const int ishift,
+    const int jshift,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+
+    if (k == 0) {
+        forward_sweep_kmin(i,
+            j,
+            ishift,
+            jshift,
+            ccol,
+            dcol,
+            wcon,
+            ustage,
+            upos,
+            utens,
+            utensstage);
+    } else if (k == {{ domain[2] }} - 1) {
+        forward_sweep_kmax(i,
+            j,
+            ishift,
+            jshift,
+            ccol,
+            dcol,
+            wcon,
+            ustage,
+            upos,
+            utens,
+            utensstage);
+    } else {
+        forward_sweep_kbody(i,
+            j,
+            k,
+            ishift,
+            jshift,
+            ccol,
+            dcol,
+            wcon,
+            ustage,
+            upos,
+            utens,
+            utensstage);
+    }
+}
+
+
+#pragma omp declare simd linear(i) uniform(j, ccol, dcol, datacol, upos, utensstage)
+__attribute__((always_inline)) inline void backward_sweep_kmax(int i,
+    const int j,
+    const {{ ctype }} *__restrict__ ccol,
+    const {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ datacol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage) {
+
+    const int k = {{ domain[2] }} - 1;
+    const int index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+    const int datacol_index = i * {{ strides[0] }} + j * {{ strides[1] }};
+    datacol[datacol_index] = dcol[index];
+    utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
+}
+
+#pragma omp declare simd linear(i) uniform(j, k, ccol, dcol, datacol, upos, utensstage)
+__attribute__((always_inline)) inline void backward_sweep_kbody(int i,
+    const int j,
+    const int k,
+    const {{ ctype }} *__restrict__ ccol,
+    const {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ datacol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage) {
+
+    const int index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+    const int datacol_index = i * {{ strides[0] }} + j * {{ strides[1] }};
+    datacol[datacol_index] = dcol[index] - ccol[index] * datacol[datacol_index];
+    utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
+}
+
+#pragma omp declare simd linear(i) uniform(j, k, ccol, dcol, datacol, upos, utensstage)
+__attribute__((always_inline)) inline void backward_sweep_k(int i,
+    const int j,
+    const int k,
+    const {{ ctype }} *__restrict__ ccol,
+    const {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ datacol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage) {
+    if (k == {{ domain[2] }} - 1) {
+        backward_sweep_kmax(
+            i, j, ccol, dcol, datacol, upos, utensstage);
+    } else {
+        backward_sweep_kbody(
+            i, j, k, ccol, dcol, datacol, upos, utensstage);
+    }
+}
+
+extern "C" void kernel(
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    {{ ctype }} *__restrict__ utensstage,
+    const {{ ctype }} *__restrict__ vstage,
+    const {{ ctype }} *__restrict__ vpos,
+    const {{ ctype }} *__restrict__ vtens,
+    {{ ctype }} *__restrict__ vtensstage,
+    const {{ ctype }} *__restrict__ wstage,
+    const {{ ctype }} *__restrict__ wpos,
+    const {{ ctype }} *__restrict__ wtens,
+    {{ ctype }} *__restrict__ wtensstage,
+    const {{ ctype }} *__restrict__ wcon,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ datacol) {
+
+#pragma omp parallel for collapse(2)
+    for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+            {%- if block_size[1] > 1 %}
+                const std::ptrdiff_t jmax = std::min((std::ptrdiff_t){{ domain[1] }}, jb + {{ block_size[1] }});
+                for (std::ptrdiff_t j = jb; j < jmax; ++j) {
+            {%- else %}
+                const std::ptrdiff_t j = jb;
+                {
+            {%- endif %}
+                    for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
+                        {%- if block_size[0] > 1 %}
+                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+    #pragma omp simd
+                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                        {%- else %}
+                            const std::ptrdiff_t i = ib;
+                            {
+                        {%- endif %}
+
+                                forward_sweep_k(i, j, k, 1, 0, ccol, dcol, wcon, ustage, upos, utens, utensstage);
+                            }
+                    }
+                    for (std::ptrdiff_t k = {{ domain[2] }} - 1; k >= 0; --k) {
+                        {%- if block_size[0] > 1 %}
+                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+    #pragma omp simd
+                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                        {%- else %}
+                            const std::ptrdiff_t i = ib;
+                            {
+                        {%- endif %}
+
+                                backward_sweep_k(i, j, k, ccol, dcol, datacol, upos, utensstage);
+                            }
+                    }
+                    for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
+                        {%- if block_size[0] > 1 %}
+                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+    #pragma omp simd
+                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                        {%- else %}
+                            const std::ptrdiff_t i = ib;
+                            {
+                        {%- endif %}
+
+                                forward_sweep_k(i, j, k, 0, 1, ccol, dcol, wcon, vstage, vpos, vtens, vtensstage);
+                            }
+                    }
+                    for (std::ptrdiff_t k = {{ domain[2] }} - 1; k >= 0; --k) {
+                        {%- if block_size[0] > 1 %}
+                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+    #pragma omp simd
+                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                        {%- else %}
+                            const std::ptrdiff_t i = ib;
+                            {
+                        {%- endif %}
+
+                                backward_sweep_k(i, j, k, ccol, dcol, datacol, vpos, vtensstage);
+                            }
+                    }
+                    for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
+                        {%- if block_size[0] > 1 %}
+                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+    #pragma omp simd
+                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                        {%- else %}
+                            const std::ptrdiff_t i = ib;
+                            {
+                        {%- endif %}
+
+                                forward_sweep_k(i, j, k, 0, 0, ccol, dcol, wcon, wstage, wpos, wtens, wtensstage);
+                            }
+                    }
+                    for (std::ptrdiff_t k = {{ domain[2] }} - 1; k >= 0; --k) {
+                        {%- if block_size[0] > 1 %}
+                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+    #pragma omp simd
+                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                        {%- else %}
+                            const std::ptrdiff_t i = ib;
+                            {
+                        {%- endif %}
+
+                                backward_sweep_k(i, j, k, ccol, dcol, datacol, wpos, wtensstage);
+                            }
+                    }
+                }
+        }
+    }
+}
+

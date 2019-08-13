@@ -81,12 +81,15 @@ class BasicStencilMixin(StencilMixin):
 
 
 class VerticalAdvectionMixin(StencilMixin):
+    loop = benchmark.Parameter('loop kind',
+                               'k-innermost',
+                               choices=['k-innermost', 'k-middle'])
     block_size = benchmark.Parameter('block_size', (1, 1))
 
     def generate_code(self):
         template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            f'vertical_advection.template')
+            os.path.dirname(os.path.abspath(__file__)), 'vertical_advection_' +
+            self.loop.lower().replace("-", "_") + '.template')
         return template.render(template_file,
                                args=self.args,
                                ctype=self.ctype_name,
