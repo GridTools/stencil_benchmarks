@@ -3,9 +3,9 @@ import numpy as np
 from ..base import HorizontalDiffusionStencil
 
 
-class HorizontalDiffusion(HorizontalDiffusionStencil):
-    def run_stencil(self, data_set):
-        inp, coeff, out = self.inouts[data_set]
+class OnTheFly(HorizontalDiffusionStencil):
+    def run_stencil(self, data):
+        inp, coeff, out = data
 
         lap = 4 * inp[1:-1, 1:-1, :] - (inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] +
                                         inp[1:-1, 2:, :] + inp[1:-1, :-2, :])

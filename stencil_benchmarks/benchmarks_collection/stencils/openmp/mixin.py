@@ -17,12 +17,6 @@ class StencilMixin(benchmark.Benchmark):
 
     def setup(self):
         super().setup()
-
-        offset = (self.halo, ) * 3
-        self.inout_ptrs = [[
-            compilation.data_ptr(array, offset) for array in inout
-        ] for inout in self.inouts]
-
         code = self.generate_code()
 
         if self.print_code:
@@ -34,11 +28,6 @@ class StencilMixin(benchmark.Benchmark):
     @property
     def ctype_name(self):
         return compilation.ctype_cname(compilation.dtype_as_ctype(self.dtype))
-
-    @property
-    def strides(self):
-        return tuple(
-            np.array(self.inouts[0][0].strides) // self.dtype.itemsize)
 
     @property
     def sorted_domain(self):
@@ -56,26 +45,22 @@ class StencilMixin(benchmark.Benchmark):
         indices = np.argsort(-np.array(self.strides))
         return tuple(np.array(self.block_size)[indices])
 
-    @property
-    @abc.abstractproperty
-    def args(self):
-        pass
-
     @abc.abstractmethod
     def generate_code(self):
         pass
 
-    @abc.abstractmethod
-    def stencil_body(self):
-        pass
-
-    def run_stencil(self, data_set):
-        self.compiled(*self.inout_ptrs[data_set])
+    def run_stencil(self, data):
+        offset = (self.halo, ) * 3
+        self.compiled(*(compilation.data_ptr(array, offset) for array in data))
 
 
 class BasicStencilMixin(StencilMixin):
     loop = benchmark.Parameter('loop kind', '1d')
     block_size = benchmark.Parameter('block_size', (1, 1, 1))
+
+    @abc.abstractmethod
+    def stencil_body(self):
+        pass
 
     def generate_code(self):
         template_file = os.path.join(
@@ -92,6 +77,17 @@ class BasicStencilMixin(StencilMixin):
                                sorted_block_size=self.sorted_block_size,
                                body=self.stencil_body())
 
-    @property
-    def args(self):
-        return 'inp', 'out'
+
+class VerticalAdvectionMixin(StencilMixin):
+    block_size = benchmark.Parameter('block_size', (1, 1))
+
+    def generate_code(self):
+        template_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            f'vertical_advection.template')
+        return template.render(template_file,
+                               args=self.args,
+                               ctype=self.ctype_name,
+                               strides=self.strides,
+                               domain=self.domain,
+                               block_size=self.block_size)

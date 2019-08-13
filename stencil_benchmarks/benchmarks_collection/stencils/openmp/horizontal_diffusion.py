@@ -3,10 +3,6 @@ from ..base import HorizontalDiffusionStencil
 
 
 class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
-    @property
-    def args(self):
-        return 'inp', 'coeff', 'out'
-
     def stencil_body(self):
         stride_x, stride_y, _ = self.strides
         return f'''const auto inp_ij = inp[index];

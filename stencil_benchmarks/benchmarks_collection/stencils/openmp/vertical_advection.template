@@ -1,0 +1,216 @@
+#include <algorithm>
+#include <cstdint>
+
+#include <xmmintrin.h>
+
+static constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+static constexpr {{ ctype }} beta_v = 0;
+static constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
+static constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
+
+#pragma omp declare simd linear(i) uniform(j, ishift, jshift, ccol, dcol, wcon, ustage, upos, utens, utensstage)
+__attribute__((always_inline)) inline void forward_sweep(int i,
+    const int j,
+    const int ishift,
+    const int jshift,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+
+    {{ ctype }} ccol0, ccol1;
+    {{ ctype }} dcol0, dcol1;
+    {{ ctype }} ustage0, ustage1, ustage2;
+    {{ ctype }} wcon0, wcon1;
+    {{ ctype }} wcon_shift0, wcon_shift1;
+
+    int index = i * {{ strides[0] }} + j * {{ strides[1] }};
+    // k minimum
+    {
+        wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+        wcon0 = wcon[index + {{ strides[2] }}];
+        {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+        {{ ctype }} cs = gcv * bet_m;
+
+        ccol0 = gcv * bet_p;
+        {{ ctype }} bcol = dtr_stage - ccol0;
+
+        ustage0 = ustage[index + {{ strides[2] }}];
+        ustage1 = ustage[index];
+        {{ ctype }} correction_term = -cs * (ustage0 - ustage1);
+        dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+        {{ ctype }} divided = {{ ctype }}(1.0) / bcol;
+        ccol0 = ccol0 * divided;
+        dcol0 = dcol0 * divided;
+
+        ccol[index] = ccol0;
+        dcol[index] = dcol0;
+
+        index += {{ strides[2] }};
+    }
+
+    // k body
+    for (int k = 1; k < {{ domain[2] }} - 1; ++k) {
+#ifdef __SSE__
+        constexpr int prefdist = 3;
+        if (k < {{ domain[2] }} - prefdist) {
+            const int prefindex = index + prefdist * {{ strides[2] }};
+            _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&ustage[prefindex + {{ strides[2] }}]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&utens[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + {{ strides[2] }}]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(
+                                &wcon[prefindex + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}]),
+                _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
+        }
+#endif
+
+        ccol1 = ccol0;
+        dcol1 = dcol0;
+        ustage2 = ustage1;
+        ustage1 = ustage0;
+        wcon1 = wcon0;
+        wcon_shift1 = wcon_shift0;
+
+        {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+        wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+        wcon0 = wcon[index + {{ strides[2] }}];
+        {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+
+        {{ ctype }} as = gav * bet_m;
+        {{ ctype }} cs = gcv * bet_m;
+
+        {{ ctype }} acol = gav * bet_p;
+        ccol0 = gcv * bet_p;
+        {{ ctype }} bcol = dtr_stage - acol - ccol0;
+
+        ustage0 = ustage[index + {{ strides[2] }}];
+        {{ ctype }} correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
+        dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+        {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+        ccol0 = ccol0 * divided;
+        dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+        ccol[index] = ccol0;
+        dcol[index] = dcol0;
+
+        index += {{ strides[2] }};
+    }
+
+    // k maximum
+    {
+        ccol1 = ccol0;
+        dcol1 = dcol0;
+        ustage2 = ustage1;
+        ustage1 = ustage0;
+        wcon1 = wcon0;
+        wcon_shift1 = wcon_shift0;
+
+        {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+
+        {{ ctype }} as = gav * bet_m;
+
+        {{ ctype }} acol = gav * bet_p;
+        {{ ctype }} bcol = dtr_stage - acol;
+
+        {{ ctype }} correction_term = -as * (ustage2 - ustage1);
+        dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+        {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+        dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+        ccol[index] = ccol0;
+        dcol[index] = dcol0;
+    }
+}
+
+#pragma omp declare simd linear(i) uniform(j, ccol, dcol, upos, utensstage)
+__attribute__((always_inline)) inline void backward_sweep(int i,
+    const int j,
+    const {{ ctype }} *__restrict__ ccol,
+    const {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage) {
+    constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+
+    {{ ctype }} datacol;
+
+    int index = i * {{ strides[0] }} + j * {{ strides[1] }} + ({{ domain[2] }} - 1) * {{ strides[2] }};
+    // k
+    {
+        datacol = dcol[index];
+        utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+        index -= {{ strides[2] }};
+    }
+
+    // k body
+    for (int k = {{ domain[2] }} - 2; k >= 0; --k) {
+        datacol = dcol[index] - ccol[index] * datacol;
+        utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+        index -= {{ strides[2] }};
+    }
+}
+
+
+
+extern "C" void kernel(
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    {{ ctype }} *__restrict__ utensstage,
+    const {{ ctype }} *__restrict__ vstage,
+    const {{ ctype }} *__restrict__ vpos,
+    const {{ ctype }} *__restrict__ vtens,
+    {{ ctype }} *__restrict__ vtensstage,
+    const {{ ctype }} *__restrict__ wstage,
+    const {{ ctype }} *__restrict__ wpos,
+    const {{ ctype }} *__restrict__ wtens,
+    {{ ctype }} *__restrict__ wtensstage,
+    const {{ ctype }} *__restrict__ wcon,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ datacol) {
+
+#pragma omp parallel for collapse(2)
+    for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+            {%- if block_size[1] > 1 %}
+                const std::ptrdiff_t jmax = std::min((std::ptrdiff_t){{ domain[1] }}, jb + {{ block_size[1] }});
+                for (std::ptrdiff_t j = jb; j < jmax; ++j) {
+            {%- else %}
+                const std::ptrdiff_t j = jb;
+                {
+            {%- endif %}
+                    {%- if block_size[0] > 1 %}
+                        const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+#pragma omp simd
+                        for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                    {%- else %}
+                        const std::ptrdiff_t i = ib;
+                        {
+                    {%- endif %}
+
+                            forward_sweep(i, j, 1, 0, ccol, dcol, wcon, ustage, upos, utens, utensstage);
+                            backward_sweep(i, j, ccol, dcol, upos, utensstage);
+
+                            forward_sweep(i, j, 0, 1, ccol, dcol, wcon, vstage, vpos, vtens, vtensstage);
+                            backward_sweep(i, j, ccol, dcol, vpos, vtensstage);
+
+                            forward_sweep(i, j, 0, 0, ccol, dcol, wcon, wstage, wpos, wtens, wtensstage);
+                            backward_sweep(i, j, ccol, dcol, wpos, wtensstage);
+                        }
+                }
+        }
+    }
+}
+

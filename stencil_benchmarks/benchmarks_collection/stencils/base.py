@@ -1,4 +1,6 @@
 import abc
+import collections
+import copy
 import time
 
 import numpy as np
@@ -27,6 +29,13 @@ class Stencil(Benchmark):
         if self.alignment % self.dtype.itemsize != 0:
             raise ValueError('alignment not divisible by dtype itemsize')
 
+        stencil_data = collections.namedtuple('StencilData', self.args)
+        self._data = [
+            stencil_data._make(self.random_field()
+                               for _ in range(len(self.args)))
+            for _ in range(self.data_sets)
+        ]
+
     def empty_field(self):
         return array.alloc_array(self.domain_with_halo,
                                  self.dtype,
@@ -45,6 +54,14 @@ class Stencil(Benchmark):
     def domain_with_halo(self):
         return tuple(np.array(self.domain) + 2 * self.halo)
 
+    @property
+    def strides(self):
+        return tuple(np.array(self._data[0][0].strides) // self.dtype.itemsize)
+
+    @property
+    def data_size(self):
+        return len(self.args) * np.product(self.domain) * self.dtype.itemsize
+
     def inner_slice(self, shift=None, expand=None):
         if shift is None:
             shift = [0] * len(self.domain)
@@ -57,29 +74,29 @@ class Stencil(Benchmark):
             for d, s, e in zip(self.domain, shift, expand))
 
     @abc.abstractmethod
-    def run_stencil(self, data_set):
+    def run_stencil(self, data):
         pass
 
     @abc.abstractmethod
-    def verify_stencil(self, data_set):
+    def verify_stencil(self, data_before, data_after):
         pass
 
     @abc.abstractproperty
-    def data_size(self):
+    def args(self):
         pass
 
     def run(self):
-        for run in range(self.data_sets):
-            self.run_stencil(run)
+        if self.verify:
+            for data_set in range(self.data_sets):
+                data_before = copy.deepcopy(self._data[data_set])
+                self.run_stencil(self._data[data_set])
+                data_after = self._data[data_set]
+                self.verify_stencil(data_before, data_after)
 
         start = time.perf_counter()
         for run in range(self.runs):
-            self.run_stencil(run % self.data_sets)
+            self.run_stencil(self._data[run % self.data_sets])
         stop = time.perf_counter()
-
-        if self.verify:
-            for data_set in range(self.data_sets):
-                self.verify_stencil(data_set)
 
         run_time = stop - start
         bandwidth = self.data_size * self.runs / run_time / 1e9
@@ -87,22 +104,17 @@ class Stencil(Benchmark):
 
 
 class BasicStencil(Stencil):
-    def setup(self):
-        super().setup()
-
-        self.inouts = [(self.random_field(), self.random_field())
-                       for _ in range(self.data_sets)]
-
     @property
-    def data_size(self):
-        return 2 * np.product(self.domain) * self.dtype.itemsize
+    def args(self):
+        return 'inp', 'out'
 
 
 class CopyStencil(BasicStencil):
-    def verify_stencil(self, data_set):
-        inp, out = self.inouts[data_set]
-        validation.check_equality(out[self.inner_slice()],
-                                  inp[self.inner_slice()])
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality(data_before.inp, data_after.inp)
+
+        validation.check_equality(data_after.out[self.inner_slice()],
+                                  data_before.inp[self.inner_slice()])
 
 
 class OnesidedAverageStencil(BasicStencil):
@@ -113,8 +125,11 @@ class OnesidedAverageStencil(BasicStencil):
         if not 0 <= self.axis <= 2:
             raise ValueError('invalid axis')
 
-    def verify_stencil(self, data_set):
-        inp, out = self.inouts[data_set]
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality(data_before.inp, data_after.inp)
+
+        inp = data_before.inp
+        out = data_after.out
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         validation.check_equality(
@@ -130,8 +145,11 @@ class SymmetricAverageStencil(BasicStencil):
         if not 0 <= self.axis <= 2:
             raise ValueError('invalid axis')
 
-    def verify_stencil(self, data_set):
-        inp, out = self.inouts[data_set]
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality(data_before.inp, data_after.inp)
+
+        inp = data_before.inp
+        out = data_after.out
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         validation.check_equality(
@@ -149,8 +167,11 @@ class LaplacianStencil(BasicStencil):
         if self.halo < 1:
             raise ValueError(f'positive halo size required')
 
-    def verify_stencil(self, data_set):
-        inp, out = self.inouts[data_set]
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality(data_before.inp, data_after.inp)
+
+        inp = data_before.inp
+        out = data_after.out
         result = np.zeros(self.domain)
         along_axes = (self.along_x, self.along_y, self.along_z)
         for axis, apply_along_axis in enumerate(along_axes):
@@ -170,15 +191,17 @@ class HorizontalDiffusionStencil(Stencil):
         if self.halo < 2:
             raise ValueError('halo size must be at least 2')
 
-        self.inouts = [(self.random_field(), self.random_field(),
-                        self.random_field()) for _ in range(self.data_sets)]
-
     @property
-    def data_size(self):
-        return 3 * np.product(self.domain) * self.dtype.itemsize
+    def args(self):
+        return 'inp', 'coeff', 'out'
 
-    def verify_stencil(self, data_set):
-        inp, coeff, out = self.inouts[data_set]
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality(data_before.inp, data_after.inp)
+        validation.check_equality(data_before.coeff, data_after.coeff)
+
+        inp = data_before.inp
+        coeff = data_before.coeff
+        out = data_after.out
 
         lap = 4 * inp[1:-1, 1:-1, :] - (inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] +
                                         inp[1:-1, 2:, :] + inp[1:-1, :-2, :])
@@ -198,3 +221,142 @@ class HorizontalDiffusionStencil(Stencil):
 
         validation.check_equality(out[self.inner_slice()],
                                   result[self.inner_slice()])
+
+
+class VerticalAdvectionStencil(Stencil):
+    def setup(self):
+        super().setup()
+
+        if self.halo < 1:
+            raise ValueError('halo size must be at least 1')
+
+    @property
+    def args(self):
+        return ('ustage', 'upos', 'utens', 'utensstage', 'vstage', 'vpos',
+                'vtens', 'vtensstage', 'wstage', 'wpos', 'wtens', 'wtensstage',
+                'wcon', 'ccol', 'dcol', 'datacol')
+
+    @property
+    def data_size(self):
+        return 16 * np.product(self.domain) * self.dtype.itemsize
+
+    def verify_stencil(self, data_before, data_after):
+        # pylint: disable=unsubscriptable-object
+
+        validation.check_equality(data_before.ustage, data_after.ustage)
+        validation.check_equality(data_before.upos, data_after.upos)
+        validation.check_equality(data_before.utens, data_after.utens)
+        validation.check_equality(data_before.vstage, data_after.vstage)
+        validation.check_equality(data_before.vpos, data_after.vpos)
+        validation.check_equality(data_before.vtens, data_after.vtens)
+        validation.check_equality(data_before.wstage, data_after.wstage)
+        validation.check_equality(data_before.wpos, data_after.wpos)
+        validation.check_equality(data_before.wtens, data_after.wtens)
+        validation.check_equality(data_before.wcon, data_after.wcon)
+
+        halo = self.halo
+        domain = self.domain
+
+        class Wrapper:
+            def __init__(self, data):
+                self.data = data
+
+            def __getitem__(self, index):
+                if isinstance(index, tuple):
+                    i, j, k = index
+                else:
+                    i, j, k = 0, 0, index
+                data_slice = (slice(halo + i, halo + domain[0] + i),
+                              slice(halo + j, halo + domain[1] + j), halo + k)
+                return self.data[data_slice]
+
+            def __setitem__(self, index, value):
+                self.__getitem__(index)[:] = value
+
+        (ustage, upos, utens, utensstage, vstage, vpos, vtens, vtensstage,
+         wstage, wpos, wtens, wtensstage, wcon, ccol, dcol,
+         datacol) = [Wrapper(data) for data in data_before]
+
+        dtr_stage = 3 / 20
+        beta_v = 0
+        bet_m = 0.5 * (1 - beta_v)
+        bet_p = 0.5 * (1 + beta_v)
+
+        def forward_sweep(ishift, jshift, stage, pos, tens, tensstage):
+            # pylint: disable=invalid-name
+            k = 0
+            gcv = 0.25 * (wcon[ishift, jshift, k + 1] + wcon[k + 1])
+
+            cs = gcv * bet_m
+
+            ccol[k] = gcv * bet_p
+            bcol = dtr_stage - ccol[k]
+
+            correction_term = -cs * (stage[k + 1] - stage[k])
+            dcol[k] = dtr_stage * pos[k] + tens[k] + tensstage[
+                k] + correction_term
+
+            ccol[k] /= bcol
+            dcol[k] /= bcol
+
+            for k in range(1, domain[2] - 1):
+                gav = -0.25 * (wcon[ishift, jshift, k] + wcon[k])
+                gcv = 0.25 * (wcon[ishift, jshift, k + 1] + wcon[k + 1])
+
+                as_ = gav * bet_m
+                cs = gcv * bet_m
+
+                acol = gav * bet_p
+                ccol[k] = gcv * bet_p
+                bcol = dtr_stage - acol - ccol[k]
+
+                correction_term = (-as_ * (stage[k - 1] - stage[k]) - cs *
+                                   (stage[k + 1] - stage[k]))
+                dcol[k] = (dtr_stage * pos[k] + tens[k] + tensstage[k] +
+                           correction_term)
+
+                divided = 1.0 / (bcol - ccol[k - 1] * acol)
+                ccol[k] *= divided
+                dcol[k] = (dcol[k] - dcol[k - 1] * acol) * divided
+
+            k = domain[2] - 1
+            gav = -0.25 * (wcon[ishift, jshift, k] + wcon[k])
+
+            as_ = gav * bet_m
+
+            acol = gav * bet_p
+            bcol = dtr_stage - acol
+
+            correction_term = -as_ * (stage[k - 1] - stage[k])
+            dcol[k] = (dtr_stage * pos[k] + tens[k] + tensstage[k] +
+                       correction_term)
+
+            dcol[k] = ((dcol[k] - dcol[k - 1] * acol) /
+                       (bcol - ccol[k - 1] * acol))
+
+        def backward_sweep(pos, tensstage):
+            k = domain[2] - 1
+            datacol[k] = dcol[k]
+            ccol[k] = datacol[k]
+            tensstage[k] = dtr_stage * (datacol[k] - pos[k])
+
+            for k in range(domain[2] - 2, -1, -1):
+                datacol[k] = dcol[k] - ccol[k] * datacol[k + 1]
+                ccol[k] = datacol[k]
+                tensstage[k] = dtr_stage * (datacol[k] - pos[k])
+
+        forward_sweep(1, 0, ustage, upos, utens, utensstage)
+        backward_sweep(upos, utensstage)
+
+        forward_sweep(0, 1, vstage, vpos, vtens, vtensstage)
+        backward_sweep(vpos, vtensstage)
+
+        forward_sweep(0, 0, wstage, wpos, wtens, wtensstage)
+        backward_sweep(wpos, wtensstage)
+
+        validation.check_equality(data_before.utensstage,
+                                  data_after.utensstage)
+        validation.check_equality(data_before.vtensstage,
+                                  data_after.vtensstage)
+        validation.check_equality(data_before.wtensstage,
+                                  data_after.wtensstage)
