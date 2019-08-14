@@ -26,7 +26,9 @@ def _cli_func(bmark):
         results = [bmark_instance.run() for _ in range(ctx.obj.executions)]
 
         table = pd.DataFrame(results)
-        print(table.agg(['median', 'min', 'max']).T)
+        if ctx.obj.metric:
+            table = table[list(ctx.obj.metric)]
+        click.echo(table.agg(ctx.obj.aggregation).T)
 
     func = run_bmark
     for name, param in bmark.parameters.items():
@@ -47,10 +49,17 @@ def _cli_func(bmark):
 
 
 @click.group()
-@click.option('--executions', type=int, default=1)
+@click.option('--executions', '-e', type=int, default=1)
+@click.option('--aggregation',
+              '-a',
+              multiple=True,
+              default=['median', 'min', 'max'])
+@click.option('--metric', '-m', multiple=True)
 @click.pass_context
-def _cli(ctx, executions):
+def _cli(ctx, executions, aggregation, metric):
     ctx.obj.executions = executions
+    ctx.obj.aggregation = aggregation
+    ctx.obj.metric = metric
 
 
 def _build(commands):
