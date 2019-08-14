@@ -1,4 +1,4 @@
-from .mixin import BasicStencilMixin
+from .mixin import BasicStencilMixin, HorizontalDiffusionMixin
 from ..base import HorizontalDiffusionStencil
 
 
@@ -49,3 +49,15 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
                 out[index] = inp_ij - coeff[index] * (flx_ij - flx_imj +
                                         fly_ij - fly_ijm);
                 '''
+
+
+class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass
+
+
+class ReducedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass
+
+
+class MinimumMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass

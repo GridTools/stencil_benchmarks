@@ -1,0 +1,58 @@
+#include <algorithm>
+#include <cstdint>
+
+extern "C" void kernel(
+  {%- for arg in args %}
+    {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+  {%- endfor %}
+) {
+#pragma omp parallel
+  {
+    {{ctype }} lap[{{ block_size[0] }} + 2];
+    {{ctype }} flx[{{ block_size[0] }} + 2];
+    {{ctype }} fly[{{ block_size[0] }} + 2];
+#pragma omp for collapse(3)
+    for (std::ptrdiff_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
+      for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+            const std::ptrdiff_t imax = std::min({{ domain[0] }} - ib, (std::ptrdiff_t){{ block_size[0] }});
+            const std::ptrdiff_t jmax = std::min({{ domain[1] }} - jb, (std::ptrdiff_t){{ block_size[1] }});
+          {%- if block_size[2] > 1 %}
+            const std::ptrdiff_t kmax = std::min({{ domain[2] }} - kb, (std::ptrdiff_t){{ block_size[2] }});
+            for (std::ptrdiff_t k = 0; k < kmax; ++k) {
+          {%- else %}
+            const std::ptrdiff_t k = 0;
+            {
+          {%- endif %}
+
+              for (std::ptrdiff_t j = -2; j < jmax; ++j) {
+#pragma omp simd
+                for (std::ptrdiff_t i = -1; i < imax + 1; ++i) {
+                  const std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
+                  const {{ctype}} lap_ijp1 = 4 * inp[index + {{ strides[1] }}] - inp[index - {{ strides[0] }} + {{ strides[1] }}]
+                                                                               - inp[index + {{ strides[0] }} + {{ strides[1] }}]
+                                                                               - inp[index]
+                                                                               - inp[index + 2 * {{ strides[1] }}];
+                  if (j >= -1) {
+                    {{ ctype }} flx_ij = lap[i + 2] - lap[i + 1];
+                    flx[i + 1] = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
+
+                    {{ ctype }} fly_ij = lap_ijp1 - lap[i + 1];
+                    fly_ij = fly_ij * (inp[index + {{ strides[1] }}] - inp[index]) > 0 ? 0 : fly_ij;
+
+                    if (i >= 0 && i < imax && j >= 0) {
+                      out[index] = inp[index] - coeff[index] * (flx[i + 1] - flx[i] +
+                                                                fly_ij - fly[i + 1]);
+                    }
+                    fly[i + 1] = fly_ij;
+                  }
+                  lap[i + 1] = lap_ijp1;
+                }
+              }
+            }
+        }
+      }
+    }
+  }
+}
