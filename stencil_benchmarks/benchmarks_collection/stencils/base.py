@@ -1,7 +1,6 @@
 import abc
 import collections
 import copy
-import time
 
 import numpy as np
 
@@ -13,11 +12,19 @@ from ...tools import array, validation
 
 class Stencil(Benchmark):
     domain = Parameter('domain size', (128, 128, 80))
-    data_sets = Parameter('number of data sets', 1)
-    halo = Parameter('halo size along horizontal dimensions', 3)
-    dtype = Parameter('data type', 'float64')
-    layout = Parameter('data layout', (2, 1, 0))
+    data_sets = Parameter(
+        'number of data sets, if bigger than one, data sets are cycled before '
+        'each execution to start with cold cache', 1)
+    halo = Parameter('halo size', 3)
+    dtype = Parameter('data type in numpy format, e.g. float32 or float64',
+                      'float64')
+    layout = Parameter('data layout, 0 means innermost dimension, 2 outermost',
+                       (2, 1, 0))
     alignment = Parameter('data alignment in bytes', 0)
+    huge_pages = Parameter('use huge pages', False)
+    offset_allocations = Parameter(
+        'offset allocated data by some bytes to minimize cache conflicts',
+        True)
     verify = Parameter('enable verification', True)
 
     def setup(self):
@@ -44,19 +51,23 @@ class Stencil(Benchmark):
         self._run = 0
 
     def empty_field(self):
+        if self.huge_pages:
+            alloc, free = array.huge_alloc, array.huge_free
+        else:
+            alloc, free = array.cmalloc, array.cfree
         return array.alloc_array(self.domain_with_halo,
                                  self.dtype,
                                  self.layout,
                                  self.alignment,
-                                 index_to_align=(self.halo, self.halo,
-                                                 self.halo),
-                                 alloc=array.huge_alloc,
-                                 free=array.huge_free)
+                                 index_to_align=(self.halo, ) * 3,
+                                 alloc=alloc,
+                                 free=free,
+                                 apply_offset=self.offset_allocations)
 
     def random_field(self):
         data = self.empty_field()
-        # data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
-        #     self.dtype)
+        data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
+            self.dtype)
         return data
 
     @property

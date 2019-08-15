@@ -18,7 +18,7 @@ class TestAllocBuffer(unittest.TestCase):
             address += nbytes
             return fake_pointer
 
-        def mock_free(pointer):
+        def mock_free(pointer, nbytes):
             allocated.remove(pointer)
 
         buffers = []
@@ -53,7 +53,7 @@ class TestCmallocCfree(unittest.TestCase):
         for i in range(size):
             self.assertEqual(buffer[i], 42 * i)
 
-        array.cfree(pointer)
+        array.cfree(pointer, size * 4)
 
 
 class TestAllocArray(unittest.TestCase):
