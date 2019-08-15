@@ -1,11 +1,15 @@
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 
-extern "C" void kernel(
+extern "C" double kernel(
   {%- for arg in args %}
     {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
   {%- endfor %}
 ) {
+  using clock = std::chrono::high_resolution_clock;
+  auto start = clock::now();
+
 #pragma omp parallel for collapse(3)
   for (std::ptrdiff_t ib = 0; ib < {{ sorted_domain[0] }}; ib += {{ sorted_block_size[0] }}) {
     for (std::ptrdiff_t jb = 0; jb < {{ sorted_domain[1] }}; jb += {{ sorted_block_size[1] }}) {
@@ -26,7 +30,10 @@ extern "C" void kernel(
             {%- endif %}
                 {%- if sorted_block_size[2] > 1 %}
                   const std::ptrdiff_t kmax = std::min((std::ptrdiff_t){{ sorted_domain[2] }}, kb + {{ sorted_block_size[2] }});
-                  #pragma omp simd
+#pragma omp simd
+#ifdef __INTEL_COMPILER
+#pragma vector nontemporal
+#endif
                   for (std::ptrdiff_t k = kb; k < kmax; ++k) {
                 {%- else %}
                   const std::ptrdiff_t k = kb;
@@ -41,4 +48,7 @@ extern "C" void kernel(
       }
     }
   }
+
+  auto stop = clock::now();
+  return std::chrono::duration<double>(stop - start).count();
 }

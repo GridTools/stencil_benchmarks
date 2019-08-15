@@ -1,12 +1,19 @@
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 
-extern "C" void kernel(
+extern "C" double kernel(
   {% for arg in args %}
     {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
   {% endfor %}
 ) {
+  using clock = std::chrono::high_resolution_clock;
+  auto start = clock::now();
+
 #pragma omp parallel for simd collapse(3)
+#ifdef __INTEL_COMPILER
+#pragma vector nontemporal
+#endif
   for (std::ptrdiff_t i = 0; i < {{ sorted_domain[0] }}; ++i) {
     for (std::ptrdiff_t j = 0; j < {{ sorted_domain[1] }}; ++j) {
       for (std::ptrdiff_t k = 0; k < {{ sorted_domain[2] }}; ++k) {
@@ -15,4 +22,7 @@ extern "C" void kernel(
       }
     }
   }
+
+  auto stop = clock::now();
+  return std::chrono::duration<double>(stop - start).count();
 }

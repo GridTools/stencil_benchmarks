@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 
 #include <xmmintrin.h>
@@ -163,7 +164,7 @@ __attribute__((always_inline)) inline void backward_sweep(int i,
 
 
 
-extern "C" void kernel(
+extern "C" double kernel(
     const {{ ctype }} *__restrict__ ustage,
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
@@ -180,6 +181,8 @@ extern "C" void kernel(
     {{ ctype }} *__restrict__ ccol,
     {{ ctype }} *__restrict__ dcol,
     {{ ctype }} *__restrict__ datacol) {
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
 
 #pragma omp parallel for collapse(2)
     for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
@@ -212,5 +215,8 @@ extern "C" void kernel(
                 }
         }
     }
+
+    auto stop = clock::now();
+    return std::chrono::duration<double>(stop - start).count();
 }
 

@@ -1,6 +1,7 @@
 import numba
 
 from .. import base
+from ....tools import timing
 
 # pylint: disable=not-an-iterable
 
@@ -15,6 +16,7 @@ def copy_apply_kernel(domain, halo, inp, out):
 
 
 class Copy(base.CopyStencil):
+    @timing.return_time
     def run_stencil(self, data):
         copy_apply_kernel(self.domain, self.halo, *data)
 
@@ -42,6 +44,7 @@ def laplacian_ijk_apply_kernel(domain, halo, inp, out):
 
 
 class Laplacian(base.LaplacianStencil):
+    @timing.return_time
     def run_stencil(self, data):
         along = (self.along_x, self.along_y, self.along_z)
         if along == (True, True, False):

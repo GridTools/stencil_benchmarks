@@ -13,7 +13,6 @@ from ...tools import array, validation
 
 class Stencil(Benchmark):
     domain = Parameter('domain size', (128, 128, 80))
-    runs = Parameter('number of runs', 1)
     data_sets = Parameter('number of data sets', 1)
     halo = Parameter('halo size along horizontal dimensions', 3)
     dtype = Parameter('data type', 'float64')
@@ -42,6 +41,7 @@ class Stencil(Benchmark):
                                for _ in range(len(self.args)))
             for _ in range(self.data_sets)
         ]
+        self._run = 0
 
     def empty_field(self):
         return array.alloc_array(self.domain_with_halo,
@@ -49,12 +49,14 @@ class Stencil(Benchmark):
                                  self.layout,
                                  self.alignment,
                                  index_to_align=(self.halo, self.halo,
-                                                 self.halo))
+                                                 self.halo),
+                                 alloc=array.huge_alloc,
+                                 free=array.huge_free)
 
     def random_field(self):
         data = self.empty_field()
-        data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
-            self.dtype)
+        # data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
+        #     self.dtype)
         return data
 
     @property
@@ -93,20 +95,19 @@ class Stencil(Benchmark):
         pass
 
     def run(self):
+        data_index = self._run % self.data_sets
+
         if self.verify:
-            for data_set in range(self.data_sets):
-                data_before = copy.deepcopy(self._data[data_set])
-                self.run_stencil(self._data[data_set])
-                data_after = self._data[data_set]
-                self.verify_stencil(data_before, data_after)
+            data_before = copy.deepcopy(self._data[data_index])
 
-        start = time.perf_counter()
-        for run in range(self.runs):
-            self.run_stencil(self._data[run % self.data_sets])
-        stop = time.perf_counter()
+        run_time = self.run_stencil(self._data[data_index])
 
-        run_time = stop - start
-        bandwidth = self.data_size * self.runs / run_time / 1e9
+        if self.verify:
+            self.verify_stencil(data_before, self._data[data_index])
+
+        self._run += 1
+        assert run_time > 0
+        bandwidth = self.data_size / run_time / 1e9
         return {'time': run_time, 'bandwidth': bandwidth}
 
 

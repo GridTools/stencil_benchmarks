@@ -12,7 +12,8 @@ from ....tools import cpphelpers, compilation, template
 class StencilMixin(benchmark.Benchmark):
     compiler = benchmark.Parameter('compiler path', 'g++')
     compiler_flags = benchmark.Parameter(
-        'compiler flags', '-xc++ -Ofast -fopenmp -Wall -march=native')
+        'compiler flags',
+        '-xc++ -std=c++11 -Ofast -fopenmp -Wall -march=native')
     print_code = benchmark.Parameter('print generated code', False)
 
     def setup(self):
@@ -26,7 +27,8 @@ class StencilMixin(benchmark.Benchmark):
             print(cpphelpers.format_code(code))
 
         self.compiled = compilation.gnu_func(
-            [self.compiler] + self.compiler_flags.split(), code, 'kernel')
+            [self.compiler] + self.compiler_flags.split(), code, 'kernel',
+            float)
 
     @property
     def ctype_name(self):
@@ -58,7 +60,8 @@ class StencilMixin(benchmark.Benchmark):
 
     def run_stencil(self, data):
         offset = (self.halo, ) * 3
-        self.compiled(*(compilation.data_ptr(array, offset) for array in data))
+        return self.compiled(*(compilation.data_ptr(array, offset)
+                               for array in data))
 
 
 class BasicStencilMixin(StencilMixin):

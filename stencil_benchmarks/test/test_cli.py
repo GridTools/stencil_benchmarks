@@ -8,6 +8,6 @@ class TestMain(unittest.TestCase):
         main = cli.main()
         main(args=[
             '--executions', '10', 'stencils', 'numpy', 'basic', 'copy',
-            '--runs', '10', '--domain', '10', '10', '10'
+            '--domain', '10', '10', '10'
         ],
              standalone_mode=False)

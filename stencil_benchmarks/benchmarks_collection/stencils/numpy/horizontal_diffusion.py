@@ -1,9 +1,11 @@
 import numpy as np
 
 from ..base import HorizontalDiffusionStencil
+from ....tools import timing
 
 
 class OnTheFly(HorizontalDiffusionStencil):
+    @timing.return_time
     def run_stencil(self, data):
         inp, coeff, out = data
 
