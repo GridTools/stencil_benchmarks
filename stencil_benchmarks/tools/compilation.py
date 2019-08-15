@@ -18,8 +18,13 @@ def gnu_library(compile_command, code):
             return ctypes.cdll.LoadLibrary(library.name)
 
 
-def gnu_func(compile_command, code, funcname):
-    return getattr(gnu_library(compile_command, code), funcname)
+def gnu_func(compile_command, code, funcname, restype=None, argtypes=None):
+    func = getattr(gnu_library(compile_command, code), funcname)
+    if restype is not None:
+        func.restype = dtype_as_ctype(restype)
+    if argtypes is not None:
+        func.argtypes = [dtype_as_ctype(t) for t in argtypes]
+    return func
 
 
 def dtype_as_ctype(dtype):
