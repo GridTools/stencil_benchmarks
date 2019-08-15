@@ -103,7 +103,7 @@ def _report_progress(total):
 
     def report():
         nonlocal current
-        percent = 100 * current // (total - 1)
+        percent = min(100 * current // total, 100)
         click.echo('#' * percent + '-' * (100 - percent) + f' {percent:3}%\r',
                    nl=False)
         current += 1
@@ -143,15 +143,18 @@ def _cli_func(bmark):
         except KeyboardInterrupt:
             pass
         full_table = pd.concat(tables, ignore_index=True)
-        if non_unique:
-            medians = full_table.groupby(list(non_unique)).median()
-            if ctx.obj.report == 'best':
-                best = medians['time'].idxmin()
-                click.echo(medians.loc[[best]])
-            else:
-                click.echo(medians.to_string())
+        if ctx.obj.report == 'full':
+            click.echo(full_table.to_string())
         else:
-            click.echo(full_table.median().to_string())
+            if non_unique:
+                medians = full_table.groupby(list(non_unique)).median()
+                if ctx.obj.report == 'best-median':
+                    best = medians['time'].idxmin()
+                    click.echo(medians.loc[[best]])
+                else:
+                    click.echo(medians.to_string())
+            else:
+                click.echo(full_table.median().to_string())
 
     func = run_bmark
     for name, param in bmark.parameters.items():
@@ -175,8 +178,8 @@ def _cli_func(bmark):
 @click.option('--executions', '-e', type=int, default=1)
 @click.option('--report',
               '-r',
-              default='best',
-              type=click.Choice(['best', 'all']))
+              default='best-median',
+              type=click.Choice(['best-median', 'all-medians', 'full']))
 @click.pass_context
 def _cli(ctx, executions, report):
     ctx.obj.executions = executions
