@@ -32,16 +32,20 @@ class StencilMixin(benchmark.Benchmark):
         if self.compiler.endswith('icpc'):
             os.environ['KMP_INIT_AT_FORK'] = '0'
 
-        compile_command = [self.compiler]
+        self.compiled = compilation.gnu_func(self.compile_command(), code,
+                                             'kernel', float)
+
+    def compile_command(self):
+        command = [self.compiler]
         if self.platform_preset != 'none':
-            compile_command += ['-xc++', '-std=c++11', '-Wall', '-DNDEBUG']
+            command += ['-xc++', '-std=c++11', '-Wall', '-DNDEBUG']
             if self.compiler.endswith('icpc'):
-                compile_command += ['-qopenmp', '-ffreestanding', '-O3']
+                command += ['-qopenmp', '-ffreestanding', '-O3']
             else:
-                compile_command += ['-fopenmp', '-Ofast']
+                command += ['-fopenmp', '-Ofast']
 
             if self.platform_preset == 'native':
-                compile_command += ['-march=native', '-mtune=native', '-Ofast']
+                command += ['-march=native', '-mtune=native', '-Ofast']
             elif self.platform_preset == 'knl':
                 if not self.huge_pages:
                     warnings.warn('enabling huge pages on KNL is recommended '
@@ -51,16 +55,15 @@ class StencilMixin(benchmark.Benchmark):
                         'offsetting allocations on KNL is recommended '
                         '(use --offset-allocations to enable)')
                 if self.compiler.endswith('icpc'):
-                    compile_command += ['-xmic-avx512']
+                    command += ['-xmic-avx512']
                 else:
-                    compile_command += [
+                    command += [
                         '-march=knl', '-mtune=knl',
                         '-fvect-cost-model=unlimited'
                     ]
-        compile_command += self.compiler_flags.split()
-
-        self.compiled = compilation.gnu_func(compile_command, code, 'kernel',
-                                             float)
+        if self.compiler_flags:
+            command += self.compiler_flags.split()
+        return command
 
     @property
     def ctype_name(self):
