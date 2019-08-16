@@ -1,5 +1,6 @@
 import abc
 import os
+import warnings
 
 import numpy as np
 
@@ -11,9 +12,11 @@ from ....tools import cpphelpers, compilation, template
 
 class StencilMixin(benchmark.Benchmark):
     compiler = benchmark.Parameter('compiler path', 'g++')
-    compiler_flags = benchmark.Parameter(
-        'compiler flags',
-        '-xc++ -std=c++11 -Ofast -fopenmp -Wall -march=native')
+    compiler_flags = benchmark.Parameter('compiler flags', '')
+    platform_preset = benchmark.Parameter(
+        'preset flags for specific hardware platform',
+        'native',
+        choices=['none', 'native', 'knl'])
     print_code = benchmark.Parameter('print generated code', False)
 
     def setup(self):
@@ -26,9 +29,38 @@ class StencilMixin(benchmark.Benchmark):
         if self.print_code:
             print(cpphelpers.format_code(code))
 
-        self.compiled = compilation.gnu_func(
-            [self.compiler] + self.compiler_flags.split(), code, 'kernel',
-            float)
+        if self.compiler.endswith('icpc'):
+            os.environ['KMP_INIT_AT_FORK'] = '0'
+
+        compile_command = [self.compiler]
+        if self.platform_preset != 'none':
+            compile_command += ['-xc++', '-std=c++11', '-Wall', '-DNDEBUG']
+            if self.compiler.endswith('icpc'):
+                compile_command += ['-qopenmp', '-ffreestanding', '-O3']
+            else:
+                compile_command += ['-fopenmp', '-Ofast']
+
+            if self.platform_preset == 'native':
+                compile_command += ['-march=native', '-mtune=native', '-Ofast']
+            elif self.platform_preset == 'knl':
+                if not self.huge_pages:
+                    warnings.warn('enabling huge pages on KNL is recommended '
+                                  '(use --huge-pages to enable)')
+                if not self.offset_allocations:
+                    warnings.warn(
+                        'offsetting allocations on KNL is recommended '
+                        '(use --offset-allocations to enable)')
+                if self.compiler.endswith('icpc'):
+                    compile_command += ['-xmic-avx512']
+                else:
+                    compile_command += [
+                        '-march=knl', '-mtune=knl',
+                        '-fvect-cost-model=unlimited'
+                    ]
+        compile_command += self.compiler_flags.split()
+
+        self.compiled = compilation.gnu_func(compile_command, code, 'kernel',
+                                             float)
 
     @property
     def ctype_name(self):
