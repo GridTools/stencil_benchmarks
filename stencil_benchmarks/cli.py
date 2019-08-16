@@ -19,7 +19,8 @@ class MaybeRange(click.ParamType):
         self.base_type = base_type
 
     def convert(self, value, param, ctx):
-        if isinstance(value, str) and value[0] == '[' and value[-1] == ']':
+        if isinstance(value, str) and len(
+                value) >= 2 and value[0] == '[' and value[-1] == ']':
             range_value = value[1:-1]
             if ',' in range_value:
                 return [
