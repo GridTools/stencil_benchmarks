@@ -1,0 +1,234 @@
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+
+{%- if backend == "hip" %}
+#include <hip/hip_runtime.h>
+{% endif %}
+
+__forceinline__ __device__ void backward_sweep(const {{ ctype }} *ccol,
+    const {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage) {
+    constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
+    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
+
+    {{ ctype }} datacol;
+
+    if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
+        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + ({{ domain[2] }} - 1) * {{ strides[2] }};
+        // k maximum
+        {
+            datacol = dcol[index];
+            utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+            index -= {{ strides[2] }};
+        }
+
+        // k body
+        for (std::ptrdiff_t k = {{ domain[2] }} - 2; k >= 0; --k) {
+            datacol = dcol[index] - ccol[index] * datacol;
+            utensstage[index] = dtr_stage * (datacol - upos[index]);
+
+            index -= {{ strides[2] }};
+        }
+    }
+}
+
+__forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
+    const std::ptrdiff_t jshift,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+    constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+    constexpr {{ ctype }} beta_v = 0;
+    constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
+    constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
+    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
+    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
+
+    {{ ctype }} ccol0, ccol1;
+    {{ ctype }} dcol0, dcol1;
+    {{ ctype }} ustage0, ustage1, ustage2;
+    {{ ctype }} wcon0, wcon1;
+    {{ ctype }} wcon_shift0, wcon_shift1;
+
+    if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
+        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
+        // k minimum
+        {
+            wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+            wcon0 = wcon[index + {{ strides[2] }}];
+            {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+            {{ ctype }} cs = gcv * bet_m;
+
+            ccol0 = gcv * bet_p;
+            {{ ctype }} bcol = dtr_stage - ccol0;
+
+            ustage0 = ustage[index + {{ strides[2] }}];
+            ustage1 = ustage[index];
+            {{ ctype }} correction_term = -cs * (ustage0 - ustage1);
+            dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+            {{ ctype }} divided = {{ ctype }}(1.0) / bcol;
+            ccol0 = ccol0 * divided;
+            dcol0 = dcol0 * divided;
+
+            ccol[index] = ccol0;
+            dcol[index] = dcol0;
+
+            index += {{ strides[2] }};
+        }
+
+        // k body
+        for (std::ptrdiff_t k = 1; k < {{ domain[2] }} - 1; ++k) {
+            ccol1 = ccol0;
+            dcol1 = dcol0;
+            ustage2 = ustage1;
+            ustage1 = ustage0;
+            wcon1 = wcon0;
+            wcon_shift1 = wcon_shift0;
+
+            {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+            wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+            wcon0 = wcon[index + {{ strides[2] }}];
+            {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+
+            {{ ctype }} as = gav * bet_m;
+            {{ ctype }} cs = gcv * bet_m;
+
+            {{ ctype }} acol = gav * bet_p;
+            ccol0 = gcv * bet_p;
+            {{ ctype }} bcol = dtr_stage - acol - ccol0;
+
+            ustage0 = ustage[index + {{ strides[2] }}];
+            {{ ctype }} correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
+            dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+            {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+            ccol0 = ccol0 * divided;
+            dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+            ccol[index] = ccol0;
+            dcol[index] = dcol0;
+
+            index += {{ strides[2] }};
+        }
+
+        // k maximum
+        {
+            ccol1 = ccol0;
+            dcol1 = dcol0;
+            ustage2 = ustage1;
+            ustage1 = ustage0;
+            wcon1 = wcon0;
+            wcon_shift1 = wcon_shift0;
+
+            {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+
+            {{ ctype }} as = gav * bet_m;
+
+            {{ ctype }} acol = gav * bet_p;
+            {{ ctype }} bcol = dtr_stage - acol;
+
+            {{ ctype }} correction_term = -as * (ustage2 - ustage1);
+            dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+
+            {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+            dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+            ccol[index] = ccol0;
+            dcol[index] = dcol0;
+        }
+    }
+}
+
+
+__global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kernel(
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    {{ ctype }} *__restrict__ utensstage,
+    const {{ ctype }} *__restrict__ vstage,
+    const {{ ctype }} *__restrict__ vpos,
+    const {{ ctype }} *__restrict__ vtens,
+    {{ ctype }} *__restrict__ vtensstage,
+    const {{ ctype }} *__restrict__ wstage,
+    const {{ ctype }} *__restrict__ wpos,
+    const {{ ctype }} *__restrict__ wtens,
+    {{ ctype }} *__restrict__ wtensstage,
+    const {{ ctype }} *__restrict__ wcon,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ datacol) {
+    forward_sweep(1,
+        0,
+        ccol,
+        dcol,
+        wcon,
+        ustage,
+        upos,
+        utens,
+        utensstage);
+    backward_sweep(ccol, dcol, upos, utensstage);
+
+    forward_sweep(0,
+        1,
+        ccol,
+        dcol,
+        wcon,
+        vstage,
+        vpos,
+        vtens,
+        vtensstage);
+    backward_sweep(ccol, dcol, vpos, vtensstage);
+
+    forward_sweep(0,
+        0,
+        ccol,
+        dcol,
+        wcon,
+        wstage,
+        wpos,
+        wtens,
+        wtensstage);
+    backward_sweep(ccol, dcol, wpos, wtensstage);
+
+}
+
+extern "C" double kernel(
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    dim3 block_size({{ block_size[0] }},
+                    {{ block_size[1] }},
+                    1);
+    dim3 grid_size(({{ domain[0] }} + block_size.x - 1) / block_size.x,
+                   ({{ domain[1] }} + block_size.y - 1) / block_size.y,
+                   1);
+
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
+
+    gpu_kernel<<<grid_size, block_size>>>(
+        {% for arg in args %}
+            {{ arg }}{{ "," if not loop.last }}
+        {%- endfor %}
+    );
+    {{ backend }}Error_t err;
+    if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
+        std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
+    }
+    if ((err = {{ backend }}DeviceSynchronize()) != {{ backend }}Success) {
+        std::cerr << "synchronization failure: " << {{ backend }}GetErrorString(err) << std::endl;
+    }
+
+    auto stop = clock::now();
+    return std::chrono::duration<double>(stop - start).count();
+}

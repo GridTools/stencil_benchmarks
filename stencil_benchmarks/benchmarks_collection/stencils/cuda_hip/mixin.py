@@ -149,6 +149,12 @@ class BasicStencilMixin(StencilMixin):
     loop = benchmark.Parameter('loop kind', '1D', choices=['1D', '3D'])
     block_size = benchmark.Parameter('block_size', (1024, 1, 1))
 
+    def setup(self):
+        super().setup()
+        if self.loop == '1D' and sum(b != 1 for b in self.block_size) == 1:
+            raise benchmark.ParameterError('block size must be 1 along '
+                                           'all but one direction')
+
     @abc.abstractmethod
     def stencil_body(self):
         pass
@@ -166,4 +172,19 @@ class BasicStencilMixin(StencilMixin):
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
                     body=self.stencil_body(),
+                    backend=self.backend)
+
+
+class VerticalAdvectionMixin(StencilMixin):
+    block_size = benchmark.Parameter('block size', (32, 1))
+
+    def template_file(self):
+        return ('vertical_advection_' + type(self).__name__.lower() + '.j2')
+
+    def template_args(self):
+        return dict(args=self.args,
+                    ctype=self.ctype_name,
+                    strides=self.strides,
+                    domain=self.domain,
+                    block_size=self.block_size,
                     backend=self.backend)

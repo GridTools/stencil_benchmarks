@@ -1,9 +1,9 @@
 from . import basic
 # from . import horizontal_diffusion
-# from . import vertical_advection
+from . import vertical_advection
 
 __all__ = [
-    'basic'  # ,
+    'basic',
     # 'horizontal_diffusion',
-    # 'vertical_advection'
+    'vertical_advection'
 ]
