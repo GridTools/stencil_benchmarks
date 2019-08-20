@@ -12,9 +12,9 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] * block_size[
     {%- endfor %}
 ) {
     {%- if block_size[2] > 1 %}
-        std::ptrdiff_t index = {{ block_size[2] }}  * blockIdx.z + threadIdx.z;
+        std::ptrdiff_t index = {{ block_size[2] }} * blockIdx.z + threadIdx.z;
     {%- elif block_size[1] > 1 %}
-        std::ptrdiff_t index = {{ block_size[1] }}  * blockIdx.y + threadIdx.y;
+        std::ptrdiff_t index = {{ block_size[1] }} * blockIdx.y + threadIdx.y;
     {%- else %}
         std::ptrdiff_t index = {{ block_size[0] }} * blockIdx.x + threadIdx.x;
     {%- endif %}
