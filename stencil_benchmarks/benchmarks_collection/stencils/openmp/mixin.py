@@ -110,7 +110,7 @@ class BasicStencilMixin(StencilMixin):
         pass
 
     def template_file(self):
-        return 'basic_' + self.loop.lower().replace("-", "_") + '.template'
+        return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
 
     def template_args(self):
         return dict(args=self.args,
@@ -128,8 +128,7 @@ class VerticalAdvectionMixin(StencilMixin):
     block_size = benchmark.Parameter('block size', (1, 1))
 
     def template_file(self):
-        return ('vertical_advection_' + type(self).__name__.lower() +
-                '.template')
+        return ('vertical_advection_' + type(self).__name__.lower() + '.j2')
 
     def template_args(self):
         return dict(args=self.args,
@@ -143,8 +142,7 @@ class HorizontalDiffusionMixin(StencilMixin):
     block_size = benchmark.Parameter('block size', (1, 1, 1))
 
     def template_file(self):
-        return ('horizontal_diffusion_' + type(self).__name__.lower() +
-                '.template')
+        return ('horizontal_diffusion_' + type(self).__name__.lower() + '.j2')
 
     def template_args(self):
         return dict(args=self.args,
