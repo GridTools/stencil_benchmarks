@@ -1,0 +1,55 @@
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+
+{%- if backend == "hip" %}
+#include <hip/hip_runtime.h>
+{% endif %}
+
+__global__ void __launch_bounds__({{ block_size[0] * block_size[1] * block_size[2] }}) gpu_kernel(
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    std::ptrdiff_t i = {{ sorted_block_size[0] }} * blockIdx.z + threadIdx.z;
+    std::ptrdiff_t j = {{ sorted_block_size[1] }} * blockIdx.y + threadIdx.y;
+    std::ptrdiff_t k = {{ sorted_block_size[2] }} * blockIdx.x + threadIdx.x;
+
+    if (i < {{ sorted_domain[0] }} &&
+        j < {{ sorted_domain[1] }} && 
+        k < {{ sorted_domain[2] }}) {
+        std::ptrdiff_t index = i * {{ sorted_strides[0] }} + j * {{ sorted_strides[1] }} + k * {{ sorted_strides[2] }};
+        {{ body }}
+    }
+}
+
+extern "C" double kernel(
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    dim3 block_size({{ sorted_block_size[2] }},
+                    {{ sorted_block_size[1] }},
+                    {{ sorted_block_size[0] }});
+    dim3 grid_size({{ (sorted_domain[2] + sorted_block_size[2] - 1) // sorted_block_size[2] }},
+                   {{ (sorted_domain[1] + sorted_block_size[1] - 1) // sorted_block_size[1] }},
+                   {{ (sorted_domain[0] + sorted_block_size[0] - 1) // sorted_block_size[0] }});
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
+
+    gpu_kernel<<<grid_size, block_size>>>(
+        {% for arg in args %}
+            {{ arg }}{{ "," if not loop.last }}
+        {%- endfor %}
+    );
+    {{ backend }}Error_t err;
+    if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
+        std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
+    }
+    if ((err = {{ backend }}DeviceSynchronize()) != {{ backend }}Success) {
+        std::cerr << "synchronization failure: " << {{ backend }}GetErrorString(err) << std::endl;
+    }
+
+    auto stop = clock::now();
+    return std::chrono::duration<double>(stop - start).count();
+}

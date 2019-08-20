@@ -1,0 +1,387 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BasicStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class BasicStencil(Stencil):$/;"	c
+BasicStencilMixin	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^from .mixin import BasicStencilMixin$/;"	i
+BasicStencilMixin	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^class BasicStencilMixin(StencilMixin):$/;"	c
+BasicStencilMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^from .mixin import BasicStencilMixin$/;"	i
+BasicStencilMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^from .mixin import BasicStencilMixin, HorizontalDiffusionMixin$/;"	i
+BasicStencilMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^class BasicStencilMixin(StencilMixin):$/;"	c
+Benchmark	stencil_benchmarks/benchmark.py	/^class Benchmark(metaclass=BenchmarkMeta):$/;"	c
+Benchmark	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^from ...benchmark import Benchmark, Parameter, ParameterError$/;"	i
+BenchmarkMeta	stencil_benchmarks/benchmark.py	/^class BenchmarkMeta(abc.ABCMeta):$/;"	c
+BenchmarkTest	stencil_benchmarks/test/test_benchmark.py	/^class BenchmarkTest(unittest.TestCase):$/;"	c
+Classic	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):$/;"	c
+Copy	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^class Copy(BasicStencilMixin, CopyStencil):$/;"	c
+Copy	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^class Copy(base.CopyStencil):$/;"	c
+Copy	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^class Copy(CopyStencil):$/;"	c
+Copy	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^class Copy(BasicStencilMixin, CopyStencil):$/;"	c
+Copy1D	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^class Copy1D(CopyStencil):$/;"	c
+CopyStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class CopyStencil(BasicStencil):$/;"	c
+CopyStencil	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^from ..base import (CopyStencil, OnesidedAverageStencil,$/;"	i
+CopyStencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^from ..base import (CopyStencil, OnesidedAverageStencil,$/;"	i
+CopyStencil	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^from ..base import (CopyStencil, OnesidedAverageStencil,$/;"	i
+DerivedBenchmark	stencil_benchmarks/test/test_benchmark.py	/^class DerivedBenchmark(SomeBenchmark):$/;"	c
+HorizontalDiffusionMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^from .mixin import BasicStencilMixin, HorizontalDiffusionMixin$/;"	i
+HorizontalDiffusionMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^class HorizontalDiffusionMixin(StencilMixin):$/;"	c
+HorizontalDiffusionStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class HorizontalDiffusionStencil(Stencil):$/;"	c
+HorizontalDiffusionStencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/horizontal_diffusion.py	/^from ..base import HorizontalDiffusionStencil$/;"	i
+HorizontalDiffusionStencil	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^from ..base import HorizontalDiffusionStencil$/;"	i
+KInnermost	stencil_benchmarks/benchmarks_collection/stencils/openmp/vertical_advection.py	/^class KInnermost(VerticalAdvectionMixin, VerticalAdvectionStencil):$/;"	c
+KMiddle	stencil_benchmarks/benchmarks_collection/stencils/openmp/vertical_advection.py	/^class KMiddle(VerticalAdvectionMixin, VerticalAdvectionStencil):$/;"	c
+Laplacian	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^class Laplacian(BasicStencilMixin, LaplacianStencil):$/;"	c
+Laplacian	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^class Laplacian(base.LaplacianStencil):$/;"	c
+Laplacian	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^class Laplacian(LaplacianStencil):$/;"	c
+Laplacian	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^class Laplacian(BasicStencilMixin, LaplacianStencil):$/;"	c
+LaplacianStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class LaplacianStencil(BasicStencil):$/;"	c
+MAIN	bin/sbench	/^MAIN = stencil_benchmarks.cli.main()$/;"	v
+MaybeRange	stencil_benchmarks/cli.py	/^class MaybeRange(click.ParamType):$/;"	c
+MinimumMem	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^class MinimumMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):$/;"	c
+OnTheFly	stencil_benchmarks/benchmarks_collection/stencils/numpy/horizontal_diffusion.py	/^class OnTheFly(HorizontalDiffusionStencil):$/;"	c
+OnTheFly	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):$/;"	c
+OnesidedAverage	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^class OnesidedAverage(BasicStencilMixin, OnesidedAverageStencil):$/;"	c
+OnesidedAverage	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^class OnesidedAverage(OnesidedAverageStencil):$/;"	c
+OnesidedAverage	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^class OnesidedAverage(BasicStencilMixin, OnesidedAverageStencil):$/;"	c
+OnesidedAverageStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class OnesidedAverageStencil(BasicStencil):$/;"	c
+OnesidedAverageStencil	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^from ..base import (CopyStencil, OnesidedAverageStencil,$/;"	i
+OnesidedAverageStencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^from ..base import (CopyStencil, OnesidedAverageStencil,$/;"	i
+OnesidedAverageStencil	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^from ..base import (CopyStencil, OnesidedAverageStencil,$/;"	i
+Parameter	stencil_benchmarks/benchmark.py	/^class Parameter:$/;"	c
+Parameter	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^from ...benchmark import Benchmark, Parameter, ParameterError$/;"	i
+ParameterError	stencil_benchmarks/benchmark.py	/^class ParameterError(ValueError):$/;"	c
+ParameterError	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^from ...benchmark import Benchmark, Parameter, ParameterError$/;"	i
+REGISTRY	stencil_benchmarks/benchmark.py	/^REGISTRY = set()$/;"	v
+ReducedMem	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^class ReducedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):$/;"	c
+SomeBenchmark	stencil_benchmarks/test/test_benchmark.py	/^class SomeBenchmark(benchmark.Benchmark):$/;"	c
+Stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class Stencil(Benchmark):$/;"	c
+StencilMixin	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^class StencilMixin(benchmark.Benchmark):$/;"	c
+StencilMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^class StencilMixin(benchmark.Benchmark):$/;"	c
+SymmetricAverage	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^class SymmetricAverage(BasicStencilMixin, SymmetricAverageStencil):$/;"	c
+SymmetricAverage	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^class SymmetricAverage(SymmetricAverageStencil):$/;"	c
+SymmetricAverage	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^class SymmetricAverage(BasicStencilMixin, SymmetricAverageStencil):$/;"	c
+SymmetricAverageStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class SymmetricAverageStencil(BasicStencil):$/;"	c
+TestAllBenchmarks	stencil_benchmarks/test/benchmarks_collection/test_benchmarks_collection.py	/^class TestAllBenchmarks(unittest.TestCase):$/;"	c
+TestAllocArray	stencil_benchmarks/test/tools/test_array.py	/^class TestAllocArray(unittest.TestCase):$/;"	c
+TestAllocBuffer	stencil_benchmarks/test/tools/test_array.py	/^class TestAllocBuffer(unittest.TestCase):$/;"	c
+TestCmallocCfree	stencil_benchmarks/test/tools/test_array.py	/^class TestCmallocCfree(unittest.TestCase):$/;"	c
+TestCtypeCnam	stencil_benchmarks/test/tools/test_compilation.py	/^class TestCtypeCnam(unittest.TestCase):$/;"	c
+TestDataPtr	stencil_benchmarks/test/tools/test_compilation.py	/^class TestDataPtr(unittest.TestCase):$/;"	c
+TestDtypeAsCtype	stencil_benchmarks/test/tools/test_compilation.py	/^class TestDtypeAsCtype(unittest.TestCase):$/;"	c
+TestFormatCode	stencil_benchmarks/test/tools/test_cpphelpers.py	/^class TestFormatCode(unittest.TestCase):$/;"	c
+TestGnuFunc	stencil_benchmarks/test/tools/test_compilation.py	/^class TestGnuFunc(unittest.TestCase):$/;"	c
+TestGnuLibrary	stencil_benchmarks/test/tools/test_compilation.py	/^class TestGnuLibrary(unittest.TestCase):$/;"	c
+TestMain	stencil_benchmarks/test/test_cli.py	/^class TestMain(unittest.TestCase):$/;"	c
+ValidationError	stencil_benchmarks/tools/validation.py	/^class ValidationError(RuntimeError):$/;"	c
+VerticalAdvectionMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^class VerticalAdvectionMixin(StencilMixin):$/;"	c
+VerticalAdvectionMixin	stencil_benchmarks/benchmarks_collection/stencils/openmp/vertical_advection.py	/^from .mixin import VerticalAdvectionMixin$/;"	i
+VerticalAdvectionStencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^class VerticalAdvectionStencil(Stencil):$/;"	c
+VerticalAdvectionStencil	stencil_benchmarks/benchmarks_collection/stencils/openmp/vertical_advection.py	/^from ..base import VerticalAdvectionStencil$/;"	i
+Wrapper	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^        class Wrapper:$/;"	c	function:VerticalAdvectionStencil.verify_stencil
+_LIBC	stencil_benchmarks/tools/array.py	/^_LIBC = ctypes.cdll.LoadLibrary('libc.so.6')$/;"	v
+_RANGE_TYPES	stencil_benchmarks/cli.py	/^_RANGE_TYPES = {$/;"	v
+__all__	stencil_benchmarks/benchmarks_collection/__init__.py	/^__all__ = ['stencils']$/;"	v
+__all__	stencil_benchmarks/benchmarks_collection/stencils/__init__.py	/^__all__ = ['cuda_hip', 'numba_cpu', 'numpy', 'openmp']$/;"	v
+__all__	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/__init__.py	/^__all__ = [$/;"	v
+__all__	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/__init__.py	/^__all__ = ['basic']$/;"	v
+__all__	stencil_benchmarks/benchmarks_collection/stencils/numpy/__init__.py	/^__all__ = ['basic', 'horizontal_diffusion']$/;"	v
+__all__	stencil_benchmarks/benchmarks_collection/stencils/openmp/__init__.py	/^__all__ = ['basic', 'horizontal_diffusion', 'vertical_advection']$/;"	v
+__eq__	stencil_benchmarks/benchmark.py	/^    def __eq__(self, other):$/;"	m	class:Parameter	file:
+__getitem__	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^            def __getitem__(self, index):$/;"	m	class:VerticalAdvectionStencil.verify_stencil.Wrapper	file:
+__init__	stencil_benchmarks/benchmark.py	/^    def __init__(self, **kwargs):$/;"	m	class:Benchmark
+__init__	stencil_benchmarks/benchmark.py	/^    def __init__(self,$/;"	m	class:Parameter
+__init__	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^            def __init__(self, data):$/;"	m	class:VerticalAdvectionStencil.verify_stencil.Wrapper
+__init__	stencil_benchmarks/cli.py	/^    def __init__(self, base_type):$/;"	m	class:MaybeRange
+__new__	stencil_benchmarks/benchmark.py	/^    def __new__(cls, name, bases, namespace):$/;"	m	class:BenchmarkMeta	file:
+__repr__	stencil_benchmarks/benchmark.py	/^    def __repr__(self):$/;"	m	class:Benchmark	file:
+__repr__	stencil_benchmarks/benchmark.py	/^    def __repr__(self):$/;"	m	class:Parameter	file:
+__setitem__	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^            def __setitem__(self, index, value):$/;"	m	class:VerticalAdvectionStencil.verify_stencil.Wrapper	file:
+__version__	stencil_benchmarks/__init__.py	/^__version__ = '0.0.0'$/;"	v
+_build	stencil_benchmarks/cli.py	/^def _build(commands):$/;"	f
+_cli	stencil_benchmarks/cli.py	/^def _cli(ctx, executions, report):$/;"	f
+_cli_command	stencil_benchmarks/cli.py	/^def _cli_command(bmark):$/;"	f
+_cli_func	stencil_benchmarks/cli.py	/^def _cli_func(bmark):$/;"	f
+_offset	stencil_benchmarks/tools/array.py	/^_offset = 64$/;"	v
+_report_progress	stencil_benchmarks/cli.py	/^def _report_progress(total):$/;"	f
+_unpack	stencil_benchmarks/cli.py	/^    def _unpack(arg):$/;"	f	function:_unpack_ranges
+_unpack_ranges	stencil_benchmarks/cli.py	/^def _unpack_ranges(**kwargs):$/;"	f
+abc	stencil_benchmarks/benchmark.py	/^import abc$/;"	i
+abc	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^import abc$/;"	i
+abc	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^import abc$/;"	i
+abc	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^import abc$/;"	i
+alignment	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    alignment = Parameter('data alignment in bytes', 0)$/;"	v	class:Stencil
+alloc_array	stencil_benchmarks/tools/array.py	/^def alloc_array(shape,$/;"	f
+alloc_buffer	stencil_benchmarks/tools/array.py	/^def alloc_buffer(nbytes, alloc, free):$/;"	f
+along_x	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    along_x = Parameter('include x-axis in Laplacian', True)$/;"	v	class:LaplacianStencil
+along_y	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    along_y = Parameter('include y-axis in Laplacian', True)$/;"	v	class:LaplacianStencil
+along_z	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    along_z = Parameter('include z-axis in Laplacian', False)$/;"	v	class:LaplacianStencil
+args	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def args(self):$/;"	m	class:BasicStencil
+args	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def args(self):$/;"	m	class:HorizontalDiffusionStencil
+args	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def args(self):$/;"	m	class:Stencil
+args	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def args(self):$/;"	m	class:VerticalAdvectionStencil
+array	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^from ...tools import array, validation$/;"	i
+array	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^from ....tools import array, cpphelpers, compilation, template$/;"	i
+array	stencil_benchmarks/test/tools/test_array.py	/^from stencil_benchmarks.tools import array$/;"	i
+author	setup.py	/^    author='Felix Thaler',$/;"	v
+author_email	setup.py	/^    author_email='thaler@cscs.ch',$/;"	v
+axis	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])$/;"	v	class:OnesidedAverageStencil
+axis	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])$/;"	v	class:SymmetricAverageStencil
+backend	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    backend = benchmark.Parameter($/;"	v	class:StencilMixin
+backward_sweep	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^        def backward_sweep(pos, tensstage):$/;"	f	function:VerticalAdvectionStencil.verify_stencil
+base	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^from .. import base$/;"	i
+basic	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/__init__.py	/^from . import basic$/;"	i
+basic	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/__init__.py	/^from . import basic$/;"	i
+basic	stencil_benchmarks/benchmarks_collection/stencils/numpy/__init__.py	/^from . import basic$/;"	i
+basic	stencil_benchmarks/benchmarks_collection/stencils/openmp/__init__.py	/^from . import basic$/;"	i
+benchmark	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^from .... import benchmark$/;"	i
+benchmark	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^from .... import benchmark$/;"	i
+benchmark	stencil_benchmarks/cli.py	/^from . import benchmark$/;"	i
+benchmark	stencil_benchmarks/test/benchmarks_collection/test_benchmarks_collection.py	/^from stencil_benchmarks import benchmark$/;"	i
+benchmark	stencil_benchmarks/test/test_benchmark.py	/^from stencil_benchmarks import benchmark$/;"	i
+benchmarks_collection	bin/sbench	/^import stencil_benchmarks.benchmarks_collection$/;"	i
+block_size	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    block_size = benchmark.Parameter('block_size', (1024, 1, 1))$/;"	v	class:BasicStencilMixin
+block_size	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    block_size = benchmark.Parameter('block size', (1, 1))$/;"	v	class:VerticalAdvectionMixin
+block_size	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    block_size = benchmark.Parameter('block size', (1, 1, 1))$/;"	v	class:HorizontalDiffusionMixin
+block_size	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    block_size = benchmark.Parameter('block_size', (1, 1, 1))$/;"	v	class:BasicStencilMixin
+build_click_hierarchy	stencil_benchmarks/cli.py	/^    def build_click_hierarchy(group, subcommands):$/;"	f	function:_build
+cfree	stencil_benchmarks/tools/array.py	/^def cfree(pointer, nbytes):$/;"	f
+check_equality	stencil_benchmarks/tools/validation.py	/^def check_equality(result, expected):$/;"	f
+check_type	stencil_benchmarks/test/tools/test_compilation.py	/^    def check_type(self, ctype, name):$/;"	m	class:TestCtypeCnam
+check_type	stencil_benchmarks/test/tools/test_compilation.py	/^    def check_type(self, dtype, ctype):$/;"	m	class:TestDtypeAsCtype
+choices	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^        choices=['cuda', 'hip'])$/;"	v	class:StencilMixin
+choices	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^                               choices=['1D', '3D', '3D-blocked'])$/;"	v	class:BasicStencilMixin
+choices	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^        choices=['none', 'native', 'knl'])$/;"	v	class:StencilMixin
+cli	bin/sbench	/^import stencil_benchmarks.cli$/;"	i
+cli	stencil_benchmarks/test/test_cli.py	/^from stencil_benchmarks import cli$/;"	i
+click	stencil_benchmarks/cli.py	/^import click$/;"	i
+cmalloc	stencil_benchmarks/tools/array.py	/^def cmalloc(nbytes):$/;"	f
+collections	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^import collections$/;"	i
+compilation	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^from ....tools import array, cpphelpers, compilation, template$/;"	i
+compilation	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^from ....tools import cpphelpers, compilation, template$/;"	i
+compilation	stencil_benchmarks/test/tools/test_compilation.py	/^from stencil_benchmarks.tools import compilation$/;"	i
+compile_command	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def compile_command(self):$/;"	m	class:StencilMixin
+compile_command	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def compile_command(self):$/;"	m	class:StencilMixin
+compiler	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    compiler = benchmark.Parameter('compiler path', 'nvcc')$/;"	v	class:StencilMixin
+compiler	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    compiler = benchmark.Parameter('compiler path', 'g++')$/;"	v	class:StencilMixin
+compiler_flags	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    compiler_flags = benchmark.Parameter('compiler flags', '')$/;"	v	class:StencilMixin
+compiler_flags	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    compiler_flags = benchmark.Parameter('compiler flags', '')$/;"	v	class:StencilMixin
+contextlib	stencil_benchmarks/cli.py	/^import contextlib$/;"	i
+convert	stencil_benchmarks/cli.py	/^    def convert(self, value, param, ctx):$/;"	m	class:MaybeRange
+copy	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^import copy$/;"	i
+copy	stencil_benchmarks/cli.py	/^import copy$/;"	i
+copy_apply_kernel	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^def copy_apply_kernel(domain, halo, inp, out):$/;"	f
+cpphelpers	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^from ....tools import array, cpphelpers, compilation, template$/;"	i
+cpphelpers	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^from ....tools import cpphelpers, compilation, template$/;"	i
+cpphelpers	stencil_benchmarks/test/tools/test_cpphelpers.py	/^from stencil_benchmarks.tools import cpphelpers$/;"	i
+ctype_cname	stencil_benchmarks/tools/compilation.py	/^def ctype_cname(ctype):$/;"	f
+ctype_name	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def ctype_name(self):$/;"	m	class:StencilMixin
+ctype_name	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def ctype_name(self):$/;"	m	class:StencilMixin
+ctypes	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^import ctypes$/;"	i
+ctypes	stencil_benchmarks/test/tools/test_array.py	/^import ctypes$/;"	i
+ctypes	stencil_benchmarks/test/tools/test_compilation.py	/^import ctypes$/;"	i
+ctypes	stencil_benchmarks/tools/array.py	/^import ctypes$/;"	i
+ctypes	stencil_benchmarks/tools/compilation.py	/^import ctypes$/;"	i
+cuda_free	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^def cuda_free(ptr, nbytes):$/;"	f
+cuda_hip	stencil_benchmarks/benchmarks_collection/stencils/__init__.py	/^from . import cuda_hip, numba_cpu, numpy, openmp$/;"	i
+cuda_malloc	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^def cuda_malloc(nbytes):$/;"	f
+cuda_memcpy	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^def cuda_memcpy(dst, src, nbytes, kind=None):$/;"	f
+data_ptr	stencil_benchmarks/tools/compilation.py	/^def data_ptr(array, offset=None):$/;"	f
+data_sets	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    data_sets = Parameter($/;"	v	class:Stencil
+data_size	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def data_size(self):$/;"	m	class:Stencil
+data_size	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def data_size(self):$/;"	m	class:VerticalAdvectionStencil
+description	setup.py	/^    description='Stencil code benchmarks.',$/;"	v
+domain	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    domain = Parameter('domain size', (128, 128, 80))$/;"	v	class:Stencil
+domain_with_halo	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def domain_with_halo(self):$/;"	m	class:Stencil
+dtype	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    dtype = Parameter('data type in numpy format, e.g. float32 or float64',$/;"	v	class:Stencil
+dtype_as_ctype	stencil_benchmarks/tools/compilation.py	/^def dtype_as_ctype(dtype):$/;"	f
+empty	stencil_benchmarks/cli.py	/^    def empty(_):$/;"	f	function:_build
+empty_field	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def empty_field(self):$/;"	m	class:Stencil
+format_code	stencil_benchmarks/tools/cpphelpers.py	/^def format_code(code):$/;"	f
+forward_sweep	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^        def forward_sweep(ishift, jshift, stage, pos, tens, tensstage):$/;"	f	function:VerticalAdvectionStencil.verify_stencil
+func	stencil_benchmarks/cli.py	/^    def func(*args, **kwargs):$/;"	f	function:main
+functools	stencil_benchmarks/tools/timing.py	/^import functools$/;"	i
+gnu_func	stencil_benchmarks/tools/compilation.py	/^def gnu_func(compile_command, code, funcname, restype=None, argtypes=None):$/;"	f
+gnu_library	stencil_benchmarks/tools/compilation.py	/^def gnu_library(compile_command, code):$/;"	f
+gpu_architecture	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    gpu_architecture = benchmark.Parameter('GPU architecture', '')$/;"	v	class:StencilMixin
+gpu_kernel	.compilation/tmpjl0t5zgd.cpp	/^__global__ void __launch_bounds__(1024) gpu_kernel($/;"	f
+halo	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    halo = Parameter('halo size', 3)$/;"	v	class:Stencil
+horizontal_diffusion	stencil_benchmarks/benchmarks_collection/stencils/numpy/__init__.py	/^from . import horizontal_diffusion$/;"	i
+horizontal_diffusion	stencil_benchmarks/benchmarks_collection/stencils/openmp/__init__.py	/^from . import horizontal_diffusion$/;"	i
+huge_alloc	stencil_benchmarks/tools/array.py	/^def huge_alloc(nbytes):$/;"	f
+huge_free	stencil_benchmarks/tools/array.py	/^def huge_free(pointer, nbytes):$/;"	f
+huge_pages	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    huge_pages = Parameter('use huge pages', False)$/;"	v	class:Stencil
+inner	stencil_benchmarks/tools/timing.py	/^    def inner(*args, **kwargs):$/;"	f	function:return_time
+inner_slice	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def inner_slice(self, shift=None, expand=None):$/;"	m	class:Stencil
+inspect	stencil_benchmarks/benchmark.py	/^import inspect$/;"	i
+install_requires	setup.py	/^    install_requires=['click', 'numba', 'numpy', 'pandas', 'jinja2'])$/;"	v
+itertools	stencil_benchmarks/cli.py	/^import itertools$/;"	i
+jinja2	stencil_benchmarks/tools/template.py	/^import jinja2$/;"	i
+kernel	.compilation/tmpjl0t5zgd.cpp	/^extern "C" double kernel($/;"	f
+laplacian_ij_apply_kernel	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^def laplacian_ij_apply_kernel(domain, halo, inp, out):$/;"	f
+laplacian_ijk_apply_kernel	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^def laplacian_ijk_apply_kernel(domain, halo, inp, out):$/;"	f
+layout	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    layout = Parameter('data layout, 0 means innermost dimension, 2 outermost',$/;"	v	class:Stencil
+long_description	setup.py	/^    long_description=long_description(),$/;"	v
+long_description	setup.py	/^def long_description():$/;"	f
+long_description_content_type	setup.py	/^    long_description_content_type='text\/markdown',$/;"	v
+loop	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    loop = benchmark.Parameter('loop kind', '1D', choices=['1D', '3D'])$/;"	v	class:BasicStencilMixin
+loop	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    loop = benchmark.Parameter('loop kind',$/;"	v	class:BasicStencilMixin
+main	stencil_benchmarks/cli.py	/^def main():$/;"	f
+mock_alloc	stencil_benchmarks/test/tools/test_array.py	/^        def mock_alloc(nbytes):$/;"	f	function:TestAllocBuffer.test_alloc_free
+mock_free	stencil_benchmarks/test/tools/test_array.py	/^        def mock_free(pointer, nbytes):$/;"	f	function:TestAllocBuffer.test_alloc_free
+name	setup.py	/^    name='stencil_benchmarks',$/;"	v
+name	stencil_benchmarks/cli.py	/^    name = 'range or value'$/;"	v	class:MaybeRange
+np	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/benchmarks_collection/stencils/numpy/horizontal_diffusion.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/test/tools/test_array.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/test/tools/test_compilation.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/tools/array.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/tools/compilation.py	/^import numpy as np$/;"	i
+np	stencil_benchmarks/tools/validation.py	/^import numpy as np$/;"	i
+numba	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^import numba$/;"	i
+numba_cpu	stencil_benchmarks/benchmarks_collection/stencils/__init__.py	/^from . import cuda_hip, numba_cpu, numpy, openmp$/;"	i
+numpy	stencil_benchmarks/benchmarks_collection/stencils/__init__.py	/^from . import cuda_hip, numba_cpu, numpy, openmp$/;"	i
+offset_allocations	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    offset_allocations = Parameter($/;"	v	class:Stencil
+openmp	stencil_benchmarks/benchmarks_collection/stencils/__init__.py	/^from . import cuda_hip, numba_cpu, numpy, openmp$/;"	i
+operator	stencil_benchmarks/cli.py	/^import operator$/;"	i
+os	setup.py	/^import os$/;"	i
+os	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^import os$/;"	i
+os	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^import os$/;"	i
+packages	setup.py	/^    packages=setuptools.find_packages(),$/;"	v
+parameter1	stencil_benchmarks/test/test_benchmark.py	/^    parameter1 = benchmark.Parameter('some parameter', False)$/;"	v	class:SomeBenchmark
+parameter2	stencil_benchmarks/test/test_benchmark.py	/^    parameter2 = benchmark.Parameter('some other parameter', 1)$/;"	v	class:SomeBenchmark
+parameter3	stencil_benchmarks/test/test_benchmark.py	/^    parameter3 = benchmark.Parameter('third parameter', '0')$/;"	v	class:DerivedBenchmark
+pd	stencil_benchmarks/cli.py	/^import pandas as pd$/;"	i
+platform_preset	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    platform_preset = benchmark.Parameter($/;"	v	class:StencilMixin
+print_code	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    print_code = benchmark.Parameter('print generated code', False)$/;"	v	class:StencilMixin
+print_code	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    print_code = benchmark.Parameter('print generated code', False)$/;"	v	class:StencilMixin
+random_field	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def random_field(self):$/;"	m	class:Stencil
+re	setup.py	/^import re$/;"	i
+re	stencil_benchmarks/cli.py	/^import re$/;"	i
+read_file	setup.py	/^def read_file(*path):$/;"	f
+render	stencil_benchmarks/tools/template.py	/^def render(template_file, **kwargs):$/;"	f
+report	stencil_benchmarks/cli.py	/^    def report():$/;"	f	function:_report_progress
+return_time	stencil_benchmarks/tools/timing.py	/^def return_time(func):$/;"	f
+run	stencil_benchmarks/benchmark.py	/^    def run(self):$/;"	m	class:Benchmark
+run	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def run(self):$/;"	m	class:Stencil
+run	stencil_benchmarks/test/test_benchmark.py	/^    def run(self):$/;"	m	class:DerivedBenchmark
+run	stencil_benchmarks/test/test_benchmark.py	/^    def run(self):$/;"	m	class:SomeBenchmark
+run_bmark	stencil_benchmarks/cli.py	/^    def run_bmark(ctx, **kwargs):$/;"	f	function:_cli_func
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def run_stencil(self, data):$/;"	m	class:Stencil
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def run_stencil(self, data):$/;"	m	class:StencilMixin
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^    def run_stencil(self, data):$/;"	m	class:Copy
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^    def run_stencil(self, data):$/;"	m	class:Laplacian
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^    def run_stencil(self, data):$/;"	m	class:Copy
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^    def run_stencil(self, data):$/;"	m	class:Copy1D
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^    def run_stencil(self, data):$/;"	m	class:Laplacian
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^    def run_stencil(self, data):$/;"	m	class:OnesidedAverage
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^    def run_stencil(self, data):$/;"	m	class:SymmetricAverage
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/numpy/horizontal_diffusion.py	/^    def run_stencil(self, data):$/;"	m	class:OnTheFly
+run_stencil	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def run_stencil(self, data):$/;"	m	class:StencilMixin
+scripts	setup.py	/^    scripts=['bin\/sbench'],$/;"	v
+setup	stencil_benchmarks/benchmark.py	/^    def setup(self):$/;"	m	class:Benchmark
+setup	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def setup(self):$/;"	m	class:HorizontalDiffusionStencil
+setup	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def setup(self):$/;"	m	class:LaplacianStencil
+setup	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def setup(self):$/;"	m	class:Stencil
+setup	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def setup(self):$/;"	m	class:VerticalAdvectionStencil
+setup	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def setup(self):$/;"	m	class:StencilMixin
+setup	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def setup(self):$/;"	m	class:StencilMixin
+setup	stencil_benchmarks/test/test_benchmark.py	/^    def setup(self):$/;"	m	class:DerivedBenchmark
+setup	stencil_benchmarks/test/test_benchmark.py	/^    def setup(self):$/;"	m	class:SomeBenchmark
+setuptools	setup.py	/^import setuptools$/;"	i
+sorted_block_size	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def sorted_block_size(self):$/;"	m	class:StencilMixin
+sorted_block_size	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def sorted_block_size(self):$/;"	m	class:StencilMixin
+sorted_domain	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def sorted_domain(self):$/;"	m	class:StencilMixin
+sorted_domain	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def sorted_domain(self):$/;"	m	class:StencilMixin
+sorted_strides	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def sorted_strides(self):$/;"	m	class:StencilMixin
+sorted_strides	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def sorted_strides(self):$/;"	m	class:StencilMixin
+stencil_benchmarks	bin/sbench	/^import stencil_benchmarks.benchmarks_collection$/;"	i
+stencil_benchmarks	bin/sbench	/^import stencil_benchmarks.cli$/;"	i
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^    def stencil_body(self):$/;"	m	class:Copy
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^    def stencil_body(self):$/;"	m	class:Laplacian
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^    def stencil_body(self):$/;"	m	class:OnesidedAverage
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/basic.py	/^    def stencil_body(self):$/;"	m	class:SymmetricAverage
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def stencil_body(self):$/;"	m	class:BasicStencilMixin
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^    def stencil_body(self):$/;"	m	class:Copy
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^    def stencil_body(self):$/;"	m	class:Laplacian
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^    def stencil_body(self):$/;"	m	class:OnesidedAverage
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/openmp/basic.py	/^    def stencil_body(self):$/;"	m	class:SymmetricAverage
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/openmp/horizontal_diffusion.py	/^    def stencil_body(self):$/;"	m	class:OnTheFly
+stencil_body	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def stencil_body(self):$/;"	m	class:BasicStencilMixin
+stencils	stencil_benchmarks/benchmarks_collection/__init__.py	/^from . import stencils$/;"	i
+strides	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def strides(self):$/;"	m	class:Stencil
+subprocess	stencil_benchmarks/tools/compilation.py	/^import subprocess$/;"	i
+subprocess	stencil_benchmarks/tools/cpphelpers.py	/^import subprocess$/;"	i
+sys	stencil_benchmarks/cli.py	/^import sys$/;"	i
+tempfile	stencil_benchmarks/tools/compilation.py	/^import tempfile$/;"	i
+template	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^from ....tools import array, cpphelpers, compilation, template$/;"	i
+template	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^from ....tools import cpphelpers, compilation, template$/;"	i
+template_args	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def template_args(self):$/;"	m	class:BasicStencilMixin
+template_args	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def template_args(self):$/;"	m	class:StencilMixin
+template_args	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_args(self):$/;"	m	class:BasicStencilMixin
+template_args	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_args(self):$/;"	m	class:HorizontalDiffusionMixin
+template_args	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_args(self):$/;"	m	class:StencilMixin
+template_args	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_args(self):$/;"	m	class:VerticalAdvectionMixin
+template_file	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def template_file(self):$/;"	m	class:BasicStencilMixin
+template_file	stencil_benchmarks/benchmarks_collection/stencils/cuda_hip/mixin.py	/^    def template_file(self):$/;"	m	class:StencilMixin
+template_file	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_file(self):$/;"	m	class:BasicStencilMixin
+template_file	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_file(self):$/;"	m	class:HorizontalDiffusionMixin
+template_file	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_file(self):$/;"	m	class:StencilMixin
+template_file	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^    def template_file(self):$/;"	m	class:VerticalAdvectionMixin
+test_access	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_access(self):$/;"	m	class:TestDataPtr
+test_alignment	stencil_benchmarks/test/tools/test_array.py	/^    def test_alignment(self):$/;"	m	class:TestAllocArray
+test_all	stencil_benchmarks/test/benchmarks_collection/test_benchmarks_collection.py	/^    def test_all(self):$/;"	m	class:TestAllBenchmarks
+test_alloc_free	stencil_benchmarks/test/tools/test_array.py	/^    def test_alloc_free(self):$/;"	m	class:TestAllocBuffer
+test_alloc_free	stencil_benchmarks/test/tools/test_array.py	/^    def test_alloc_free(self):$/;"	m	class:TestCmallocCfree
+test_basic	stencil_benchmarks/test/test_cli.py	/^    def test_basic(self):$/;"	m	class:TestMain
+test_basic	stencil_benchmarks/test/tools/test_array.py	/^    def test_basic(self):$/;"	m	class:TestAllocArray
+test_c	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_c(self):$/;"	m	class:TestGnuFunc
+test_c	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_c(self):$/;"	m	class:TestGnuLibrary
+test_cpp	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_cpp(self):$/;"	m	class:TestGnuFunc
+test_cpp	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_cpp(self):$/;"	m	class:TestGnuLibrary
+test_derived_init	stencil_benchmarks/test/test_benchmark.py	/^    def test_derived_init(self):$/;"	m	class:BenchmarkTest
+test_derived_params	stencil_benchmarks/test/test_benchmark.py	/^    def test_derived_params(self):$/;"	m	class:BenchmarkTest
+test_floats	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_floats(self):$/;"	m	class:TestCtypeCnam
+test_floats	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_floats(self):$/;"	m	class:TestDtypeAsCtype
+test_hello_world	stencil_benchmarks/test/tools/test_cpphelpers.py	/^    def test_hello_world(self):$/;"	m	class:TestFormatCode
+test_index_to_align	stencil_benchmarks/test/tools/test_array.py	/^    def test_index_to_align(self):$/;"	m	class:TestAllocArray
+test_init	stencil_benchmarks/test/test_benchmark.py	/^    def test_init(self):$/;"	m	class:BenchmarkTest
+test_int_offset	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_int_offset(self):$/;"	m	class:TestDataPtr
+test_params	stencil_benchmarks/test/test_benchmark.py	/^    def test_params(self):$/;"	m	class:BenchmarkTest
+test_registration	stencil_benchmarks/test/test_benchmark.py	/^    def test_registration(self):$/;"	m	class:BenchmarkTest
+test_run	stencil_benchmarks/test/test_benchmark.py	/^    def test_run(self):$/;"	m	class:BenchmarkTest
+test_signed_ints	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_signed_ints(self):$/;"	m	class:TestCtypeCnam
+test_signed_ints	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_signed_ints(self):$/;"	m	class:TestDtypeAsCtype
+test_tuple_offset	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_tuple_offset(self):$/;"	m	class:TestDataPtr
+test_unsigned_ints	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_unsigned_ints(self):$/;"	m	class:TestCtypeCnam
+test_unsigned_ints	stencil_benchmarks/test/tools/test_compilation.py	/^    def test_unsigned_ints(self):$/;"	m	class:TestDtypeAsCtype
+time	stencil_benchmarks/tools/timing.py	/^import time$/;"	i
+timing	stencil_benchmarks/benchmarks_collection/stencils/numba_cpu/basic.py	/^from ....tools import timing$/;"	i
+timing	stencil_benchmarks/benchmarks_collection/stencils/numpy/basic.py	/^from ....tools import timing$/;"	i
+timing	stencil_benchmarks/benchmarks_collection/stencils/numpy/horizontal_diffusion.py	/^from ....tools import timing$/;"	i
+types	stencil_benchmarks/cli.py	/^import types$/;"	i
+unittest	stencil_benchmarks/test/benchmarks_collection/test_benchmarks_collection.py	/^import unittest$/;"	i
+unittest	stencil_benchmarks/test/test_benchmark.py	/^import unittest$/;"	i
+unittest	stencil_benchmarks/test/test_cli.py	/^import unittest$/;"	i
+unittest	stencil_benchmarks/test/tools/test_array.py	/^import unittest$/;"	i
+unittest	stencil_benchmarks/test/tools/test_compilation.py	/^import unittest$/;"	i
+unittest	stencil_benchmarks/test/tools/test_cpphelpers.py	/^import unittest$/;"	i
+validate	stencil_benchmarks/benchmark.py	/^    def validate(self, value):$/;"	m	class:Parameter
+validation	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^from ...tools import array, validation$/;"	i
+verify	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    verify = Parameter('enable verification', True)$/;"	v	class:Stencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:CopyStencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:HorizontalDiffusionStencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:LaplacianStencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:OnesidedAverageStencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:Stencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:SymmetricAverageStencil
+verify_stencil	stencil_benchmarks/benchmarks_collection/stencils/base.py	/^    def verify_stencil(self, data_before, data_after):$/;"	m	class:VerticalAdvectionStencil
+version	setup.py	/^    version=version(),$/;"	v
+version	setup.py	/^def version():$/;"	f
+vertical_advection	stencil_benchmarks/benchmarks_collection/stencils/openmp/__init__.py	/^from . import vertical_advection$/;"	i
+warnings	stencil_benchmarks/benchmarks_collection/stencils/openmp/mixin.py	/^import warnings$/;"	i
+weakref	stencil_benchmarks/tools/array.py	/^import weakref$/;"	i

@@ -176,7 +176,7 @@ def _cli_func(bmark):
 
 
 @click.group()
-@click.option('--executions', '-e', type=int, default=1)
+@click.option('--executions', '-e', type=int, default=3)
 @click.option('--report',
               '-r',
               default='best-median',

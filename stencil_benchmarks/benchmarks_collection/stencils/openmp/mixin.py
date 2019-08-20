@@ -38,7 +38,7 @@ class StencilMixin(benchmark.Benchmark):
     def compile_command(self):
         command = [self.compiler]
         if self.platform_preset != 'none':
-            command += ['-xc++', '-std=c++11', '-Wall', '-DNDEBUG']
+            command += ['-std=c++11', '-Wall', '-DNDEBUG']
             if self.compiler.endswith('icpc'):
                 command += ['-qopenmp', '-ffreestanding', '-O3']
             else:

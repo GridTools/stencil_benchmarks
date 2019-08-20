@@ -5,21 +5,32 @@ import tempfile
 import numpy as np
 
 
-def gnu_library(compile_command, code):
-    with tempfile.NamedTemporaryFile() as srcfile:
+def gnu_library(compile_command, code, extension=None):
+    if compile_command[0].endswith('nvcc'):
+        lib_flags = ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
+    else:
+        lib_flags = ['-shared', '-fPIC']
+    if extension is None:
+        extension = '.cpp'
+    with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
         srcfile.write(code.encode())
         srcfile.flush()
 
         with tempfile.NamedTemporaryFile(suffix='.so') as library:
-            subprocess.run(
-                compile_command +
-                ['-shared', '-fPIC', '-o', library.name, srcfile.name],
-                check=True)
+            subprocess.run(compile_command + lib_flags +
+                           ['-o', library.name, srcfile.name],
+                           check=True)
             return ctypes.cdll.LoadLibrary(library.name)
 
 
-def gnu_func(compile_command, code, funcname, restype=None, argtypes=None):
-    func = getattr(gnu_library(compile_command, code), funcname)
+def gnu_func(compile_command,
+             code,
+             funcname,
+             restype=None,
+             argtypes=None,
+             source_extension=None):
+    func = getattr(gnu_library(compile_command, code, source_extension),
+                   funcname)
     if restype is not None:
         func.restype = dtype_as_ctype(restype)
     if argtypes is not None:
