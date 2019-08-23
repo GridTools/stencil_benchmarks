@@ -6,24 +6,22 @@
 #include <hip/hip_runtime.h>
 {% endif %}
 
+{% set elements = strides[0] * (domain[0] - 1) + strides[1] * (domain[1] - 1) + strides[2] * (domain[2] - 1) + 1 %}
+
 __global__ void __launch_bounds__({{ block_size[0] * block_size[1] * block_size[2] }}) gpu_kernel(
     {%- for arg in args %}
         {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
     {%- endfor %}
 ) {
     {%- if block_size[2] > 1 %}
-        std::ptrdiff_t index = {{ block_size[2] }} * blockIdx.z + threadIdx.z;
+        int index = {{ block_size[2] }} * blockIdx.z + threadIdx.z;
     {%- elif block_size[1] > 1 %}
-        std::ptrdiff_t index = {{ block_size[1] }} * blockIdx.y + threadIdx.y;
+        int index = {{ block_size[1] }} * blockIdx.y + threadIdx.y;
     {%- else %}
-        std::ptrdiff_t index = {{ block_size[0] }} * blockIdx.x + threadIdx.x;
+        int index = {{ block_size[0] }} * blockIdx.x + threadIdx.x;
     {%- endif %}
 
-    constexpr std::ptrdiff_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
-                                    {{ strides[1] }} * ({{ domain[1] }} - 1) +
-                                    {{ strides[2] }} * ({{ domain[2] }} - 1);
-
-    if (index <= last) {
+    if (index < {{ elements }}) {
         {{ body }}
     }
 }
@@ -33,16 +31,12 @@ extern "C" double kernel(
         {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
     {%- endfor %}
 ) {
-    constexpr std::ptrdiff_t elements = {{ strides[0] }} * ({{ domain[0] }} - 1) +
-                                        {{ strides[1] }} * ({{ domain[1] }} - 1) +
-                                        {{ strides[2] }} * ({{ domain[2] }} - 1) +
-                                        1;
     dim3 block_size({{ block_size[0] }},
                     {{ block_size[1] }},
                     {{ block_size[2] }});
-    dim3 grid_size(block_size.x > 1 ? (elements + block_size.x - 1) / block_size.x : 1,
-                   block_size.y > 1 ? (elements + block_size.y - 1) / block_size.y : 1,
-                   block_size.z > 1 ? (elements + block_size.z - 1) / block_size.z : 1);
+    dim3 grid_size({{ (elements + block_size[0] - 1) // block_size[0] if block_size[0] > 1 else 1 }},
+                   {{ (elements + block_size[1] - 1) // block_size[1] if block_size[1] > 1 else 1 }},
+                   {{ (elements + block_size[2] - 1) // block_size[2] if block_size[2] > 1 else 1 }});
 
     using clock = std::chrono::high_resolution_clock;
     auto start = clock::now();
@@ -52,6 +46,7 @@ extern "C" double kernel(
             {{ arg }}{{ "," if not loop.last }}
         {%- endfor %}
     );
+    
     {{ backend }}Error_t err;
     if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
         std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
