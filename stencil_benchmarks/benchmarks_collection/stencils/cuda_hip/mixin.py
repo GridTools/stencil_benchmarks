@@ -1,6 +1,7 @@
 import abc
 import ctypes
 import os
+import warnings
 
 import numpy as np
 
@@ -18,6 +19,8 @@ class StencilMixin(benchmark.Benchmark):
                                            dtype=str,
                                            nargs=1)
     print_code = benchmark.Parameter('print generated code', False)
+    run_twice = benchmark.Parameter('run kernels twice and measure second run',
+                                    False)
 
     def setup(self):
         super().setup()
@@ -31,6 +34,11 @@ class StencilMixin(benchmark.Benchmark):
 
         self.compiled = compilation.gnu_func(self.compile_command(), code,
                                              'kernel', float)
+
+        if self.verify and self.run_twice:
+            warnings.warn(
+                'enabling --run-twice and verification might lead to '
+                'false negatives for stencils with read-write fields')
 
     def compile_command(self):
         command = [self.compiler]
@@ -97,8 +105,15 @@ class StencilMixin(benchmark.Benchmark):
             self.memcpy(device_array.ctypes.data, host_array.ctypes.data,
                         host_array.nbytes, 'HostToDevice')
 
-        time = self.compiled(*(compilation.data_ptr(device_array, offset)
-                               for device_array in device_data))
+        data_ptrs = [
+            compilation.data_ptr(device_array, offset)
+            for device_array in device_data
+        ]
+
+        time = self.compiled(*data_ptrs)
+
+        if self.run_twice:
+            time = self.compiled(*data_ptrs)
 
         for host_array, device_array in zip(data, device_data):
             self.memcpy(host_array.ctypes.data, device_array.ctypes.data,
