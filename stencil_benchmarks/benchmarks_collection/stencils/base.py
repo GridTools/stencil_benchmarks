@@ -24,7 +24,7 @@ class Stencil(Benchmark):
     huge_pages = Parameter('use huge pages', False)
     offset_allocations = Parameter(
         'offset allocated data by some bytes to minimize cache conflicts',
-        True)
+        False)
     verify = Parameter('enable verification', True)
 
     def setup(self):
@@ -128,6 +128,11 @@ class BasicStencil(Stencil):
         return 'inp', 'out'
 
 
+class EmptyStencil(BasicStencil):
+    def verify_stencil(self, data_before, data_after):
+        pass
+
+
 class CopyStencil(BasicStencil):
     def verify_stencil(self, data_before, data_after):
         validation.check_equality(data_before.inp, data_after.inp)
@@ -199,12 +204,17 @@ class HorizontalDiffusionStencil(Stencil):
         super().setup()
 
         if self.halo < 2:
-            raise ValueError(
+            raise ParameterError(
                 f'halo size must be at least 2 (given halo: {self.halo})')
 
     @property
     def args(self):
         return 'inp', 'coeff', 'out'
+
+    @property
+    def data_size(self):
+        return (2 * np.product(self.domain) +
+                np.product(np.array(self.domain) + 4)) * self.dtype.itemsize
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality(data_before.inp, data_after.inp)
