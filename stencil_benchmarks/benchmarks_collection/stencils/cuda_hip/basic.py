@@ -1,8 +1,13 @@
 from .mixin import BasicStencilMixin
-from ..base import (CopyStencil, OnesidedAverageStencil,
+from ..base import (EmptyStencil, CopyStencil, OnesidedAverageStencil,
                     SymmetricAverageStencil, LaplacianStencil)
 
 # pylint: disable=invalid-sequence-index
+
+
+class Empty(BasicStencilMixin, EmptyStencil):
+    def stencil_body(self):
+        return ''
 
 
 class Copy(BasicStencilMixin, CopyStencil):
