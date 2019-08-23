@@ -151,7 +151,7 @@ class BasicStencilMixin(StencilMixin):
 
     def setup(self):
         super().setup()
-        if self.loop == '1D' and sum(b != 1 for b in self.block_size) == 1:
+        if self.loop == '1D' and sum(b != 1 for b in self.block_size) != 1:
             raise benchmark.ParameterError('block size must be 1 along '
                                            'all but one direction')
 
