@@ -1,0 +1,125 @@
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+
+{%- if backend == "hip" %}
+#include <hip/hip_runtime.h>
+using hipDeviceProp = hipDeviceProp_t;
+{% endif %}
+
+constexpr std::ptrdiff_t block_halo = 2;
+
+__global__ void gpu_kernel(
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    const std::ptrdiff_t ib = threadIdx.x - block_halo;
+    const std::ptrdiff_t block_size_x = warpSize - 2 * block_halo;
+
+    const std::ptrdiff_t i = blockIdx.x * block_size_x + ib;
+    const std::ptrdiff_t j_min = blockIdx.y * {{ block_size[1] }} - block_halo;
+    const std::ptrdiff_t k = blockIdx.z * {{ block_size[2] }} + threadIdx.z;
+
+    extern __shared__ {{ ctype }} smem[];
+    const std::size_t inc_size = warpSize * 3 * {{ block_size[2] }};
+    const std::size_t lap_size = warpSize * 2 * {{ block_size[2] }};
+
+    {{ ctype }}* inc = &smem[threadIdx.z * warpSize * 3];
+    {{ ctype }}* lap = &smem[threadIdx.z * warpSize * 2 + inc_size];
+    {{ ctype }}* flx = &smem[threadIdx.z * warpSize * 1 + inc_size + lap_size];
+
+    constexpr std::ptrdiff_t cache_istride = 1;
+    const std::ptrdiff_t cache_jstride = warpSize;
+    
+    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * block_size_x <= {{ domain[0] }} ? block_size_x : {{ domain[0] }} - blockIdx.x * block_size_x;
+    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+
+    const std::ptrdiff_t cache_index = (ib + block_halo) * cache_istride;
+
+    {{ ctype }} fly_ij, fly_ijm1;
+        
+    std::ptrdiff_t index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
+
+    inc[cache_index] = inp[index];
+    inc[cache_index + cache_jstride] = inp[index + {{ strides[1] }}];
+
+    for (std::ptrdiff_t jb = -block_halo; jb < jb_max; ++jb) {
+        inc[cache_index + 2 * cache_jstride] = inp[index + 2 * {{ strides[1] }}];
+
+        if (ib >= -1 && ib < ib_max + 1) {
+            lap[cache_index + cache_jstride] = 4 * inc[cache_index + cache_jstride] -
+                                            (inc[cache_index - cache_istride + cache_jstride] +
+                                                inc[cache_index + cache_istride + cache_jstride] +
+                                                inc[cache_index + 2 * cache_jstride] +
+                                                inc[cache_index]);
+
+            
+            flx[cache_index] = lap[cache_index + cache_istride] - lap[cache_index];
+            if (flx[cache_index] * (inc[cache_index + cache_istride] - inc[cache_index]) > 0) {
+                flx[cache_index] = 0.;
+            }
+
+            if (jb >= -1) {
+                fly_ij = lap[cache_index + cache_jstride] - lap[cache_index];
+                if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > 0) {
+                    fly_ij = 0.;
+                }
+            }
+
+            if (ib >= 0 && ib < ib_max && jb >= 0) {
+                out[index] = inc[cache_index] - coeff[index] * (flx[cache_index] - 
+                                                                flx[cache_index - cache_istride] +
+                                                                fly_ij -
+                                                                fly_ijm1);
+            }
+        }
+
+        inc[cache_index] = inc[cache_index + cache_jstride];
+        inc[cache_index + cache_jstride] = inc[cache_index + 2 * cache_jstride];
+        lap[cache_index] = lap[cache_index + cache_jstride];
+        fly_ijm1 = fly_ij;
+
+        index += {{ strides[1] }};
+    }
+}
+
+extern "C" double kernel(
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    int device;
+    {{ backend }}DeviceProp prop;
+    {{ backend }}GetDevice(&device);
+    {{ backend }}GetDeviceProperties(&prop, device);
+
+    dim3 block_size(prop.warpSize,
+                    1,
+                    {{ block_size[2] }});
+    auto logical_block_size_x = prop.warpSize - 2 * block_halo;
+    dim3 grid_size(({{ domain[0] }} + logical_block_size_x - 1) / logical_block_size_x,
+                   {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
+                   {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
+
+    auto smem_size = sizeof({{ ctype }}) * prop.warpSize * 6 * {{ block_size[2] }};
+
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
+
+    gpu_kernel<<<grid_size, block_size, smem_size>>>(
+        {% for arg in args %}
+            {{ arg }}{{ "," if not loop.last }}
+        {%- endfor %}
+    );
+    {{ backend }}Error_t err;
+    if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
+        std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
+    }
+    if ((err = {{ backend }}DeviceSynchronize()) != {{ backend }}Success) {
+        std::cerr << "synchronization failure: " << {{ backend }}GetErrorString(err) << std::endl;
+    }
+
+    auto stop = clock::now();
+    return std::chrono::duration<double>(stop - start).count();
+}
