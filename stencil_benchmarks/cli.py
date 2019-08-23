@@ -12,58 +12,75 @@ import pandas as pd
 from . import benchmark
 
 
+class ArgRange:
+    def __init__(self, name, values):
+        self.name = name
+        self.values = values
+
+
 class MaybeRange(click.ParamType):
     name = 'range or value'
 
     def __init__(self, base_type):
         self.base_type = base_type
 
+    def _parse_comma_range(self, value, param, ctx):
+        return [
+            self.base_type.convert(v, param, ctx) for v in value.split(',')
+        ]
+
+    def _parse_range(self, value, param, ctx):
+        try:
+            value, step = value.split(':')
+        except ValueError:
+            step = '1'
+
+        try:
+            start, stop = value.split('-')
+        except ValueError:
+            self.fail(
+                f'expected range of {self.base_type.name},'
+                f' got {value}', param, ctx)
+
+        start = self.base_type.convert(start, param, ctx)
+        stop = self.base_type.convert(stop, param, ctx)
+
+        range_op = operator.add
+        valid_ops = {
+            '+': operator.add,
+            '-': operator.sub,
+            '*': operator.mul,
+            '/': operator.truediv
+        }
+        if step[0] in valid_ops:
+            range_op = valid_ops[step[0]]
+            step = step[1:]
+        step = self.base_type.convert(step, param, ctx)
+        result = []
+        current = start
+        while start <= current <= stop:
+            result.append(current)
+            current = range_op(current, step)
+        return result
+
     def convert(self, value, param, ctx):
         if isinstance(value, str) and len(
                 value) >= 2 and value[0] == '[' and value[-1] == ']':
-            range_value = value[1:-1]
-            if ',' in range_value:
-                return [
-                    self.base_type.convert(v, param, ctx)
-                    for v in range_value.split(',')
-                ]
-
+            value = value[1:-1]
             try:
-                start, stop, *step = range_value.split(':')
+                name, value = value.split('=')
             except ValueError:
-                self.fail(
-                    f'expected range of {self.base_type.name},'
-                    ' got {value}', param, ctx)
+                name = None
 
-            start = self.base_type.convert(start, param, ctx)
-            stop = self.base_type.convert(stop, param, ctx)
-            if step:
-                if len(step) == 1:
-                    step = step[0]
+            if value:
+                if ',' in value:
+                    values = self._parse_comma_range(value, param, ctx)
                 else:
-                    self.fail(
-                        f'expected range of {self.base_type.name}, got '
-                        ' invalid step in {value}', param, ctx)
+                    values = self._parse_range(value, param, ctx)
             else:
-                step = '1'
+                values = None
 
-            range_op = operator.add
-            valid_ops = {
-                '+': operator.add,
-                '-': operator.sub,
-                '*': operator.mul,
-                '/': operator.truediv
-            }
-            if step[0] in valid_ops:
-                range_op = valid_ops[step[0]]
-                step = step[1:]
-            step = self.base_type.convert(step, param, ctx)
-            result = []
-            current = start
-            while start <= current <= stop:
-                result.append(current)
-                current = range_op(current, step)
-            return result
+            return ArgRange(name, values)
 
         return self.base_type.convert(value, param, ctx)
 
@@ -75,21 +92,56 @@ _RANGE_TYPES = {
 }
 
 
-def _unpack_ranges(**kwargs):
-    def _unpack(arg):
-        if isinstance(arg, list):
-            return arg
-        elif isinstance(arg, tuple):
-            return list(itertools.product(*(_unpack(a) for a in arg)))
-        else:
-            return [arg]
+def _unpack_ranges(kwargs):
+    ranges = dict()
 
-    unpacked = [_unpack(arg) for arg in kwargs.values()]
-    non_unique = tuple(k for k, v in zip(kwargs.keys(), unpacked)
-                       if len(v) > 1)
-    return [{k: v
-             for k, v in zip(kwargs.keys(), args)}
-            for args in itertools.product(*unpacked)], non_unique
+    def find_named_ranges(value):
+        if isinstance(value, tuple):
+            for v in value:
+                find_named_ranges(v)
+        if isinstance(value, ArgRange):
+            if value.name:
+                if value.name in ranges:
+                    if ranges[value.name] is None:
+                        ranges[value.name] = value.values
+                    elif value.values is not None and ranges[
+                            value.name] != value.values:
+                        raise ValueError(
+                            f'multiple definitions for argument range "{value.name}"'
+                        )
+                else:
+                    ranges[value.name] = value.values
+            else:
+                ranges[id(value)] = value.values
+
+    for value in kwargs.values():
+        find_named_ranges(value)
+
+    for name, values in ranges.items():
+        if values is None:
+            raise ValueError(
+                f'found named range "{name}" with undefined value')
+
+    unpacked_kwargs = []
+    for values in itertools.product(*ranges.values()):
+        value_map = {k: v for k, v in zip(ranges.keys(), values)}
+
+        def unpack(value):
+            if isinstance(value, tuple):
+                return tuple(unpack(v) for v in value)
+            if isinstance(value, ArgRange):
+                if value.name:
+                    return value_map[value.name]
+                return value_map[id(value)]
+            return value
+
+        unpacked_kwargs.append({k: unpack(v) for k, v in kwargs.items()})
+    return unpacked_kwargs
+
+
+def _non_unique_args(unpacked_kwargs):
+    keys = unpacked_kwargs[0].keys()
+    return {k for k in keys if len(set(v[k] for v in unpacked_kwargs)) > 1}
 
 
 def _cli_command(bmark):
@@ -111,14 +163,15 @@ def _report_progress(total):
 
     report()
     yield report
-    click.echo(' ' * 110 + '\r')
+    click.echo(' ' * 110 + '\r', nl=False)
 
 
 def _cli_func(bmark):
     @click.pass_context
     def run_bmark(ctx, **kwargs):
-        unpacked_kwargs, non_unique = _unpack_ranges(**kwargs)
-        tables = []
+        unpacked_kwargs = _unpack_ranges(kwargs)
+        non_unique = _non_unique_args(unpacked_kwargs)
+        results = []
         try:
             with _report_progress(len(unpacked_kwargs) *
                                   ctx.obj.executions) as progress:
@@ -126,36 +179,43 @@ def _cli_func(bmark):
                     try:
                         bmark_instance = bmark(**kws)
                     except benchmark.ParameterError as error:
+                        if ctx.obj.skip_invalid_parameters:
+                            for _ in range(ctx.obj.executions):
+                                progress()
+                            continue
                         click.echo()
                         click.echo(*error.args)
                         sys.exit(1)
 
-                    results = []
+                    non_unique_kws = {
+                        k: v
+                        for k, v in kws.items() if k in non_unique
+                    }
                     for _ in range(ctx.obj.executions):
-                        results.append(bmark_instance.run())
+                        result = bmark_instance.run()
+                        result.update(non_unique_kws)
+                        results.append(result)
                         progress()
-
-                    table = pd.DataFrame(results)
-
-                    for arg in non_unique:
-                        table[arg] = [kws[arg]] * len(table.index)
-
-                    tables.append(table)
         except KeyboardInterrupt:
             pass
-        full_table = pd.concat(tables, ignore_index=True)
+        if not results:
+            click.echo('no data collected')
+            sys.exit(1)
+        table = pd.DataFrame(results)
         if ctx.obj.report == 'full':
-            click.echo(full_table.to_string())
+            click.echo(table.to_string())
         else:
             if non_unique:
-                medians = full_table.groupby(list(non_unique)).median()
+                medians = table.groupby(list(non_unique)).median()
                 if ctx.obj.report == 'best-median':
                     best = medians['time'].idxmin()
                     click.echo(medians.loc[[best]])
                 else:
-                    click.echo(medians.to_string())
+                    click.echo(medians.sort_values(by='time').to_string())
             else:
-                click.echo(full_table.median().to_string())
+                click.echo(table.median().to_string())
+        if ctx.obj.output:
+            table.to_csv(ctx.obj.output, sep=';')
 
     func = run_bmark
     for name, param in bmark.parameters.items():
@@ -181,10 +241,14 @@ def _cli_func(bmark):
               '-r',
               default='best-median',
               type=click.Choice(['best-median', 'all-medians', 'full']))
+@click.option('--skip-invalid-parameters', '-s', is_flag=True)
+@click.option('--output', '-o', type=click.Path())
 @click.pass_context
-def _cli(ctx, executions, report):
+def _cli(ctx, executions, report, skip_invalid_parameters, output):
     ctx.obj.executions = executions
     ctx.obj.report = report
+    ctx.obj.skip_invalid_parameters = skip_invalid_parameters
+    ctx.obj.output = output
 
 
 def _build(commands):
