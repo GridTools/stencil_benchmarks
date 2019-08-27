@@ -1,28 +1,16 @@
-#include <algorithm>
-#include <chrono>
-#include <cstdint>
+{% extends "base.j2" %}
 
-extern "C" double kernel(
-  {% for arg in args %}
-    {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-  {% endfor %}
-) {
-  using clock = std::chrono::high_resolution_clock;
-  auto start = clock::now();
-
+{% block kernel_invoke %}
 #pragma omp parallel for simd collapse(3)
 #ifdef __INTEL_COMPILER
 #pragma vector nontemporal
 #endif
-  for (std::ptrdiff_t i = 0; i < {{ sorted_domain[0] }}; ++i) {
-    for (std::ptrdiff_t j = 0; j < {{ sorted_domain[1] }}; ++j) {
-      for (std::ptrdiff_t k = 0; k < {{ sorted_domain[2] }}; ++k) {
-        std::ptrdiff_t index = i * {{ sorted_strides[0] }} + j * {{ sorted_strides[1] }} + k * {{ sorted_strides[2] }};
-        {{ body }}
-      }
+    for (std::ptrdiff_t i = 0; i < {{ sorted_domain[0] }}; ++i) {
+        for (std::ptrdiff_t j = 0; j < {{ sorted_domain[1] }}; ++j) {
+            for (std::ptrdiff_t k = 0; k < {{ sorted_domain[2] }}; ++k) {
+                std::ptrdiff_t index = i * {{ sorted_strides[0] }} + j * {{ sorted_strides[1] }} + k * {{ sorted_strides[2] }};
+                {{ body }}
+            }
+        }
     }
-  }
-
-  auto stop = clock::now();
-  return std::chrono::duration<double>(stop - start).count();
-}
+{% endblock kernel_invoke %}

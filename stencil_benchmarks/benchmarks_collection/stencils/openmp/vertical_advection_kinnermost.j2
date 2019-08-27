@@ -1,7 +1,6 @@
-#include <algorithm>
-#include <chrono>
-#include <cstdint>
+{% extends "base.j2" %}
 
+{% block pre_kernel %}
 #include <xmmintrin.h>
 
 static constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
@@ -161,29 +160,9 @@ __attribute__((always_inline)) inline void backward_sweep(int i,
         index -= {{ strides[2] }};
     }
 }
+{% endblock pre_kernel %}
 
-
-
-extern "C" double kernel(
-    const {{ ctype }} *__restrict__ ustage,
-    const {{ ctype }} *__restrict__ upos,
-    const {{ ctype }} *__restrict__ utens,
-    {{ ctype }} *__restrict__ utensstage,
-    const {{ ctype }} *__restrict__ vstage,
-    const {{ ctype }} *__restrict__ vpos,
-    const {{ ctype }} *__restrict__ vtens,
-    {{ ctype }} *__restrict__ vtensstage,
-    const {{ ctype }} *__restrict__ wstage,
-    const {{ ctype }} *__restrict__ wpos,
-    const {{ ctype }} *__restrict__ wtens,
-    {{ ctype }} *__restrict__ wtensstage,
-    const {{ ctype }} *__restrict__ wcon,
-    {{ ctype }} *__restrict__ ccol,
-    {{ ctype }} *__restrict__ dcol,
-    {{ ctype }} *__restrict__ datacol) {
-    using clock = std::chrono::high_resolution_clock;
-    auto start = clock::now();
-
+{% block kernel_invoke %}
 #pragma omp parallel for collapse(2)
     for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
         for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
@@ -215,8 +194,4 @@ extern "C" double kernel(
                 }
         }
     }
-
-    auto stop = clock::now();
-    return std::chrono::duration<double>(stop - start).count();
-}
-
+{% endblock kernel_invoke %}

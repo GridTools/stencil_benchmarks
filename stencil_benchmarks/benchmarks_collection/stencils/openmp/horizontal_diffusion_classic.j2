@@ -1,15 +1,6 @@
-#include <algorithm>
-#include <chrono>
-#include <cstdint>
+{% extends "base.j2" %}
 
-extern "C" double kernel(
-  {%- for arg in args %}
-    {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-  {%- endfor %}
-) {
-  using clock = std::chrono::high_resolution_clock;
-  auto start = clock::now();
-
+{% block kernel_invoke %}
 #pragma omp parallel
   {
     {{ctype }} lap[{{ block_size[1] }} + 4][{{ block_size[0] }} + 4];
@@ -65,7 +56,4 @@ extern "C" double kernel(
       }
     }
   }
-
-  auto stop = clock::now();
-  return std::chrono::duration<double>(stop - start).count();
-}
+{% endblock kernel_invoke %}

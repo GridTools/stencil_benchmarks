@@ -1,27 +1,16 @@
-#include <chrono>
-#include <cstddef>
-#include <cstdint>
+{% extends "base.j2" %}
 
-extern "C" double kernel(
-  {% for arg in args %}
-    {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-  {% endfor %}
-) {
-  using clock = std::chrono::high_resolution_clock;
-  auto start = clock::now();
+{% block kernel_invoke %}
+    constexpr std::ptrdiff_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
+                                    {{ strides[1] }} * ({{ domain[1] }} - 1) +
+                                    {{ strides[2] }} * ({{ domain[2] }} - 1);
 
-  constexpr std::ptrdiff_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
-                                  {{ strides[1] }} * ({{ domain[1] }} - 1) +
-                                  {{ strides[2] }} * ({{ domain[2] }} - 1);
+    #pragma omp parallel for simd
+    #ifdef __INTEL_COMPILER
+    #pragma vector nontemporal
+    #endif
+    for (std::ptrdiff_t index = 0; index <= last; ++index) {
+        {{ body }}
+    }
 
-#pragma omp parallel for simd
-#ifdef __INTEL_COMPILER
-#pragma vector nontemporal
-#endif
-  for (std::ptrdiff_t index = 0; index <= last; ++index) {
-    {{ body }}
-  }
-
-  auto stop = clock::now();
-  return std::chrono::duration<double>(stop - start).count();
-}
+{% endblock kernel_invoke %}

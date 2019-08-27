@@ -1,0 +1,27 @@
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+
+{% block pre_kernel %}
+{% endblock pre_kernel %}
+
+{% block kernel %}
+extern "C" double kernel(
+    {% for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {% endfor %}
+) {
+    {% block kernel_prepare %}
+    {% endblock kernel_prepare %}
+
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
+
+    {% block kernel_invoke %}
+    {% endblock kernel_invoke %}
+
+    auto stop = clock::now();
+    return std::chrono::duration<double>(stop - start).count();
+}
+{% endblock kernel %}
