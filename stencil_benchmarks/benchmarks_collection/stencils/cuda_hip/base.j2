@@ -7,6 +7,13 @@
 using hipDeviceProp = hipDeviceProp_t;
 {% endif %}
 
+inline void check({{ backend }}Error_t error, std::string const& invocation) {
+    if (error != {{ backend }}Success)
+        std::cerr << invocation << " failed: " << {{ backend }}GetErrorString(error) << std::endl;
+}
+
+#define CHECK(x) check(({{ backend }}##x), #x)
+
 {% block gpu_kernel %}
 __global__ void gpu_kernel(
     {%- for arg in args %}
@@ -33,8 +40,16 @@ extern "C" double kernel(
                 {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
     {% endblock kernel_prepare %}
 
+    {%- if gpu_timers %}
+    {{ backend }}Event_t start, stop;
+    CHECK(EventCreate(&start));
+    CHECK(EventCreate(&stop));
+    
+    CHECK(EventRecord(start));
+    {%- else %}
     using clock = std::chrono::high_resolution_clock;
     auto start = clock::now();
+    {%- endif %}
 
     {% block kernel_invoke %}
     gpu_kernel<<<grid_size, block_size>>>(
@@ -44,15 +59,21 @@ extern "C" double kernel(
     );
     {% endblock kernel_invoke %}
 
-    {{ backend }}Error_t err;
-    if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
-        std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
-    }
-    if ((err = {{ backend }}DeviceSynchronize()) != {{ backend }}Success) {
-        std::cerr << "synchronization failure: " << {{ backend }}GetErrorString(err) << std::endl;
-    }
+    CHECK(GetLastError());
+
+    {%- if gpu_timers %}
+    CHECK(EventRecord(stop));
+
+    CHECK(EventSynchronize(stop));
+
+    float time;
+    CHECK(EventElapsedTime(&time, start, stop));
+    return time / 1000.0;
+    {%- else %}
+    CHECK(DeviceSynchronize());
 
     auto stop = clock::now();
     return std::chrono::duration<double>(stop - start).count();
+    {%- endif %}
 }
 {% endblock kernel %}

@@ -21,6 +21,8 @@ class StencilMixin(benchmark.Benchmark):
     print_code = benchmark.Parameter('print generated code', False)
     run_twice = benchmark.Parameter('run kernels twice and measure second run',
                                     False)
+    gpu_timers = benchmark.Parameter(
+        'use GPU timers instead of standard C++ timers', False)
 
     def setup(self):
         super().setup()
@@ -192,7 +194,8 @@ class BasicStencilMixin(StencilMixin):
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
                     body=self.stencil_body(),
-                    backend=self.backend)
+                    backend=self.backend,
+                    gpu_timers=self.gpu_timers)
 
 
 class VerticalAdvectionMixin(StencilMixin):
@@ -207,7 +210,8 @@ class VerticalAdvectionMixin(StencilMixin):
                     strides=self.strides,
                     domain=self.domain,
                     block_size=self.block_size,
-                    backend=self.backend)
+                    backend=self.backend,
+                    gpu_timers=self.gpu_timers)
 
 
 class HorizontalDiffusionMixin(StencilMixin):
@@ -222,4 +226,5 @@ class HorizontalDiffusionMixin(StencilMixin):
                     strides=self.strides,
                     domain=self.domain,
                     block_size=self.block_size,
-                    backend=self.backend)
+                    backend=self.backend,
+                    gpu_timers=self.gpu_timers)
