@@ -104,6 +104,7 @@ class StencilMixin(benchmark.Benchmark):
         for host_array, device_array in zip(data, device_data):
             self.memcpy(device_array.ctypes.data, host_array.ctypes.data,
                         host_array.nbytes, 'HostToDevice')
+        self.device_synchronize()
 
         data_ptrs = [
             compilation.data_ptr(device_array, offset)
@@ -118,6 +119,7 @@ class StencilMixin(benchmark.Benchmark):
         for host_array, device_array in zip(data, device_data):
             self.memcpy(host_array.ctypes.data, device_array.ctypes.data,
                         host_array.nbytes, 'DeviceToHost')
+        self.device_synchronize()
         return time
 
     @property
@@ -158,6 +160,9 @@ class StencilMixin(benchmark.Benchmark):
             'Memcpy',
             [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
             [dst, src, nbytes, kind])
+
+    def device_synchronize(self):
+        self.runtime_call('DeviceSynchronize', [], [])
 
 
 class BasicStencilMixin(StencilMixin):
