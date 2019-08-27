@@ -106,9 +106,8 @@ def _unpack_ranges(kwargs):
                         ranges[value.name] = value.values
                     elif value.values is not None and ranges[
                             value.name] != value.values:
-                        raise ValueError(
-                            f'multiple definitions for argument range "{value.name}"'
-                        )
+                        raise ValueError(f'multiple definitions for '
+                                         'argument range "{value.name}"')
                 else:
                     ranges[value.name] = value.values
             else:
