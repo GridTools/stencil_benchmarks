@@ -1,11 +1,6 @@
-#include <chrono>
-#include <cstdint>
-#include <iostream>
+{% extends "base.j2" %}
 
-{%- if backend == "hip" %}
-#include <hip/hip_runtime.h>
-{% endif %}
-
+{% block gpu_kernel %}
 __forceinline__ __device__ void backward_sweep(const {{ ctype }} *ccol,
     const {{ ctype }} *__restrict__ dcol,
     const {{ ctype }} *__restrict__ upos,
@@ -200,35 +195,13 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     backward_sweep(ccol, dcol, wpos, wtensstage);
 
 }
+{% endblock gpu_kernel %}
 
-extern "C" double kernel(
-    {%- for arg in args %}
-        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-    {%- endfor %}
-) {
+{% block kernel_prepare %}
     dim3 block_size({{ block_size[0] }},
                     {{ block_size[1] }},
                     1);
     dim3 grid_size(({{ domain[0] }} + block_size.x - 1) / block_size.x,
                    ({{ domain[1] }} + block_size.y - 1) / block_size.y,
                    1);
-
-    using clock = std::chrono::high_resolution_clock;
-    auto start = clock::now();
-
-    gpu_kernel<<<grid_size, block_size>>>(
-        {% for arg in args %}
-            {{ arg }}{{ "," if not loop.last }}
-        {%- endfor %}
-    );
-    {{ backend }}Error_t err;
-    if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
-        std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
-    }
-    if ((err = {{ backend }}DeviceSynchronize()) != {{ backend }}Success) {
-        std::cerr << "synchronization failure: " << {{ backend }}GetErrorString(err) << std::endl;
-    }
-
-    auto stop = clock::now();
-    return std::chrono::duration<double>(stop - start).count();
-}
+{% endblock kernel_prepare %}

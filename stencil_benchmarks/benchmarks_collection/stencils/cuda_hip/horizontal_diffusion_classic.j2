@@ -1,47 +1,37 @@
-#include <chrono>
-#include <cstdint>
-#include <iostream>
+{% extends "base.j2" %}
 
-{%- if backend == "hip" %}
-#include <hip/hip_runtime.h>
-{% endif %}
+{% set block_halo = 1 %}
 
-constexpr std::ptrdiff_t block_halo = 1;
+{% block gpu_kernel_body %}
+    constexpr std::ptrdiff_t jboundary_limit = {{ block_size[1] + 2 * block_halo }};
+    constexpr std::ptrdiff_t iminus_limit = jboundary_limit + {{ block_halo }};
+    constexpr std::ptrdiff_t iplus_limit = iminus_limit + {{ block_halo }};
 
-__global__ void gpu_kernel(
-    {%- for arg in args %}
-        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-    {%- endfor %}
-) {
-    constexpr std::ptrdiff_t jboundary_limit = {{ block_size[1] }} + 2 * block_halo;
-    constexpr std::ptrdiff_t iminus_limit = jboundary_limit + block_halo;
-    constexpr std::ptrdiff_t iplus_limit = iminus_limit + block_halo;
-
-    std::ptrdiff_t ib = -block_halo - 1;
-    std::ptrdiff_t jb = -block_halo - 1;
+    std::ptrdiff_t ib = {{ -block_halo - 1 }};
+    std::ptrdiff_t jb = {{ -block_halo - 1 }};
     if (threadIdx.y < jboundary_limit) {
-        ib = threadIdx.x;
-        jb = threadIdx.y - block_halo;
+        ib = std::ptrdiff_t(threadIdx.x);
+        jb = std::ptrdiff_t(threadIdx.y) - {{ block_halo }};
     } else if (threadIdx.y < iminus_limit) {
-        ib = threadIdx.x % block_halo - block_halo;
-        jb = threadIdx.x / block_halo - block_halo;
+        ib = std::ptrdiff_t(threadIdx.x) % {{ block_halo }} - {{ block_halo }};
+        jb = std::ptrdiff_t(threadIdx.x) / {{ block_halo }} - {{ block_halo }};
     } else if (threadIdx.y < iplus_limit) {
-        ib = threadIdx.x % block_halo + {{ block_size[0] }};
-        jb = threadIdx.x / block_halo - block_halo;
+        ib = std::ptrdiff_t(threadIdx.x) % {{ block_halo }} + {{ block_size[0] }};
+        jb = std::ptrdiff_t(threadIdx.x) / {{ block_halo }} - {{ block_halo }};
     }
 
     const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + ib;
     const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + jb;
 
-    constexpr std::ptrdiff_t cache_size = ({{ block_size[0] }} + 2 * block_halo) * ({{ block_size[1] }} + 2 * block_halo);
+    constexpr std::ptrdiff_t cache_size = {{ (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo) }};
     __shared__ {{ ctype }} lap[cache_size];
     __shared__ {{ ctype }} flx[cache_size];
     __shared__ {{ ctype }} fly[cache_size];
 
     constexpr std::ptrdiff_t cache_istride = 1;
-    constexpr std::ptrdiff_t cache_jstride = {{ block_size[0] }} + 2 * block_halo;
+    constexpr std::ptrdiff_t cache_jstride = {{ block_size[0] + 2 * block_halo }};
     const std::ptrdiff_t cache_index =
-        (ib + block_halo) * cache_istride + (jb + block_halo) * cache_jstride;
+        (ib + {{ block_halo }}) * cache_istride + (jb + {{ block_halo }}) * cache_jstride;
 
     const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
     const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
@@ -50,8 +40,6 @@ __global__ void gpu_kernel(
     const std::ptrdiff_t k_max = (blockIdx.z + 1) * {{ block_size[2] }} <= {{ domain[2] }} ? (blockIdx.z + 1) * {{ block_size[2] }} : {{ domain[2] }};
 
     std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k_min * {{ strides[2] }};
-
-    __syncthreads();
 
     for (std::ptrdiff_t k = k_min; k < k_max; ++k) {
         if (ib >= -1 && ib < ib_max + 1 && jb >= -1 && jb < jb_max + 1) {
@@ -87,40 +75,13 @@ __global__ void gpu_kernel(
 
         index += {{ strides[2] }};
     }
+{% endblock gpu_kernel_body %}
 
-    __syncthreads();
-
-}
-
-extern "C" double kernel(
-    {%- for arg in args %}
-        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-    {%- endfor %}
-) {
+{% block kernel_prepare %}
     dim3 block_size({{ block_size[0] }},
-                    {{ block_size[1] }} + 2 * block_halo + 2,
+                    {{ block_size[1] + 2 * block_halo + 2 }},
                     1);
     dim3 grid_size({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
                    {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
                    {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
-
-    using clock = std::chrono::high_resolution_clock;
-    auto start = clock::now();
-
-    gpu_kernel<<<grid_size, block_size>>>(
-        {% for arg in args %}
-            {{ arg }}{{ "," if not loop.last }}
-        {%- endfor %}
-    );
-    
-    {{ backend }}Error_t err;
-    if ((err = {{ backend }}GetLastError()) != {{ backend }}Success) {
-        std::cerr << "kernel launch failure: " << {{ backend }}GetErrorString(err) << std::endl;
-    }
-    if ((err = {{ backend }}DeviceSynchronize()) != {{ backend }}Success) {
-        std::cerr << "synchronization failure: " << {{ backend }}GetErrorString(err) << std::endl;
-    }
-
-    auto stop = clock::now();
-    return std::chrono::duration<double>(stop - start).count();
-}
+{% endblock kernel_prepare %}
