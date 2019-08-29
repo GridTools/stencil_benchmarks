@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 import setuptools
@@ -33,5 +34,5 @@ setuptools.setup(
     long_description=long_description(),
     long_description_content_type='text/markdown',
     packages=setuptools.find_packages(),
-    scripts=['bin/sbench'],
+    scripts=glob.glob('bin/sbench*'),
     install_requires=['click', 'numba', 'numpy', 'pandas', 'jinja2'])

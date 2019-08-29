@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+import gc
+
+import click
+import pandas as pd
+
+from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import basic
+from stencil_benchmarks.tools.cli import report_progress
+
+
+def benchmark(stencils_and_kwargs, executions):
+    results = []
+    exponents = list(range(5, 11))
+    with report_progress(len(stencils_and_kwargs) *
+                         len(exponents)) as progress:
+        for e in exponents:
+            domain = 2**e
+            for name, Stencil, kwargs in stencils_and_kwargs:
+                stencil = Stencil(domain=(domain, domain, 80), **kwargs)
+                result = sorted((stencil.run() for _ in range(executions)),
+                                key=lambda x: x['time'])[executions // 2]
+                result.update(stencil=name, domain=domain)
+
+                results.append(result)
+                progress()
+
+                del stencil
+                gc.collect()
+    return pd.DataFrame(results)
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+@click.argument('backend', type=click.Choice(['cuda', 'hip']))
+@click.argument('gpu-architecture')
+@click.argument('prefix')
+@click.option('--executions', '-e', type=int, default=101)
+def basic_bandwidth(backend, gpu_architecture, prefix, executions):
+    kwargs = dict(backend=backend,
+                  compiler='nvcc' if backend == 'cuda' else 'hipcc',
+                  gpu_architecture=gpu_architecture,
+                  verify=False,
+                  run_twice=True,
+                  gpu_timers=True,
+                  loop='3D',
+                  block_size=(32, 8, 1),
+                  halo=1,
+                  alignment=128 if backend == 'cuda' else 64)
+
+    stencils = [('empty', basic.Empty, kwargs), ('copy', basic.Copy, kwargs),
+                ('avg-i', basic.OnesidedAverage, dict(axis=0, **kwargs)),
+                ('avg-j', basic.OnesidedAverage, dict(axis=1, **kwargs)),
+                ('avg-k', basic.OnesidedAverage, dict(axis=2, **kwargs)),
+                ('sym-avg-i', basic.SymmetricAverage, dict(axis=0, **kwargs)),
+                ('sym-avg-j', basic.SymmetricAverage, dict(axis=1, **kwargs)),
+                ('sym-avg-k', basic.SymmetricAverage, dict(axis=2, **kwargs)),
+                ('lap-ij', basic.Laplacian,
+                 dict(along_x=True, along_y=True, along_z=False, **kwargs))]
+
+    table = benchmark(stencils, executions)
+
+    table = table.pivot('domain', 'stencil')
+    table['time'].to_csv(prefix + '-time.csv')
+    table['bandwidth'].to_csv(prefix + '-bandwidth.csv')
+
+
+cli()

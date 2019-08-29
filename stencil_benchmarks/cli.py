@@ -1,4 +1,3 @@
-import contextlib
 import copy
 import itertools
 import operator
@@ -10,6 +9,7 @@ import click
 import pandas as pd
 
 from . import benchmark
+from .tools.cli import report_progress
 
 
 class ArgRange:
@@ -149,22 +149,6 @@ def _cli_command(bmark):
     return command_path + [command_name]
 
 
-@contextlib.contextmanager
-def _report_progress(total):
-    current = 0
-
-    def report():
-        nonlocal current
-        percent = min(100 * current // total, 100)
-        click.echo('#' * percent + '-' * (100 - percent) + f' {percent:3}%\r',
-                   nl=False)
-        current += 1
-
-    report()
-    yield report
-    click.echo(' ' * 110 + '\r', nl=False)
-
-
 def _cli_func(bmark):
     @click.pass_context
     def run_bmark(ctx, **kwargs):
@@ -172,8 +156,8 @@ def _cli_func(bmark):
         non_unique = _non_unique_args(unpacked_kwargs)
         results = []
         try:
-            with _report_progress(len(unpacked_kwargs) *
-                                  ctx.obj.executions) as progress:
+            with report_progress(len(unpacked_kwargs) *
+                                 ctx.obj.executions) as progress:
                 for kws in unpacked_kwargs:
                     try:
                         bmark_instance = bmark(**kws)
