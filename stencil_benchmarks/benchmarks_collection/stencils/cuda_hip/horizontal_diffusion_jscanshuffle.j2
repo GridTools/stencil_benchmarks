@@ -86,26 +86,13 @@
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
-    int device;
-    {{ backend }}DeviceProp prop;
-    {{ backend }}GetDevice(&device);
-    {{ backend }}GetDeviceProperties(&prop, device);
+    block_size = dim3(device_properties.warpSize,
+                      1,
+                      {{ block_size[2] }});
+    auto logical_block_size_x = device_properties.warpSize - 2 * {{ block_halo }};
+    grid_size = dim3(({{ domain[0] }} + logical_block_size_x - 1) / logical_block_size_x,
+                      {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
+                      {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
 
-    dim3 block_size(prop.warpSize,
-                    1,
-                    {{ block_size[2] }});
-    auto logical_block_size_x = prop.warpSize - 2 * {{ block_halo }};
-    dim3 grid_size(({{ domain[0] }} + logical_block_size_x - 1) / logical_block_size_x,
-                   {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
-                   {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
-
-    auto smem_size = sizeof({{ ctype }}) * prop.warpSize * 3 * {{ block_size[2] }};
+    smem_size = sizeof({{ ctype }}) * device_properties.warpSize * 3 * {{ block_size[2] }};
 {% endblock kernel_prepare %}
-
-{% block kernel_invoke %}
-    gpu_kernel<<<grid_size, block_size, smem_size>>>(
-        {% for arg in args %}
-            {{ arg }}{{ "," if not loop.last }}
-        {%- endfor %}
-    );
-{% endblock kernel_invoke %}

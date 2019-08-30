@@ -117,6 +117,8 @@ class StencilMixin(benchmark.Benchmark):
         ]
 
         time = self.compiled(*data_ptrs)
+        if time == 0:
+            raise benchmark.ExecutionError()
 
         if self.run_twice:
             time = self.compiled(*data_ptrs)

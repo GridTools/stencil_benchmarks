@@ -14,10 +14,10 @@
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
-    dim3 block_size({{ sorted_block_size[2] }},
-                    {{ sorted_block_size[1] }},
-                    {{ sorted_block_size[0] }});
-    dim3 grid_size({{ (sorted_domain[2] + sorted_block_size[2] - 1) // sorted_block_size[2] }},
-                   {{ (sorted_domain[1] + sorted_block_size[1] - 1) // sorted_block_size[1] }},
-                   {{ (sorted_domain[0] + sorted_block_size[0] - 1) // sorted_block_size[0] }});
+    block_size = dim3({{ sorted_block_size[2] }},
+                      {{ sorted_block_size[1] }},
+                      {{ sorted_block_size[0] }});
+    grid_size = dim3({{ (sorted_domain[2] + sorted_block_size[2] - 1) // sorted_block_size[2] }},
+                     {{ (sorted_domain[1] + sorted_block_size[1] - 1) // sorted_block_size[1] }},
+                     {{ (sorted_domain[0] + sorted_block_size[0] - 1) // sorted_block_size[0] }});
 {% endblock kernel_prepare %}

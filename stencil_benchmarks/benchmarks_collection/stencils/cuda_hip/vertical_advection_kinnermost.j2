@@ -198,10 +198,10 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
 {% endblock gpu_kernel %}
 
 {% block kernel_prepare %}
-    dim3 block_size({{ block_size[0] }},
-                    {{ block_size[1] }},
-                    1);
-    dim3 grid_size(({{ domain[0] }} + block_size.x - 1) / block_size.x,
-                   ({{ domain[1] }} + block_size.y - 1) / block_size.y,
-                   1);
+    block_size = dim3({{ block_size[0] }},
+                      {{ block_size[1] }},
+                      1);
+    grid_size = dim3(({{ domain[0] }} + block_size.x - 1) / block_size.x,
+                     ({{ domain[1] }} + block_size.y - 1) / block_size.y,
+                     1);
 {% endblock kernel_prepare %}

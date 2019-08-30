@@ -7,12 +7,14 @@
 using hipDeviceProp = hipDeviceProp_t;
 {% endif %}
 
-inline void check({{ backend }}Error_t error, std::string const& invocation) {
-    if (error != {{ backend }}Success)
-        std::cerr << invocation << " failed: " << {{ backend }}GetErrorString(error) << std::endl;
-}
-
-#define CHECK(x) check(({{ backend }}##x), #x)
+#define CHECK(x) { \
+                    {{ backend }}Error_t error = {{ backend }}##x; \
+                        if (error != {{ backend }}Success) { \
+                            std::cerr << #x << " failed: " << {{ backend }}GetErrorString(error) << std::endl; \
+                            while ({{ backend }}GetLastError() != {{ backend }}Success) ; \
+                            return 0.0; \
+                        } \
+                 }
 
 {% block gpu_kernel %}
 __global__ void gpu_kernel(
@@ -31,14 +33,66 @@ extern "C" double kernel(
         {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
     {%- endfor %}
 ) {
-    {% block kernel_prepare %}
+    int device;
+    {{ backend }}DeviceProp device_properties;
+    CHECK(GetDevice(&device));
+    CHECK(GetDeviceProperties(&device_properties, device));
+
     dim3 block_size({{ block_size[0] }},
                 {{ block_size[1] }},
                 {{ block_size[2] }});
     dim3 grid_size({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
                 {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
                 {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
+    unsigned smem_size = 0;
+    {% block kernel_prepare %}
     {% endblock kernel_prepare %}
+
+    if (smem_size > device_properties.sharedMemPerBlock) {
+        std::cerr << "too much shared memory requested: "
+                  << smem_size
+                  << "B (max: "
+                  << device_properties.sharedMemPerBlock
+                  << "B)" << std::endl;
+        return 0.0;
+    }
+    if ((std::size_t)(block_size.x * block_size.y * block_size.z) > (std::size_t)device_properties.maxThreadsPerBlock) {
+        std::cerr << "too many threads per block: "
+                  << (block_size.x * block_size.y * block_size.z)
+                  << " (max: "
+                  << device_properties.maxThreadsPerBlock
+                  << ")" << std::endl;
+        return 0.0;
+    }
+    if ((std::size_t)block_size.x > (std::size_t)device_properties.maxThreadsDim[0] ||
+        (std::size_t)block_size.y > (std::size_t)device_properties.maxThreadsDim[1] ||
+        (std::size_t)block_size.z > (std::size_t)device_properties.maxThreadsDim[2]) {
+        std::cerr << "block size too large: "
+                  << block_size.x << " "
+                  << block_size.y << " "
+                  << block_size.z
+                  << " (max: "
+                  << device_properties.maxThreadsDim[0] << " "
+                  << device_properties.maxThreadsDim[1] << " "
+                  << device_properties.maxThreadsDim[2] << ")"
+                  << std::endl;
+        return 0.0;
+    }
+    if ((std::size_t)grid_size.x > (std::size_t)device_properties.maxGridSize[0] ||
+        (std::size_t)grid_size.y > (std::size_t)device_properties.maxGridSize[1] ||
+        (std::size_t)grid_size.z > (std::size_t)device_properties.maxGridSize[2]) {
+        std::cerr << "grid size too large: "
+                  << grid_size.x << " "
+                  << grid_size.y << " "
+                  << grid_size.z
+                  << " (max: "
+                  << device_properties.maxGridSize[0] << " "
+                  << device_properties.maxGridSize[1] << " "
+                  << device_properties.maxGridSize[2] << ")"
+                  << std::endl;
+        return 0.0;
+    }
+
 
     {%- if gpu_timers %}
     {{ backend }}Event_t start, stop;
@@ -51,13 +105,11 @@ extern "C" double kernel(
     auto start = clock::now();
     {%- endif %}
 
-    {% block kernel_invoke %}
-    gpu_kernel<<<grid_size, block_size>>>(
+    gpu_kernel<<<grid_size, block_size, smem_size>>>(
         {% for arg in args %}
             {{ arg }}{{ "," if not loop.last }}
         {%- endfor %}
     );
-    {% endblock kernel_invoke %}
 
     CHECK(GetLastError());
 

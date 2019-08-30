@@ -1,6 +1,7 @@
 {% extends "base.j2" %}
 
 {% set block_halo = 1 %}
+{% set cache_size = (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo) %}
 
 {% block gpu_kernel_body %}
     constexpr std::ptrdiff_t jboundary_limit = {{ block_size[1] + 2 * block_halo }};
@@ -23,10 +24,9 @@
     const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + ib;
     const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + jb;
 
-    constexpr std::ptrdiff_t cache_size = {{ (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo) }};
-    __shared__ {{ ctype }} lap[cache_size];
-    __shared__ {{ ctype }} flx[cache_size];
-    __shared__ {{ ctype }} fly[cache_size];
+    __shared__ {{ ctype }} lap[{{ cache_size }}];
+    __shared__ {{ ctype }} flx[{{ cache_size }}];
+    __shared__ {{ ctype }} fly[{{ cache_size }}];
 
     constexpr std::ptrdiff_t cache_istride = 1;
     constexpr std::ptrdiff_t cache_jstride = {{ block_size[0] + 2 * block_halo }};
@@ -78,10 +78,7 @@
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
-    dim3 block_size({{ block_size[0] }},
-                    {{ block_size[1] + 2 * block_halo + 2 }},
-                    1);
-    dim3 grid_size({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
-                   {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
-                   {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
+    block_size = dim3({{ block_size[0] }},
+                      {{ block_size[1] + 2 * block_halo + 2 }},
+                      1);
 {% endblock kernel_prepare %}

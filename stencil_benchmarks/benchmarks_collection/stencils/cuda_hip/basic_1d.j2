@@ -17,10 +17,7 @@
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
-    dim3 block_size({{ block_size[0] }},
-                    {{ block_size[1] }},
-                    {{ block_size[2] }});
-    dim3 grid_size({{ (elements + block_size[0] - 1) // block_size[0] if block_size[0] > 1 else 1 }},
-                   {{ (elements + block_size[1] - 1) // block_size[1] if block_size[1] > 1 else 1 }},
-                   {{ (elements + block_size[2] - 1) // block_size[2] if block_size[2] > 1 else 1 }});
+    grid_size = dim3({{ (elements + block_size[0] - 1) // block_size[0] if block_size[0] > 1 else 1 }},
+                     {{ (elements + block_size[1] - 1) // block_size[1] if block_size[1] > 1 else 1 }},
+                     {{ (elements + block_size[2] - 1) // block_size[2] if block_size[2] > 1 else 1 }});
 {% endblock kernel_prepare %}

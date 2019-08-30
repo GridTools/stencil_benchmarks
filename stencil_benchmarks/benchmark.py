@@ -10,6 +10,10 @@ class ParameterError(ValueError):
     pass
 
 
+class ExecutionError(RuntimeError):
+    pass
+
+
 class Parameter:
     def __init__(self,
                  description,

@@ -175,7 +175,15 @@ def _cli_func(bmark):
                         for k, v in kws.items() if k in non_unique
                     }
                     for _ in range(ctx.obj.executions):
-                        result = bmark_instance.run()
+                        try:
+                            result = bmark_instance.run()
+                        except benchmark.ExecutionError as error:
+                            if ctx.obj.skip_execution_failures:
+                                progress()
+                                continue
+                            click.echo()
+                            click.echo(*error.args)
+                            sys.exit(1)
                         result.update(non_unique_kws)
                         results.append(result)
                         progress()
@@ -225,12 +233,15 @@ def _cli_func(bmark):
               default='best-median',
               type=click.Choice(['best-median', 'all-medians', 'full']))
 @click.option('--skip-invalid-parameters', '-s', is_flag=True)
+@click.option('--skip-execution-failures', '-q', is_flag=True)
 @click.option('--output', '-o', type=click.Path())
 @click.pass_context
-def _cli(ctx, executions, report, skip_invalid_parameters, output):
+def _cli(ctx, executions, report, skip_invalid_parameters,
+         skip_execution_failures, output):
     ctx.obj.executions = executions
     ctx.obj.report = report
     ctx.obj.skip_invalid_parameters = skip_invalid_parameters
+    ctx.obj.skip_execution_failures = skip_execution_failures
     ctx.obj.output = output
 
 
