@@ -5,6 +5,10 @@ import tempfile
 import numpy as np
 
 
+class CompilationError(RuntimeError):
+    pass
+
+
 def gnu_library(compile_command, code, extension=None):
     if compile_command[0].endswith('nvcc'):
         lib_flags = ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
@@ -17,9 +21,12 @@ def gnu_library(compile_command, code, extension=None):
         srcfile.flush()
 
         with tempfile.NamedTemporaryFile(suffix='.so') as library:
-            subprocess.run(compile_command + lib_flags +
-                           ['-o', library.name, srcfile.name],
-                           check=True)
+            try:
+                subprocess.run(compile_command + lib_flags +
+                               ['-o', library.name, srcfile.name],
+                               check=True)
+            except subprocess.CalledProcessError as error:
+                raise CompilationError(*error.args) from None
             return ctypes.cdll.LoadLibrary(library.name)
 
 

@@ -34,8 +34,11 @@ class StencilMixin(benchmark.Benchmark):
         if self.print_code:
             print(cpphelpers.format_code(code))
 
-        self.compiled = compilation.gnu_func(self.compile_command(), code,
-                                             'kernel', float)
+        try:
+            self.compiled = compilation.gnu_func(self.compile_command(), code,
+                                                 'kernel', float)
+        except compilation.CompilationError:
+            raise benchmark.ParameterError('compilation failed')
 
         if self.verify and self.run_twice:
             warnings.warn(
