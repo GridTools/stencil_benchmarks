@@ -9,6 +9,8 @@
     const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * block_size_x + ib;
     const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
     const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
+    if (k >= {{ domain[2] }})
+        return;
 
     extern __shared__ {{ ctype }} smem[];
 
