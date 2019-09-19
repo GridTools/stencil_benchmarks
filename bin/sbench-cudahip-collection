@@ -40,7 +40,8 @@ def cli():
 @click.argument('gpu-architecture')
 @click.argument('prefix')
 @click.option('--executions', '-e', type=int, default=101)
-def basic_bandwidth(backend, gpu_architecture, prefix, executions):
+@click.option('--dtype', '-d', default='float64')
+def basic_bandwidth(backend, gpu_architecture, prefix, executions, dtype):
     kwargs = dict(backend=backend,
                   compiler='nvcc' if backend == 'cuda' else 'hipcc',
                   gpu_architecture=gpu_architecture,
@@ -50,7 +51,8 @@ def basic_bandwidth(backend, gpu_architecture, prefix, executions):
                   loop='3D',
                   block_size=(32, 8, 1),
                   halo=1,
-                  alignment=128 if backend == 'cuda' else 64)
+                  alignment=128 if backend == 'cuda' else 64,
+                  dtype=dtype)
 
     stencils = [('empty', basic.Empty, kwargs), ('copy', basic.Copy, kwargs),
                 ('avg-i', basic.OnesidedAverage, dict(axis=0, **kwargs)),
