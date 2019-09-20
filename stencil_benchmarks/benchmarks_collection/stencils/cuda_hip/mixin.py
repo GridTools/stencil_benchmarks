@@ -1,5 +1,4 @@
 import abc
-import ctypes
 import os
 import warnings
 
@@ -7,6 +6,7 @@ import numpy as np
 
 from .... import benchmark
 from ....tools import array, cpphelpers, compilation, template
+from . import api
 
 
 class StencilMixin(benchmark.Benchmark):
@@ -101,15 +101,16 @@ class StencilMixin(benchmark.Benchmark):
                               self.layout,
                               self.alignment,
                               index_to_align=offset,
-                              alloc=self.alloc,
-                              free=self.free,
+                              alloc=self.runtime.malloc,
+                              free=self.runtime.free,
                               apply_offset=self.offset_allocations)
             for _ in data
         ]
         for host_array, device_array in zip(data, device_data):
-            self.memcpy(device_array.ctypes.data, host_array.ctypes.data,
-                        host_array.nbytes, 'HostToDevice')
-        self.device_synchronize()
+            self.runtime.memcpy(device_array.ctypes.data,
+                                host_array.ctypes.data, host_array.nbytes,
+                                'HostToDevice')
+        self.runtime.device_synchronize()
 
         data_ptrs = [
             compilation.data_ptr(device_array, offset)
@@ -124,52 +125,15 @@ class StencilMixin(benchmark.Benchmark):
             time = self.compiled(*data_ptrs)
 
         for host_array, device_array in zip(data, device_data):
-            self.memcpy(host_array.ctypes.data, device_array.ctypes.data,
-                        host_array.nbytes, 'DeviceToHost')
-        self.device_synchronize()
+            self.runtime.memcpy(host_array.ctypes.data,
+                                device_array.ctypes.data, host_array.nbytes,
+                                'DeviceToHost')
+        self.runtime.device_synchronize()
         return time
 
     @property
     def runtime(self):
-        if not hasattr(self, '_runtime'):
-            if self.backend == 'cuda':
-                lib = 'libcudart.so'
-            elif self.backend == 'hip':
-                lib = 'libhip_hcc.so'
-            self._runtime = ctypes.cdll.LoadLibrary(lib)
-        return self._runtime
-
-    def runtime_call(self, funcname, argtypes, args):
-        funcname = self.backend + funcname
-        func = getattr(self.runtime, funcname)
-        func.argtypes = argtypes
-        if func(*args) != 0:
-            raise RuntimeError(f'GPU runtime function {funcname} failed')
-
-    def alloc(self, nbytes):
-        ptr = ctypes.c_void_p()
-        self.runtime_call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
-                          [ctypes.byref(ptr), nbytes])
-        return ptr.value
-
-    def free(self, ptr, nbytes):
-        self.runtime_call('Free', [ctypes.c_void_p], [ptr])
-
-    def memcpy(self, dst, src, nbytes, kind='Default'):
-        kind = {
-            'HostToHost': 0,
-            'HostToDevice': 1,
-            'DeviceToHost': 2,
-            'DeviceToDevice': 3,
-            'Default': 4
-        }[kind]
-        self.runtime_call(
-            'Memcpy',
-            [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
-            [dst, src, nbytes, kind])
-
-    def device_synchronize(self):
-        self.runtime_call('DeviceSynchronize', [], [])
+        return api.runtime(self.backend)
 
 
 class BasicStencilMixin(StencilMixin):
