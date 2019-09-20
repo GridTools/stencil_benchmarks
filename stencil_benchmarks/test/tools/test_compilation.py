@@ -113,19 +113,22 @@ class TestDtypeCname(unittest.TestCase):
 class TestDataPtr(unittest.TestCase):
     def test_access(self):
         array = np.random.uniform(size=10).astype('float32')
-        ptr = compilation.data_ptr(array)
+        ptr = ctypes.cast(compilation.data_ptr(array),
+                          ctypes.POINTER(ctypes.c_float))
         for i in range(array.size):
             self.assertEqual(ptr[i], array[i])
 
     def test_int_offset(self):
         array = np.arange(7)
         for i in range(array.size):
-            ptr = compilation.data_ptr(array, offset=i)
+            ptr = ctypes.cast(compilation.data_ptr(array, offset=i),
+                              ctypes.POINTER(ctypes.c_int64))
             self.assertEqual(ptr[0], array[i])
 
     def test_tuple_offset(self):
         array = np.random.uniform(size=(7, 3))
         for i in range(array.shape[0]):
             for j in range(array.shape[1]):
-                ptr = compilation.data_ptr(array, offset=(i, j))
+                ptr = ctypes.cast(compilation.data_ptr(array, offset=(i, j)),
+                                  ctypes.POINTER(ctypes.c_double))
                 self.assertEqual(ptr[0], array[i, j])
