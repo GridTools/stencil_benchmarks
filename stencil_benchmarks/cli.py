@@ -9,7 +9,7 @@ import click
 import pandas as pd
 
 from . import benchmark
-from .tools.cli import report_progress
+from .tools import common
 
 
 class ArgRange:
@@ -156,8 +156,8 @@ def _cli_func(bmark):
         non_unique = _non_unique_args(unpacked_kwargs)
         results = []
         try:
-            with report_progress(len(unpacked_kwargs) *
-                                 ctx.obj.executions) as progress:
+            with common.report_progress(
+                    len(unpacked_kwargs) * ctx.obj.executions) as progress:
                 for kws in unpacked_kwargs:
                     try:
                         bmark_instance = bmark(**kws)
@@ -171,9 +171,10 @@ def _cli_func(bmark):
                         sys.exit(1)
 
                     non_unique_kws = {
-                        k: v
+                        k.replace('_', '-'): v
                         for k, v in kws.items() if k in non_unique
                     }
+
                     for _ in range(ctx.obj.executions):
                         try:
                             result = bmark_instance.run()
@@ -197,7 +198,8 @@ def _cli_func(bmark):
             click.echo(table.to_string())
         else:
             if non_unique:
-                medians = table.groupby(list(non_unique)).median()
+                groups = [k.replace('_', '-') for k in non_unique]
+                medians = table.groupby(groups).median()
                 if ctx.obj.report == 'best-median':
                     best = medians['time'].idxmin()
                     click.echo(medians.loc[[best]])
@@ -206,7 +208,7 @@ def _cli_func(bmark):
             else:
                 click.echo(table.median().to_string())
         if ctx.obj.output:
-            table.to_csv(ctx.obj.output, sep=';')
+            common.write_csv(table, ctx.obj.output)
 
     func = run_bmark
     for name, param in bmark.parameters.items():
