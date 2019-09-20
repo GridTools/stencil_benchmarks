@@ -142,8 +142,10 @@ def basic_bandwidth(backend, gpu_architecture, prefix, executions, dtype):
 @click.argument('domain', type=int, nargs=3)
 @click.option('--executions', '-e', type=int, default=5)
 @click.option('--dtype', '-d', default='float64')
+@click.option('--all-stencils/--fast-stencils-only', '-a')
 def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
-                                        domain, executions, dtype):
+                                        domain, executions, dtype,
+                                        all_stencils):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
 
     basic_kwargs = dict(**kwargs, block_size=(None, None, [1]))
@@ -152,12 +154,15 @@ def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
     stencils = [('on-the-fly', horizontal_diffusion.OnTheFly,
                  dict(**basic_kwargs, loop='3D')),
                 ('classic', horizontal_diffusion.Classic, basic_kwargs),
-                ('j-scan', horizontal_diffusion.JScan, jscan_kwargs),
-                ('j-scan-otf', horizontal_diffusion.JScanOtf, jscan_kwargs),
                 ('j-scan-otf-aligned', horizontal_diffusion.JScanOtfAligned,
-                 jscan_kwargs),
-                ('j-scan-shuffle', horizontal_diffusion.JScanShuffle,
                  jscan_kwargs)]
+
+    if all_stencils:
+        stencils += [
+            ('j-scan', horizontal_diffusion.JScan, jscan_kwargs),
+            ('j-scan-otf', horizontal_diffusion.JScanOtf, jscan_kwargs),
+            ('j-scan-shuffle', horizontal_diffusion.JScanShuffle, jscan_kwargs)
+        ]
 
     table = blocksize_scan(stencils, domain, executions)
     common.write_csv(table, prefix + '-raw.csv')
