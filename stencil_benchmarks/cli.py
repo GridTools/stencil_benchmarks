@@ -125,7 +125,7 @@ def _unpack_ranges(kwargs):
     for values in itertools.product(*ranges.values()):
         value_map = {k: v for k, v in zip(ranges.keys(), values)}
 
-        def unpack(value):
+        def unpack(value, value_map=value_map):
             if isinstance(value, tuple):
                 return tuple(unpack(v) for v in value)
             if isinstance(value, ArgRange):
