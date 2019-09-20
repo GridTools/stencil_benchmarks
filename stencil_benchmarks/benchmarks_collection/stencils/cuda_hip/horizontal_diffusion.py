@@ -1,6 +1,5 @@
 from .mixin import BasicStencilMixin, HorizontalDiffusionMixin
 from ..base import HorizontalDiffusionStencil
-from .... import benchmark
 
 
 class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
@@ -53,11 +52,7 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
 
 
 class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    def setup(self):
-        super().setup()
-
-        if self.block_size[0] < self.block_size[1] + 2:
-            raise benchmark.ParameterError('unsupported block size')
+    pass
 
 
 class JScan(HorizontalDiffusionMixin, HorizontalDiffusionStencil):

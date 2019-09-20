@@ -18,7 +18,8 @@ class Copy(BasicStencilMixin, CopyStencil):
 class OnesidedAverage(BasicStencilMixin, OnesidedAverageStencil):
     def stencil_body(self):
         stride = self.strides[self.axis]
-        return f'out[index] = (inp[index] + inp[index + {stride}]) / {self.ctype_name}(2);'
+        return (f'out[index] = (inp[index] + inp[index + {stride}]) /'
+                f'{self.ctype_name}(2);')
 
 
 class SymmetricAverage(BasicStencilMixin, SymmetricAverageStencil):
@@ -37,5 +38,5 @@ class Laplacian(BasicStencilMixin, LaplacianStencil):
             if apply_along_axis:
                 code.append(f'inp[index - {stride}] + inp[index + {stride}]')
 
-        return f'out[index] = {self.ctype_name}({coeff}) * inp[index] - (' + ' + '.join(
-            code) + ');'
+        return (f'out[index] = {self.ctype_name}({coeff}) * inp[index] - (' +
+                ' + '.join(code) + ');')
