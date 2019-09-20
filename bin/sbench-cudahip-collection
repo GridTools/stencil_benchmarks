@@ -4,6 +4,7 @@ import gc
 import itertools
 
 import click
+import numpy as np
 import pandas as pd
 
 from stencil_benchmarks.benchmark import ExecutionError, ParameterError
@@ -30,7 +31,9 @@ def block_sizes_for_domain(domain, block_size):
         fixed if fixed is not None else valid_block_sizes(d)
         for d, fixed in zip(domain, block_size)
     ]
-    return itertools.product(*block_sizes)
+    for b in itertools.product(*block_sizes):
+        if np.product(b) >= 32:
+            yield b
 
 
 def run_and_get_median(stencil, executions):
