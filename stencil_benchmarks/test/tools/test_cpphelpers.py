@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 from stencil_benchmarks.tools import cpphelpers
 
@@ -14,4 +15,7 @@ class TestFormatCode(unittest.TestCase):
                      '  std::cout << "Hello World!" << std::endl;\n'
                      '  return 0;\n'
                      '}')
-        self.assertEqual(cpphelpers.format_code(code), formatted)
+        try:
+            self.assertEqual(cpphelpers.format_code(code), formatted)
+        except FileNotFoundError:
+            warnings.warn(f'clang-format was not found')
