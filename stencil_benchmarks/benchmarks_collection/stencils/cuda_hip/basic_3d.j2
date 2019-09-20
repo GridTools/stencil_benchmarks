@@ -20,4 +20,6 @@
     grid_size = dim3({{ (sorted_domain[2] + sorted_block_size[2] - 1) // sorted_block_size[2] }},
                      {{ (sorted_domain[1] + sorted_block_size[1] - 1) // sorted_block_size[1] }},
                      {{ (sorted_domain[0] + sorted_block_size[0] - 1) // sorted_block_size[0] }});
+    static_assert({{ sorted_block_size[0] * sorted_block_size[1] * sorted_block_size[2] }} <= 1024,
+                  "too many threads per block");
 {% endblock kernel_prepare %}
