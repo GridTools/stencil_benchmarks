@@ -35,6 +35,17 @@ def cli():
     pass
 
 
+def common_kwargs(backend, gpu_architecture, dtype):
+    return dict(backend=backend,
+                compiler='nvcc' if backend == 'cuda' else 'hipcc',
+                gpu_architecture=gpu_architecture,
+                verify=False,
+                run_twice=True,
+                gpu_timers=True,
+                alignment=128 if backend == 'cuda' else 64,
+                dtype=dtype)
+
+
 @cli.command()
 @click.argument('backend', type=click.Choice(['cuda', 'hip']))
 @click.argument('gpu-architecture')
@@ -42,19 +53,18 @@ def cli():
 @click.option('--executions', '-e', type=int, default=101)
 @click.option('--dtype', '-d', default='float64')
 def basic_bandwidth(backend, gpu_architecture, prefix, executions, dtype):
-    kwargs = dict(backend=backend,
-                  compiler='nvcc' if backend == 'cuda' else 'hipcc',
-                  gpu_architecture=gpu_architecture,
-                  verify=False,
-                  run_twice=True,
-                  gpu_timers=True,
-                  loop='3D',
-                  block_size=(32, 8, 1),
-                  halo=1,
-                  alignment=128 if backend == 'cuda' else 64,
-                  dtype=dtype)
+    kwargs = common_kwargs(backend, gpu_architecture, dtype)
+    kwargs.update(
+        loop='3D',
+        block_size=(32, 8, 1),
+        halo=1,
+    )
 
-    stencils = [('empty', basic.Empty, kwargs), ('copy', basic.Copy, kwargs),
+    stream_kwargs = kwargs.copy()
+    stream_kwargs.update(loop='1D', block_size=(1024, 1, 1), halo=0)
+
+    stencils = [('stream', basic.Copy, stream_kwargs),
+                ('empty', basic.Empty, kwargs), ('copy', basic.Copy, kwargs),
                 ('avg-i', basic.OnesidedAverage, dict(axis=0, **kwargs)),
                 ('avg-j', basic.OnesidedAverage, dict(axis=1, **kwargs)),
                 ('avg-k', basic.OnesidedAverage, dict(axis=2, **kwargs)),
