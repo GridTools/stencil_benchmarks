@@ -68,5 +68,9 @@ class JScanOtf(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 
 
+class JScanOtfAligned(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass
+
+
 class JScanShuffle(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
