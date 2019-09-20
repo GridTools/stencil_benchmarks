@@ -67,7 +67,7 @@ class StencilMixin(benchmark.Benchmark):
 
     @property
     def ctype_name(self):
-        return compilation.ctype_cname(compilation.dtype_as_ctype(self.dtype))
+        return compilation.dtype_cname(self.dtype)
 
     @property
     def sorted_domain(self):

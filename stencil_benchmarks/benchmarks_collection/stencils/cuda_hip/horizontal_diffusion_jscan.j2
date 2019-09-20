@@ -39,7 +39,7 @@
         inc[cache_index + 2 * cache_jstride] = inp[index + 2 * {{ strides[1] }}];
 
         if (ib >= -1 && ib < ib_max + 1) {
-            lap[cache_index + cache_jstride] = 4 * inc[cache_index + cache_jstride] -
+            lap[cache_index + cache_jstride] = {{ ctype }}(4) * inc[cache_index + cache_jstride] -
                                             (inc[cache_index - cache_istride + cache_jstride] +
                                                 inc[cache_index + cache_istride + cache_jstride] +
                                                 inc[cache_index + 2 * cache_jstride] +
@@ -47,14 +47,14 @@
 
             
             flx[cache_index] = lap[cache_index + cache_istride] - lap[cache_index];
-            if (flx[cache_index] * (inc[cache_index + cache_istride] - inc[cache_index]) > 0) {
-                flx[cache_index] = 0.;
+            if (flx[cache_index] * (inc[cache_index + cache_istride] - inc[cache_index]) > {{ ctype }}(0)) {
+                flx[cache_index] = {{ ctype }}(0);
             }
 
             if (jb >= -1) {
                 fly_ij = lap[cache_index + cache_jstride] - lap[cache_index];
-                if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > 0) {
-                    fly_ij = 0.;
+                if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > {{ ctype }}(0)) {
+                    fly_ij = {{ ctype }}(0);
                 }
             }
 

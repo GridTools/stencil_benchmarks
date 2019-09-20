@@ -4,8 +4,11 @@
 
 {%- if backend == "hip" %}
 #include <hip/hip_runtime.h>
+#include <hip/hip_fp16.h>
 using hipDeviceProp = hipDeviceProp_t;
-{% endif %}
+{%- else %}
+#include <cuda_fp16.h>
+{%- endif %}
 
 #define CHECK(x) { \
                     {{ backend }}Error_t error = {{ backend }}##x; \
@@ -120,7 +123,7 @@ extern "C" double kernel(
 
     float time;
     CHECK(EventElapsedTime(&time, start, stop));
-    return time / 1000.0;
+    return double(time) / 1000.0;
     {%- else %}
     CHECK(DeviceSynchronize());
 

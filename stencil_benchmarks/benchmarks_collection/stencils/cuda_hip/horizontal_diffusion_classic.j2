@@ -43,7 +43,7 @@
 
     for (std::ptrdiff_t k = k_min; k < k_max; ++k) {
         if (ib >= -1 && ib < ib_max + 1 && jb >= -1 && jb < jb_max + 1) {
-            lap[cache_index] = ({{ ctype }})4 * __ldg(&inp[index]) -
+            lap[cache_index] = {{ ctype }}(4) * __ldg(&inp[index]) -
                                 (__ldg(&inp[index + {{ strides[0] }}]) + __ldg(&inp[index - {{ strides[0] }}]) +
                                     __ldg(&inp[index + {{ strides[1] }}]) + __ldg(&inp[index - {{ strides[1] }}]));
         }
@@ -52,15 +52,15 @@
 
         if (ib >= -1 && ib < ib_max && jb >= 0 && jb < jb_max) {
             flx[cache_index] = lap[cache_index + cache_istride] - lap[cache_index];
-            if (flx[cache_index] * (__ldg(&inp[index + {{ strides[0] }}]) - __ldg(&inp[index])) > 0) {
-                flx[cache_index] = 0.;
+            if (flx[cache_index] * (__ldg(&inp[index + {{ strides[0] }}]) - __ldg(&inp[index])) > {{ ctype }}(0)) {
+                flx[cache_index] = {{ ctype }}(0);
             }
         }
 
         if (ib >= 0 && ib < ib_max && jb >= -1 && jb < jb_max) {
             fly[cache_index] = lap[cache_index + cache_jstride] - lap[cache_index];
-            if (fly[cache_index] * (__ldg(&inp[index + {{ strides[1] }}]) - __ldg(&inp[index])) > 0) {
-                fly[cache_index] = 0.;
+            if (fly[cache_index] * (__ldg(&inp[index + {{ strides[1] }}]) - __ldg(&inp[index])) > {{ ctype }}(0)) {
+                fly[cache_index] = {{ ctype }}(0);
             }
         }
 

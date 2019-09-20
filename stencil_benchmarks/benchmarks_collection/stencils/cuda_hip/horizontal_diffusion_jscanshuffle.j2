@@ -37,7 +37,7 @@
         __syncthreads();
 
         if (ib >= -1 && ib < ib_max + 1) {
-            lap_ijp1 = 4 * inc[cache_index + cache_jstride] -
+            lap_ijp1 = {{ ctype }}(4) * inc[cache_index + cache_jstride] -
                        (inc[cache_index - cache_istride + cache_jstride] +
                         inc[cache_index + cache_istride + cache_jstride] +
                         inc[cache_index + 2 * cache_jstride] +
@@ -52,15 +52,15 @@
 #endif
         if (ib >= -1 && ib < ib_max && jb >= 0) {
             flx_ij = lap_ip1j - lap_ij;
-            if (flx_ij * (inc[cache_index + cache_istride] - inc[cache_index]) > 0) {
-                flx_ij = 0.;
+            if (flx_ij * (inc[cache_index + cache_istride] - inc[cache_index]) > {{ ctype }}(0)) {
+                flx_ij = {{ ctype }}(0);
             }
         }
 
         if (ib >= 0 && ib < ib_max && jb >= -1) {
             fly_ij = lap_ijp1 - lap_ij;
-            if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > 0) {
-                fly_ij = 0.;
+            if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > {{ ctype }}(0)) {
+                fly_ij = {{ ctype }}(0);
             }
         }
 

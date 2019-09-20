@@ -67,7 +67,7 @@ class TestDtypeAsCtype(unittest.TestCase):
         self.check_type('uint64', ctypes.c_uint64)
 
 
-class TestCtypeCnam(unittest.TestCase):
+class TestCtypeCname(unittest.TestCase):
     def check_type(self, ctype, name):
         self.assertEqual(compilation.ctype_cname(ctype), name)
 
@@ -86,6 +86,28 @@ class TestCtypeCnam(unittest.TestCase):
         self.check_type(ctypes.c_uint16, 'std::uint16_t')
         self.check_type(ctypes.c_uint32, 'std::uint32_t')
         self.check_type(ctypes.c_uint64, 'std::uint64_t')
+
+
+class TestDtypeCname(unittest.TestCase):
+    def check_type(self, dtype, name):
+        self.assertEqual(compilation.dtype_cname(np.dtype(dtype)), name)
+
+    def test_floats(self):
+        self.check_type('float16', 'half')
+        self.check_type('float32', 'float')
+        self.check_type('float64', 'double')
+
+    def test_signed_ints(self):
+        self.check_type('int8', 'std::int8_t')
+        self.check_type('int16', 'std::int16_t')
+        self.check_type('int32', 'std::int32_t')
+        self.check_type('int64', 'std::int64_t')
+
+    def test_unsigned_ints(self):
+        self.check_type('uint8', 'std::uint8_t')
+        self.check_type('uint16', 'std::uint16_t')
+        self.check_type('uint32', 'std::uint32_t')
+        self.check_type('uint64', 'std::uint64_t')
 
 
 class TestDataPtr(unittest.TestCase):

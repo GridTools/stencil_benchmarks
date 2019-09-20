@@ -100,6 +100,24 @@ def ctype_cname(ctype):
     raise NotImplementedError(f'Conversion of type {ctype} is not supported')
 
 
+def dtype_cname(dtype):
+    if dtype.kind == 'f':
+        if dtype.itemsize == 2:
+            return 'half'
+        if dtype.itemsize == 4:
+            return 'float'
+        if dtype.itemsize == 8:
+            return 'double'
+
+    if dtype.kind == 'i':
+        return f'std::int{dtype.itemsize * 8}_t'
+
+    if dtype.kind == 'u':
+        return f'std::uint{dtype.itemsize * 8}_t'
+
+    raise NotImplementedError(f'Conversion of type {dtype} is not supported')
+
+
 def data_ptr(array, offset=None):
     if offset is None:
         offset = 0
@@ -107,5 +125,4 @@ def data_ptr(array, offset=None):
         offset *= array.dtype.itemsize
     else:
         offset = int(np.sum(np.asarray(array.strides) * np.asarray(offset)))
-    return ctypes.cast(array.ctypes.data + offset,
-                       ctypes.POINTER(dtype_as_ctype(array.dtype)))
+    return ctypes.cast(array.ctypes.data + offset, ctypes.c_void_p)
