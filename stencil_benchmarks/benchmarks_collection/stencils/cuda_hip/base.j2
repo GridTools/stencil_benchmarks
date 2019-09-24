@@ -41,14 +41,16 @@ extern "C" double kernel(
     CHECK(GetDevice(&device));
     CHECK(GetDeviceProperties(&device_properties, device));
 
-    dim3 block_size({{ block_size[0] }},
-                {{ block_size[1] }},
-                {{ block_size[2] }});
-    dim3 grid_size({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
-                {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
-                {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
+    dim3 block_size;
+    dim3 grid_size;
     unsigned smem_size = 0;
     {% block kernel_prepare %}
+        block_size = dim3({{ block_size[0] }},
+                          {{ block_size[1] }},
+                          {{ block_size[2] }});
+        grid_size = dim3({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
+                         {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
+                         {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
     {% endblock kernel_prepare %}
 
     if (smem_size > device_properties.sharedMemPerBlock) {
