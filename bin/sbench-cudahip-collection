@@ -10,12 +10,12 @@ import pandas as pd
 from stencil_benchmarks.benchmark import ExecutionError, ParameterError
 from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
     basic, horizontal_diffusion)
-from stencil_benchmarks.tools import common
+from stencil_benchmarks.tools import cli as cli_tools, common
 
 
 def benchmark_domains():
     exponents = list(range(5, 11))
-    with common.report_progress(len(exponents)) as progress:
+    with cli_tools.report_progress(len(exponents)) as progress:
         for exponent in exponents:
             d = 2**exponent
             yield d, d, 80
@@ -58,7 +58,7 @@ def benchmark(stencils_and_kwargs, executions):
 
 def blocksize_scan(stencils_and_kwargs, domain, executions):
     results = []
-    with common.report_progress(len(stencils_and_kwargs)) as progress:
+    with cli_tools.report_progress(len(stencils_and_kwargs)) as progress:
         for name, Stencil, kwargs in stencils_and_kwargs:
             kwargs = kwargs.copy()
             for block_size in block_sizes_for_domain(

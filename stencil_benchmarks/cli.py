@@ -1,146 +1,12 @@
 import copy
-import itertools
-import operator
 import re
 import sys
 import types
-
 import click
 import pandas as pd
 
 from . import benchmark
-from .tools import common
-
-
-class ArgRange:
-    def __init__(self, name, values):
-        self.name = name
-        self.values = values
-
-
-class MaybeRange(click.ParamType):
-    name = 'range or value'
-
-    def __init__(self, base_type):
-        self.base_type = base_type
-
-    def _parse_comma_range(self, value, param, ctx):
-        return [
-            self.base_type.convert(v, param, ctx) for v in value.split(',')
-        ]
-
-    def _parse_range(self, value, param, ctx):
-        try:
-            value, step = value.split(':')
-        except ValueError:
-            step = '1'
-
-        try:
-            start, stop = value.split('-')
-        except ValueError:
-            self.fail(
-                f'expected range of {self.base_type.name},'
-                f' got {value}', param, ctx)
-
-        start = self.base_type.convert(start, param, ctx)
-        stop = self.base_type.convert(stop, param, ctx)
-
-        range_op = operator.add
-        valid_ops = {
-            '+': operator.add,
-            '-': operator.sub,
-            '*': operator.mul,
-            '/': operator.truediv
-        }
-        if step[0] in valid_ops:
-            range_op = valid_ops[step[0]]
-            step = step[1:]
-        step = self.base_type.convert(step, param, ctx)
-        result = []
-        current = start
-        while start <= current <= stop:
-            result.append(current)
-            current = range_op(current, step)
-        return result
-
-    def convert(self, value, param, ctx):
-        if isinstance(value, str) and len(
-                value) >= 2 and value[0] == '[' and value[-1] == ']':
-            value = value[1:-1]
-            try:
-                name, value = value.split('=')
-            except ValueError:
-                name = None
-
-            if value:
-                if ',' in value:
-                    values = self._parse_comma_range(value, param, ctx)
-                else:
-                    values = self._parse_range(value, param, ctx)
-            else:
-                values = None
-
-            return ArgRange(name, values)
-
-        return self.base_type.convert(value, param, ctx)
-
-
-_RANGE_TYPES = {
-    int: MaybeRange(click.INT),
-    float: MaybeRange(click.FLOAT),
-    str: MaybeRange(click.STRING)
-}
-
-
-def _unpack_ranges(kwargs):
-    ranges = dict()
-
-    def find_named_ranges(value):
-        if isinstance(value, tuple):
-            for v in value:
-                find_named_ranges(v)
-        if isinstance(value, ArgRange):
-            if value.name:
-                if value.name in ranges:
-                    if ranges[value.name] is None:
-                        ranges[value.name] = value.values
-                    elif value.values is not None and ranges[
-                            value.name] != value.values:
-                        raise ValueError(f'multiple definitions for '
-                                         'argument range "{value.name}"')
-                else:
-                    ranges[value.name] = value.values
-            else:
-                ranges[id(value)] = value.values
-
-    for value in kwargs.values():
-        find_named_ranges(value)
-
-    for name, values in ranges.items():
-        if values is None:
-            raise ValueError(
-                f'found named range "{name}" with undefined value')
-
-    unpacked_kwargs = []
-    for values in itertools.product(*ranges.values()):
-        value_map = {k: v for k, v in zip(ranges.keys(), values)}
-
-        def unpack(value, value_map=value_map):
-            if isinstance(value, tuple):
-                return tuple(unpack(v) for v in value)
-            if isinstance(value, ArgRange):
-                if value.name:
-                    return value_map[value.name]
-                return value_map[id(value)]
-            return value
-
-        unpacked_kwargs.append({k: unpack(v) for k, v in kwargs.items()})
-    return unpacked_kwargs
-
-
-def _non_unique_args(unpacked_kwargs):
-    keys = unpacked_kwargs[0].keys()
-    return {k for k in keys if len(set(v[k] for v in unpacked_kwargs)) > 1}
+from .tools import common, cli as cli_tools
 
 
 def _cli_command(bmark):
@@ -152,12 +18,12 @@ def _cli_command(bmark):
 def _cli_func(bmark):
     @click.pass_context
     def run_bmark(ctx, **kwargs):
-        unpacked_kwargs = _unpack_ranges(kwargs)
-        non_unique = _non_unique_args(unpacked_kwargs)
+        unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
+        non_unique = set(cli_tools.range_args(**kwargs))
+        total_executions = len(unpacked_kwargs) * ctx.obj.executions
         results = []
         try:
-            with common.report_progress(
-                    len(unpacked_kwargs) * ctx.obj.executions) as progress:
+            with cli_tools.report_progress(total_executions) as progress:
                 for kws in unpacked_kwargs:
                     try:
                         bmark_instance = bmark(**kws)
@@ -219,7 +85,7 @@ def _cli_func(bmark):
                                   help=param.description)
         else:
             option = click.option(name,
-                                  type=_RANGE_TYPES[param.dtype],
+                                  type=cli_tools.range(param.dtype),
                                   nargs=param.nargs,
                                   help=param.description,
                                   required=param.default is None,
