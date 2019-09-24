@@ -140,8 +140,8 @@ def basic_bandwidth(backend, gpu_architecture, prefix, executions, dtype):
 @click.argument('gpu-architecture')
 @click.argument('prefix')
 @click.argument('domain', type=int, nargs=3)
-@click.option('--executions', '-e', type=int, default=5)
-@click.option('--dtype', '-d', default='float64')
+@click.option('--executions', '-e', type=int, default=3)
+@click.option('--dtype', '-d', default='float32')
 @click.option('--all-stencils/--fast-stencils-only', '-a')
 def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
                                         domain, executions, dtype,
@@ -149,7 +149,7 @@ def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
 
     basic_kwargs = dict(**kwargs, block_size=(None, None, [1]))
-    jscan_kwargs = dict(**kwargs, block_size=([1], None, [1, 2, 4]))
+    jscan_kwargs = dict(**kwargs, block_size=([32], None, [1, 2, 4, 8, 16]))
 
     stencils = [('on-the-fly', horizontal_diffusion.OnTheFly,
                  dict(**basic_kwargs, loop='3D')),
@@ -170,6 +170,42 @@ def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
     bestblocks = table.loc[table.groupby('stencil')['time'].idxmin()]
     bestblocks.set_index('stencil', inplace=True)
     common.write_csv(bestblocks, prefix + '-bestblocks.csv')
+
+
+@cli.command()
+@click.argument('backend', type=click.Choice(['cuda', 'hip']))
+@click.argument('gpu-architecture')
+@click.argument('prefix')
+@click.option('--executions', '-e', type=int, default=101)
+@click.option('--dtype', '-d', default='float32')
+def horizontal_diffusion_bandwidth(backend, gpu_architecture, prefix,
+                                   executions, dtype):
+    kwargs = common_kwargs(backend, gpu_architecture, dtype)
+
+    otf_kwargs = kwargs.copy()
+    classic_kwargs = kwargs.copy()
+    jscan_kwargs = kwargs.copy()
+
+    otf_kwargs.update(loop='3D')
+    if backend == 'hip':
+        otf_kwargs.update(block_size=(128, 4, 1))
+        classic_kwargs.update(block_size=(64, 8, 1))
+        jscan_kwargs.update(block_size=(64, 4, 1))
+    else:
+        otf_kwargs.update(block_size=(256, 2, 1))
+        classic_kwargs.update(block_size=(32, 16, 1))
+        jscan_kwargs.update(block_size=(32, 16, 2))
+
+    stencils = [('on-the-fly', horizontal_diffusion.OnTheFly, otf_kwargs),
+                ('classic', horizontal_diffusion.Classic, classic_kwargs),
+                ('j-scan-otf-aligned', horizontal_diffusion.JScanOtfAligned,
+                 jscan_kwargs)]
+
+    table = benchmark(stencils, executions)
+
+    table = table.pivot('domain', 'stencil')
+    common.write_csv(table['time'], prefix + '-time.csv')
+    common.write_csv(table['bandwidth'], prefix + '-bandwidth.csv')
 
 
 cli()
