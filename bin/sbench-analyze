@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+
+import os
+
+import click
+import numpy as np
+import pandas as pd
+
+
+@click.group()
+def main():
+    pass
+
+
+def read_csv(csv):
+    return pd.read_csv(csv,
+                       index_col=0,
+                       na_values=['nan', 'NaN'],
+                       keep_default_na=False)
+
+
+def strip(df, invert=False):
+    nunique = df.apply(pd.Series.nunique)
+    which = nunique == 1 if not invert else nunique > 1
+    df = df.drop(nunique[which].index, axis='columns')
+    if invert:
+        df = df.iloc[0].sort_index()
+    return df
+
+
+@main.command(name='print')
+@click.argument('csv', type=click.Path(exists=True))
+@click.option('--common/--non-common', '-c', default=False)
+@click.option('--auto-group/--no-auto-group', '-a', default=False)
+@click.option('--group', '-g', multiple=True)
+@click.option('--select', '-s', multiple=True)
+@click.option('--pivot', '-p', nargs=2)
+@click.option('--aggregation', default='median')
+@click.option('--output', '-o', type=click.Path())
+def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
+              output):
+    df = read_csv(csv)
+    df = strip(df, invert=common)
+    if pivot:
+        index, column = pivot
+        df = df.pivot_table(index=index, columns=column, aggfunc=aggregation)
+    if auto_group:
+        nunique = df.apply(pd.Series.nunique).sort_values()
+        groups = [g for g in nunique.index if df.dtypes[g] != float]
+        df = df.groupby(groups).agg(aggregation)
+    if group:
+        df = df.groupby(list(groups)).agg(aggregation)
+    if select:
+        df = df[select[0] if len(select) == 1 else list(select)]
+
+    click.echo(df.to_string())
+    if output:
+        df.to_csv(output)
+
+
+@main.command(name='plot')
+@click.argument('csv', type=click.Path(exists=True))
+@click.argument('by')
+@click.argument('x')
+@click.argument('y')
+@click.option('--aggregation', default='median')
+@click.option('--uniform/--non-uniform', '-u')
+@click.option('--ylim', type=float, nargs=2)
+@click.option('--title')
+@click.option('--output', '-o', type=click.Path())
+def plot_csv(csv, by, x, y, aggregation, uniform, ylim, title, output):
+    df = read_csv(csv)
+    df = strip(df)
+
+    df = df.pivot_table(index=x, columns=by, aggfunc=aggregation)[y]
+
+    import matplotlib
+    matplotlib.use('Agg')
+    from matplotlib import pyplot as plt
+    plt.style.use('ggplot')
+
+    xticks = np.arange(len(df.index)) if uniform else df.index
+
+    for label, values in df.items():
+        plt.plot(xticks, values.values, marker='o', label=label)
+
+    if uniform:
+        plt.xticks(xticks, df.index)
+
+    plt.legend()
+    plt.xlabel(x)
+    plt.ylabel(y)
+    if ylim:
+        plt.ylim(ylim)
+    if title:
+        plt.title(title)
+    else:
+        plt.title(os.path.split(csv)[-1])
+    if output:
+        plt.savefig(output)
+    else:
+        plt.show()
+
+
+if __name__ == '__main__':
+    main()
