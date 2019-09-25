@@ -41,8 +41,8 @@ extern "C" double kernel(
     CHECK(GetDevice(&device));
     CHECK(GetDeviceProperties(&device_properties, device));
 
-    dim3 block_size;
-    dim3 grid_size;
+    dim3 block_size((unsigned)-1, (unsigned)-1, (unsigned)-1);
+    dim3 grid_size((unsigned)-1, (unsigned)-1, (unsigned)-1);
     unsigned smem_size = 0;
     {% block kernel_prepare %}
         block_size = dim3({{ block_size[0] }},
