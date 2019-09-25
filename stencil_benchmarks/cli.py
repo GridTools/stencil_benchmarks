@@ -2,11 +2,12 @@ import copy
 import re
 import sys
 import types
+
 import click
 import pandas as pd
 
 from . import benchmark
-from .tools import common, cli as cli_tools
+from .tools import cli as cli_tools
 
 
 def _cli_command(bmark):
@@ -19,7 +20,7 @@ def _cli_func(bmark):
     @click.pass_context
     def run_bmark(ctx, **kwargs):
         unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
-        non_unique = set(cli_tools.range_args(**kwargs))
+        result_keys = None
         results = []
         try:
             with cli_tools.ProgressBar() as progress:
@@ -29,25 +30,21 @@ def _cli_func(bmark):
                     except benchmark.ParameterError as error:
                         if ctx.obj.skip_invalid_parameters:
                             continue
-                        click.echo()
                         click.echo(*error.args)
                         sys.exit(1)
-
-                    non_unique_kws = {
-                        k.replace('_', '-'): v
-                        for k, v in kws.items() if k in non_unique
-                    }
 
                     for _ in progress.report(range(ctx.obj.executions)):
                         try:
                             result = bmark_instance.run()
+                            if result_keys is None:
+                                result_keys = set(result.keys())
                         except benchmark.ExecutionError as error:
                             if ctx.obj.skip_execution_failures:
                                 continue
-                            click.echo()
                             click.echo(*error.args)
                             sys.exit(1)
-                        result.update(non_unique_kws)
+                        result.update(
+                            cli_tools.pretty_parameters(bmark_instance))
                         results.append(result)
         except KeyboardInterrupt:
             pass
@@ -55,12 +52,18 @@ def _cli_func(bmark):
             click.echo('no data collected')
             sys.exit(1)
         table = pd.DataFrame(results)
+        if ctx.obj.output:
+            table.to_csv(ctx.obj.output)
+
+        nunique = table.apply(pd.Series.nunique)
+        table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
+
         if ctx.obj.report == 'full':
             click.echo(table.to_string())
         else:
-            if non_unique:
-                groups = [k.replace('_', '-') for k in non_unique]
-                medians = table.groupby(groups).median()
+            group_keys = list(set(table.columns) - result_keys)
+            if group_keys:
+                medians = table.groupby(group_keys).median()
                 if ctx.obj.report == 'best-median':
                     best = medians['time'].idxmin()
                     click.echo(medians.loc[[best]])
@@ -68,8 +71,6 @@ def _cli_func(bmark):
                     click.echo(medians.sort_values(by='time').to_string())
             else:
                 click.echo(table.median().to_string())
-        if ctx.obj.output:
-            common.write_csv(table, ctx.obj.output)
 
     func = run_bmark
     for name, param in bmark.parameters.items():

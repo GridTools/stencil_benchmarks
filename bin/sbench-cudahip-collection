@@ -9,8 +9,8 @@ import pandas as pd
 
 from stencil_benchmarks.benchmark import ExecutionError, ParameterError
 from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
-    basic, horizontal_diffusion)
-from stencil_benchmarks.tools import cli as cli_tools, common
+    basic, horizontal_diffusion, vertical_advection)
+from stencil_benchmarks.tools import cli
 
 
 def benchmark_domains():
@@ -33,21 +33,27 @@ def block_sizes_for_domain(domain, block_size):
             yield b
 
 
-def run_and_get_median(stencil, executions):
-    return sorted((stencil.run() for _ in range(executions)),
-                  key=lambda x: x['time'])[executions // 2]
+def truncate_block_size_to_domain(kwargs):
+    if 'block_size' in kwargs and 'domain' in kwargs:
+        kwargs['block_size'] = tuple(
+            min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
+    return kwargs
 
 
-def benchmark(stencils_and_kwargs, executions):
+def benchmark(stencils_and_kwargs, executions, preprocess_kwargs=None):
+    if preprocess_kwargs is None:
+        preprocess_kwargs = lambda x: x
     results = []
-    with cli_tools.ProgressBar() as progress:
+    with cli.ProgressBar() as progress:
         for domain in progress.report(benchmark_domains()):
-            for name, Stencil, kwargs in stencils_and_kwargs:
-                stencil = Stencil(domain=domain, **kwargs)
-                result = run_and_get_median(stencil, executions)
-                result.update(stencil=name, domain=domain[0])
+            for name, Stencil, kwargs in progress.report(stencils_and_kwargs):
+                stencil = Stencil(domain=domain, **preprocess_kwargs(kwargs))
 
-                results.append(result)
+                for _ in progress.report(range(executions)):
+                    result = stencil.run()
+                    result.update(stencil=name)
+                    result.update(cli.pretty_parameters(stencil))
+                    results.append(result)
 
                 del stencil
                 gc.collect()
@@ -56,7 +62,7 @@ def benchmark(stencils_and_kwargs, executions):
 
 def blocksize_scan(stencils_and_kwargs, domain, executions):
     results = []
-    with cli_tools.ProgressBar() as progress:
+    with cli.ProgressBar() as progress:
         for name, Stencil, kwargs in progress.report(stencils_and_kwargs):
             kwargs = kwargs.copy()
             for block_size in progress.report(
@@ -70,12 +76,13 @@ def blocksize_scan(stencils_and_kwargs, domain, executions):
                     continue
 
                 try:
-                    result = run_and_get_median(stencil, executions)
+                    for _ in progress.report(executions):
+                        result = stencil.run()
+                        result.update(stencil=name)
+                        result.update(cli.pretty_parameters(stencil))
+                        results.append(result)
                 except ExecutionError:
-                    continue
-
-                result.update({'stencil': name, 'block-size': block_size})
-                results.append(result)
+                    pass
 
                 del stencil
                 gc.collect()
@@ -83,7 +90,7 @@ def blocksize_scan(stencils_and_kwargs, domain, executions):
 
 
 @click.group()
-def cli():
+def main():
     pass
 
 
@@ -98,13 +105,13 @@ def common_kwargs(backend, gpu_architecture, dtype):
                 dtype=dtype)
 
 
-@cli.command()
+@main.command()
 @click.argument('backend', type=click.Choice(['cuda', 'hip']))
 @click.argument('gpu-architecture')
-@click.argument('prefix')
+@click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
 @click.option('--dtype', '-d', default='float64')
-def basic_bandwidth(backend, gpu_architecture, prefix, executions, dtype):
+def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
     kwargs.update(
         loop='3D',
@@ -127,21 +134,18 @@ def basic_bandwidth(backend, gpu_architecture, prefix, executions, dtype):
                  dict(along_x=True, along_y=True, along_z=False, **kwargs))]
 
     table = benchmark(stencils, executions)
-
-    table = table.pivot('domain', 'stencil')
-    common.write_csv(table['time'], prefix + '-time.csv')
-    common.write_csv(table['bandwidth'], prefix + '-bandwidth.csv')
+    table.to_csv(output)
 
 
-@cli.command()
+@main.command()
 @click.argument('backend', type=click.Choice(['cuda', 'hip']))
 @click.argument('gpu-architecture')
-@click.argument('prefix')
+@click.argument('output', type=click.Path())
 @click.argument('domain', type=int, nargs=3)
 @click.option('--executions', '-e', type=int, default=3)
 @click.option('--dtype', '-d', default='float32')
 @click.option('--all-stencils/--fast-stencils-only', '-a')
-def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
+def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, output,
                                         domain, executions, dtype,
                                         all_stencils):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
@@ -163,20 +167,16 @@ def horizontal_diffusion_blocksize_scan(backend, gpu_architecture, prefix,
         ]
 
     table = blocksize_scan(stencils, domain, executions)
-    common.write_csv(table, prefix + '-raw.csv')
-
-    bestblocks = table.loc[table.groupby('stencil')['time'].idxmin()]
-    bestblocks.set_index('stencil', inplace=True)
-    common.write_csv(bestblocks, prefix + '-bestblocks.csv')
+    table.to_csv(output)
 
 
-@cli.command()
+@main.command()
 @click.argument('backend', type=click.Choice(['cuda', 'hip']))
 @click.argument('gpu-architecture')
-@click.argument('prefix')
+@click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
 @click.option('--dtype', '-d', default='float32')
-def horizontal_diffusion_bandwidth(backend, gpu_architecture, prefix,
+def horizontal_diffusion_bandwidth(backend, gpu_architecture, output,
                                    executions, dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
 
@@ -186,24 +186,24 @@ def horizontal_diffusion_bandwidth(backend, gpu_architecture, prefix,
 
     otf_kwargs.update(loop='3D')
     if backend == 'hip':
-        otf_kwargs.update(block_size=(128, 4, 1))
-        classic_kwargs.update(block_size=(64, 8, 1))
-        jscan_kwargs.update(block_size=(64, 4, 1))
+        otf_kwargs['block_size'] = (128, 4, 1)
+        classic_kwargs['block_size'] = (64, 8, 1)
+        jscan_kwargs['block_size'] = (64, 4, 1)
     else:
-        otf_kwargs.update(block_size=(256, 2, 1))
-        classic_kwargs.update(block_size=(32, 16, 1))
-        jscan_kwargs.update(block_size=(32, 16, 2))
+        otf_kwargs['block_size'] = (256, 2, 1)
+        classic_kwargs['block_size'] = (32, 16, 1)
+        jscan_kwargs['block_size'] = (32, 16, 2)
 
     stencils = [('on-the-fly', horizontal_diffusion.OnTheFly, otf_kwargs),
                 ('classic', horizontal_diffusion.Classic, classic_kwargs),
                 ('j-scan-otf-aligned', horizontal_diffusion.JScanOtfAligned,
                  jscan_kwargs)]
 
-    table = benchmark(stencils, executions)
+    table = benchmark(stencils,
+                      executions,
+                      preprocess=truncate_block_size_to_domain)
+    table.to_csv(output)
 
-    table = table.pivot('domain', 'stencil')
-    common.write_csv(table['time'], prefix + '-time.csv')
-    common.write_csv(table['bandwidth'], prefix + '-bandwidth.csv')
 
-
-cli()
+if __name__ == '__main__':
+    main()

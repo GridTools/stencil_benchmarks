@@ -187,3 +187,15 @@ def range_args(**kwargs):
         if isinstance(value, ArgRange) or isinstance(value, tuple) and any(
                 isinstance(v, ArgRange) for v in value):
             yield arg
+
+
+def pretty_parameters(bmark):
+    parameters = dict()
+    for name, value in bmark.parameters.items():
+        name = name.replace('_', '-')
+        if isinstance(value, tuple):
+            for i, v in enumerate(value):
+                parameters[f'{name}-{i}'] = v
+        else:
+            parameters[name] = value
+    return parameters
