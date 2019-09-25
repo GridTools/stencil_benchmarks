@@ -14,12 +14,9 @@ from stencil_benchmarks.tools import cli as cli_tools, common
 
 
 def benchmark_domains():
-    exponents = list(range(5, 11))
-    with cli_tools.report_progress(len(exponents)) as progress:
-        for exponent in exponents:
-            d = 2**exponent
-            yield d, d, 80
-            progress()
+    for exponent in range(5, 11):
+        d = 2**exponent
+        yield d, d, 80
 
 
 def block_sizes_for_domain(domain, block_size):
@@ -43,26 +40,28 @@ def run_and_get_median(stencil, executions):
 
 def benchmark(stencils_and_kwargs, executions):
     results = []
-    for domain in benchmark_domains():
-        for name, Stencil, kwargs in stencils_and_kwargs:
-            stencil = Stencil(domain=domain, **kwargs)
-            result = run_and_get_median(stencil, executions)
-            result.update(stencil=name, domain=domain[0])
+    with cli_tools.ProgressBar() as progress:
+        for domain in progress.report(benchmark_domains()):
+            for name, Stencil, kwargs in stencils_and_kwargs:
+                stencil = Stencil(domain=domain, **kwargs)
+                result = run_and_get_median(stencil, executions)
+                result.update(stencil=name, domain=domain[0])
 
-            results.append(result)
+                results.append(result)
 
-            del stencil
-            gc.collect()
+                del stencil
+                gc.collect()
     return pd.DataFrame(results)
 
 
 def blocksize_scan(stencils_and_kwargs, domain, executions):
     results = []
-    with cli_tools.report_progress(len(stencils_and_kwargs)) as progress:
-        for name, Stencil, kwargs in stencils_and_kwargs:
+    with cli_tools.ProgressBar() as progress:
+        for name, Stencil, kwargs in progress.report(stencils_and_kwargs):
             kwargs = kwargs.copy()
-            for block_size in block_sizes_for_domain(
-                    domain, kwargs.pop('block_size', (None, None, None))):
+            for block_size in progress.report(
+                    block_sizes_for_domain(
+                        domain, kwargs.pop('block_size', (None, None, None)))):
                 try:
                     stencil = Stencil(domain=domain,
                                       block_size=block_size,
@@ -80,7 +79,6 @@ def blocksize_scan(stencils_and_kwargs, domain, executions):
 
                 del stencil
                 gc.collect()
-            progress()
     return pd.DataFrame(results)
 
 

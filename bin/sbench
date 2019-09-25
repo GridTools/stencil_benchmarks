@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import stencil_benchmarks.benchmarks_collection
-import stencil_benchmarks.cli
+from  stencil_benchmarks import cli
 
-MAIN = stencil_benchmarks.cli.main()
+main = cli.main()
 
 if __name__ == '__main__':
-    MAIN()
+    main()

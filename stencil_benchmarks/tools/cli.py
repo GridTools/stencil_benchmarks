@@ -1,29 +1,56 @@
-import contextlib
 import itertools
 import operator
 import sys
+import types
 import typing
 
 import click
 
 
-@contextlib.contextmanager
-def report_progress(total):
-    current = 0
+class ProgressBar:
+    def __init__(self):
+        self._progress = []
 
-    def report():
-        nonlocal current
-        percent = min(int(100 * current / total), 100)
+    def report(self, iterable):
+        iterable = list(iterable)
+        index = len(self._progress)
+        self._progress.append(
+            types.SimpleNamespace(current=0, max=len(iterable)))
+        self._print()
+        try:
+            for i in iterable:
+                yield i
+                self._progress[index].current += 1
+                self._print()
+        finally:
+            assert len(self._progress) == index + 1
+            self._progress.pop()
+
+    @property
+    def progress(self):
+        percent = 0.0
+        width = 100.0
+        for sub_progress in self._progress:
+            percent += sub_progress.current / sub_progress.max * width
+            width /= sub_progress.max
+        return percent
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            click.echo('\r' + ' ' * 110 + '\r', nl=False)
+        else:
+            click.echo()
+        return False
+
+    def _print(self):
+        percent = round(self.progress)
         click.echo('\r' + '#' * percent + '-' * (100 - percent) +
                    f' {percent:3}%',
                    nl=False)
         sys.stdout.flush()
-        current += 1
-
-    click.echo()
-    report()
-    yield report
-    click.echo('\r' + ' ' * 110 + '\r', nl=False)
 
 
 class ArgRange(typing.NamedTuple):
@@ -117,7 +144,7 @@ _RANGE_TYPES = {
 }
 
 
-def range(dtype):
+def range_type(dtype):
     return _RANGE_TYPES[dtype]
 
 

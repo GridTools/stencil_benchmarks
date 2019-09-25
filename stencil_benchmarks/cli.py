@@ -20,17 +20,14 @@ def _cli_func(bmark):
     def run_bmark(ctx, **kwargs):
         unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
         non_unique = set(cli_tools.range_args(**kwargs))
-        total_executions = len(unpacked_kwargs) * ctx.obj.executions
         results = []
         try:
-            with cli_tools.report_progress(total_executions) as progress:
-                for kws in unpacked_kwargs:
+            with cli_tools.ProgressBar() as progress:
+                for kws in progress.report(unpacked_kwargs):
                     try:
                         bmark_instance = bmark(**kws)
                     except benchmark.ParameterError as error:
                         if ctx.obj.skip_invalid_parameters:
-                            for _ in range(ctx.obj.executions):
-                                progress()
                             continue
                         click.echo()
                         click.echo(*error.args)
@@ -41,19 +38,17 @@ def _cli_func(bmark):
                         for k, v in kws.items() if k in non_unique
                     }
 
-                    for _ in range(ctx.obj.executions):
+                    for _ in progress.report(range(ctx.obj.executions)):
                         try:
                             result = bmark_instance.run()
                         except benchmark.ExecutionError as error:
                             if ctx.obj.skip_execution_failures:
-                                progress()
                                 continue
                             click.echo()
                             click.echo(*error.args)
                             sys.exit(1)
                         result.update(non_unique_kws)
                         results.append(result)
-                        progress()
         except KeyboardInterrupt:
             pass
         if not results:
@@ -85,7 +80,7 @@ def _cli_func(bmark):
                                   help=param.description)
         else:
             option = click.option(name,
-                                  type=cli_tools.range(param.dtype),
+                                  type=cli_tools.range_type(param.dtype),
                                   nargs=param.nargs,
                                   help=param.description,
                                   required=param.default is None,
