@@ -51,6 +51,10 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
                 '''
 
 
+class OnTheFlyInCache(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass
+
+
 class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 

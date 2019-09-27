@@ -1,0 +1,111 @@
+{% extends "base.j2" %}
+
+{% set block_halo = 2 %}
+{% set cache_size = (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo) %}
+
+{% block gpu_kernel_body %}
+    constexpr std::ptrdiff_t jboundary_limit = {{ block_size[1] + 2 * block_halo }};
+    constexpr std::ptrdiff_t iminus_limit = jboundary_limit + 1;
+    constexpr std::ptrdiff_t iplus_limit = iminus_limit + 1;
+
+    std::ptrdiff_t ib = {{ -block_halo - 1 }};
+    std::ptrdiff_t jb = {{ -block_halo - 1 }};
+    if (threadIdx.y < jboundary_limit) {
+        ib = std::ptrdiff_t(threadIdx.x);
+        jb = std::ptrdiff_t(threadIdx.y) - {{ block_halo }};
+    } else if (threadIdx.y < iminus_limit) {
+        ib = std::ptrdiff_t(threadIdx.x) % {{ block_halo }} - {{ block_halo }};
+        jb = std::ptrdiff_t(threadIdx.x) / {{ block_halo }} - {{ block_halo }};
+    } else if (threadIdx.y < iplus_limit) {
+        ib = std::ptrdiff_t(threadIdx.x) % {{ block_halo }} + {{ block_size[0] }};
+        jb = std::ptrdiff_t(threadIdx.x) / {{ block_halo }} - {{ block_halo }};
+    }
+
+    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + ib;
+    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + jb;
+
+    __shared__ {{ ctype }} inc[{{ cache_size }}];
+
+    constexpr std::ptrdiff_t cache_istride = 1;
+    constexpr std::ptrdiff_t cache_jstride = {{ block_size[0] + 2 * block_halo }};
+    const std::ptrdiff_t cache_index =
+        (ib + {{ block_halo }}) * cache_istride + (jb + {{ block_halo }}) * cache_jstride;
+
+    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
+    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+
+    const std::ptrdiff_t k_min = blockIdx.z * {{ block_size[2] }};
+    const std::ptrdiff_t k_max = (blockIdx.z + 1) * {{ block_size[2] }} <= {{ domain[2] }} ? (blockIdx.z + 1) * {{ block_size[2] }} : {{ domain[2] }};
+
+    std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k_min * {{ strides[2] }};
+
+    for (std::ptrdiff_t k = k_min; k < k_max; ++k) {
+        if (ib >= -2 && ib < ib_max + 2 && jb >= -2 && jb < jb_max + 2) {
+            inc[cache_index] = __ldg(&inp[index]);
+        }
+
+        __syncthreads();
+
+        if (ib >= 0 && ib < ib_max && jb >= 0 && jb < jb_max) {
+            const {{ ctype }} lap_ij = {{ ctype }}(4) * inc[cache_index]
+                                       - inc[cache_index - cache_istride]
+                                       - inc[cache_index + cache_istride]
+                                       - inc[cache_index - cache_jstride]
+                                       - inc[cache_index + cache_jstride];
+            const {{ ctype }} lap_imj = {{ ctype }}(4) * inc[cache_index - cache_istride]
+                                        - inc[cache_index - 2 * cache_istride]
+                                        - inc[cache_index]
+                                        - inc[cache_index - cache_istride - cache_jstride]
+                                        - inc[cache_index - cache_istride + cache_jstride];
+            const {{ ctype }} lap_ipj = {{ ctype }}(4) * inc[cache_index + cache_istride]
+                                        - inc[cache_index]
+                                        - inc[cache_index + 2 * cache_istride]
+                                        - inc[cache_index + cache_istride - cache_jstride]
+                                        - inc[cache_index + cache_istride + cache_jstride];
+            const {{ ctype }} lap_ijm = {{ ctype }}(4) * inc[cache_index - cache_jstride]
+                                        - inc[cache_index - cache_istride - cache_jstride]
+                                        - inc[cache_index + cache_istride - cache_jstride]
+                                        - inc[cache_index - 2 * cache_jstride]
+                                        - inc[cache_index];
+            const {{ ctype }} lap_ijp = {{ ctype }}(4) * inc[cache_index + cache_jstride]
+                                        - inc[cache_index - cache_istride + cache_jstride]
+                                        - inc[cache_index + cache_istride + cache_jstride]
+                                        - inc[cache_index]
+                                        - inc[cache_index + 2 * cache_jstride];
+
+            {{ ctype }} flx_ij = lap_ipj - lap_ij;
+            if (flx_ij * (inc[cache_index + cache_istride] - inc[cache_index]) > 0)
+                flx_ij = {{ ctype }}(0);
+
+            {{ ctype }} flx_imj = lap_ij - lap_imj;
+            if (flx_imj * (inc[cache_index] - inc[cache_index - cache_istride]) > 0)
+                flx_imj = {{ ctype }}(0);
+
+            {{ ctype }} fly_ij = lap_ijp - lap_ij;
+            if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > 0)
+                fly_ij = {{ ctype }}(0);
+
+            {{ ctype }} fly_ijm = lap_ij - lap_ijm;
+            if (fly_ijm * (inc[cache_index] - inc[cache_index - cache_jstride]) > 0)
+                fly_ijm = {{ ctype }}(0);
+
+            out[index] = inc[cache_index] - coeff[index] * (flx_ij - flx_imj +
+                                    fly_ij - fly_ijm);
+        }
+
+        index += {{ strides[2] }};
+    }
+{% endblock gpu_kernel_body %}
+
+{% block kernel_prepare %}
+    block_size = dim3({{ block_size[0] }},
+                      {{ block_size[1] + 2 * block_halo + 2 }},
+                      1);
+    grid_size = dim3({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
+                     {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
+                     {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
+    static_assert({{ block_size[0] * (block_size[1] + 2 * block_halo + 2)}} <= 1024,
+                  "too many threads per block");
+    static_assert({{ block_size[0] }} >= {{ (block_size[1] + 2 * block_halo) * block_halo }},
+                  "unsupported block size");
+{% endblock kernel_prepare %}
