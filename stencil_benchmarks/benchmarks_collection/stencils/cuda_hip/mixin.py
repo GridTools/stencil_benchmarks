@@ -34,9 +34,13 @@ class StencilMixin(benchmark.Benchmark):
         if self.print_code:
             print(cpphelpers.format_code(code))
 
+        self.compiler_flags = (self.default_compiler_flags() + ' ' +
+                               self.compiler_flags).strip()
+
         try:
-            self.compiled = compilation.gnu_func(self.compile_command(), code,
-                                                 'kernel', float)
+            self.compiled = compilation.gnu_func(
+                [self.compiler] + self.compiler_flags.split(), code, 'kernel',
+                float)
         except compilation.CompilationError:
             raise benchmark.ParameterError('compilation failed')
 
@@ -45,25 +49,22 @@ class StencilMixin(benchmark.Benchmark):
                 'enabling --run-twice and verification might lead to '
                 'false negatives for stencils with read-write fields')
 
-    def compile_command(self):
-        command = [self.compiler]
-        command += ['-std=c++11', '-DNDEBUG']
+    def default_compiler_flags(self):
+        flags = '-std=c++11 -DNDEBUG'
         if self.backend == 'cuda':
             if self.compiler.endswith('nvcc'):
-                command += ['-x', 'cu', '-Xcompiler', '-Wall']
+                flags += ' -x cu -Xcompiler -Wall'
                 if self.gpu_architecture:
-                    command += ['-arch', self.gpu_architecture]
+                    flags += ' -arch ' + self.gpu_architecture
             elif self.compiler.endswith('clang++'):
-                command += ['-xcuda', '-Ofast', '-Wall', '-lcudart']
+                flags += ' -xcuda -Ofast -Wall -lcudart'
                 if self.gpu_architecture:
-                    command += ['--cuda-gpu-arch=' + self.gpu_architecture]
+                    flags += ' --cuda-gpu-arch=' + self.gpu_architecture
         elif self.backend == 'hip':
-            command += ['-xhip', '-Ofast', '-Wall']
+            flags += ' -xhip -Ofast -Wall'
             if self.gpu_architecture:
-                command += ['--amdgpu-target=' + self.gpu_architecture]
-        if self.compiler_flags:
-            command += self.compiler_flags.split()
-        return command
+                flags += ' --amdgpu-target=' + self.gpu_architecture
+        return flags
 
     @property
     def ctype_name(self):
