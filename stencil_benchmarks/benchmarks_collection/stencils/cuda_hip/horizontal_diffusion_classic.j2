@@ -5,8 +5,8 @@
 
 {% block gpu_kernel_body %}
     constexpr std::ptrdiff_t jboundary_limit = {{ block_size[1] + 2 * block_halo }};
-    constexpr std::ptrdiff_t iminus_limit = jboundary_limit + {{ block_halo }};
-    constexpr std::ptrdiff_t iplus_limit = iminus_limit + {{ block_halo }};
+    constexpr std::ptrdiff_t iminus_limit = jboundary_limit + 1;
+    constexpr std::ptrdiff_t iplus_limit = iminus_limit + 1;
 
     std::ptrdiff_t ib = {{ -block_halo - 1 }};
     std::ptrdiff_t jb = {{ -block_halo - 1 }};
@@ -86,6 +86,6 @@
                      {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
     static_assert({{ block_size[0] * (block_size[1] + 2 * block_halo + 2)}} <= 1024,
                   "too many threads per block");
-    static_assert({{ block_size[0] }} >= {{ block_size[1] + 2}},
+    static_assert({{ block_size[0] }} >= {{ (block_size[1] + 2 * block_halo) * block_halo }},
                   "unsupported block size");
 {% endblock kernel_prepare %}
