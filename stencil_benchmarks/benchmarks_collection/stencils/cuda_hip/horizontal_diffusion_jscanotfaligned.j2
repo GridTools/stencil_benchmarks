@@ -3,7 +3,7 @@
 {% set block_halo = 2 %}
 
 {% block gpu_kernel_body %}
-    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * warpSize + threadIdx.x;
+    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + threadIdx.x;
     const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
     const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
 
@@ -86,10 +86,10 @@
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
-    block_size = dim3(device_properties.warpSize,
+    block_size = dim3({{ block_size[0] }},
                       1,
                       {{ block_size[2] }});
-    grid_size = dim3(({{ domain[0] }} + device_properties.warpSize - 1) / device_properties.warpSize,
+    grid_size = dim3({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
                      {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
                      {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
 {% endblock kernel_prepare %}
