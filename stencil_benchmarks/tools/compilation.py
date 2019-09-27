@@ -101,6 +101,7 @@ def ctype_cname(ctype):
 
 
 def dtype_cname(dtype):
+    dtype = np.dtype(dtype)
     if dtype.kind == 'f':
         if dtype.itemsize == 2:
             return 'half'
