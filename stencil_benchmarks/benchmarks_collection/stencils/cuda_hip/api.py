@@ -1,5 +1,6 @@
 import ctypes
 import functools
+import gc
 
 
 class Runtime:
@@ -11,17 +12,23 @@ class Runtime:
         funcname = self.name + funcname
         func = getattr(self._lib, funcname)
         func.argtypes = argtypes
-        if func(*args) != 0:
+        return func(*args)
+
+    def _check_call(self, funcname, argtypes, args):
+        if self._call(funcname, argtypes, args) != 0:
             raise RuntimeError(f'GPU runtime function {funcname} failed')
 
     def malloc(self, nbytes):
         ptr = ctypes.c_void_p()
-        self._call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
-                   [ctypes.byref(ptr), nbytes])
+        if self._call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
+                      [ctypes.byref(ptr), nbytes]) != 0:
+            gc.collect()
+            self._check_call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
+                             [ctypes.byref(ptr), nbytes])
         return ptr.value
 
     def free(self, ptr, nbytes=None):
-        self._call('Free', [ctypes.c_void_p], [ptr])
+        self._check_call('Free', [ctypes.c_void_p], [ptr])
 
     def memcpy(self, dst, src, nbytes, kind='Default'):
         kind = {
@@ -31,13 +38,13 @@ class Runtime:
             'DeviceToDevice': 3,
             'Default': 4
         }[kind]
-        self._call(
+        self._check_call(
             'Memcpy',
             [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
             [dst, src, nbytes, kind])
 
     def device_synchronize(self):
-        self._call('DeviceSynchronize', [], [])
+        self._check_call('DeviceSynchronize', [], [])
 
 
 @functools.lru_cache(maxsize=2)
