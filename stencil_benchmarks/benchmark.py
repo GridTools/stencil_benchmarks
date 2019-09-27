@@ -133,9 +133,18 @@ class Benchmark(metaclass=BenchmarkMeta):
 
         self.parameters = parameter_values
 
-        for arg, value in self.parameters.items():
-            setattr(self, arg, value)
         self.setup()
+
+    def __setattr__(self, name, value):
+        if name in self.parameters:
+            self.parameters[name] = value
+        else:
+            super().__setattr__(name, value)
+
+    def __getattr__(self, name):
+        if name in self.parameters:
+            return self.parameters[name]
+        return super().__getattr__(name)
 
     def setup(self):
         """Set up the benchmark before running."""
