@@ -104,3 +104,8 @@ def alloc_array(shape,
                       buffer=buffer,
                       offset=offset,
                       strides=strides)
+
+
+def nbytes(data):
+    last_index = np.sum((np.array(data.shape) - 1) * np.array(data.strides))
+    return last_index + data.itemsize

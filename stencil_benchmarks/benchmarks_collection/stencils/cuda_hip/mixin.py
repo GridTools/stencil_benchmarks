@@ -109,8 +109,8 @@ class StencilMixin(benchmark.Benchmark):
         ]
         for host_array, device_array in zip(data, device_data):
             self.runtime.memcpy(device_array.ctypes.data,
-                                host_array.ctypes.data, host_array.nbytes,
-                                'HostToDevice')
+                                host_array.ctypes.data,
+                                array.nbytes(host_array), 'HostToDevice')
         self.runtime.device_synchronize()
 
         data_ptrs = [
@@ -127,9 +127,10 @@ class StencilMixin(benchmark.Benchmark):
 
         for host_array, device_array in zip(data, device_data):
             self.runtime.memcpy(host_array.ctypes.data,
-                                device_array.ctypes.data, host_array.nbytes,
-                                'DeviceToHost')
+                                device_array.ctypes.data,
+                                array.nbytes(host_array), 'DeviceToHost')
         self.runtime.device_synchronize()
+
         return time
 
     @property
