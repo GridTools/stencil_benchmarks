@@ -34,5 +34,13 @@ setuptools.setup(
     long_description=long_description(),
     long_description_content_type='text/markdown',
     packages=setuptools.find_packages(),
-    scripts=glob.glob('bin/sbench*'),
-    install_requires=['click', 'numba', 'numpy', 'pandas', 'jinja2'])
+    entry_points={
+        'console_scripts': [
+            'sbench=stencil_benchmarks.scripts.sbench:main',
+            'sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main',
+            'sbench-cudahip-collection=stencil_benchmarks.scripts.sbench_cudahip_collection:main'
+        ]
+    },
+    install_requires=[
+        'click', 'numba', 'numpy', 'pandas', 'jinja2', 'matplotlib'
+    ])
