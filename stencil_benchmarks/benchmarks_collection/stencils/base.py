@@ -29,7 +29,6 @@ class Stencil(Benchmark):
 
     def setup(self):
         super().setup()
-        self.dtype = np.dtype(self.dtype)
         if self.halo < 0:
             raise ParameterError(f'negative halo size given ({self.halo}')
         if tuple(sorted(self.layout)) != (0, 1, 2):
@@ -37,10 +36,10 @@ class Stencil(Benchmark):
         if self.alignment < 0:
             raise ParameterError(
                 f'negative alignment given ({self.alignment} bytes)')
-        if self.alignment % self.dtype.itemsize != 0:
+        if self.alignment % self.dtype_size != 0:
             raise ParameterError(
                 f'alignment ({self.alignment} bytes) not divisible '
-                f'by dtype itemsize ({self.dtype.itemsize} bytes)')
+                f'by dtype size ({self.dtype_size} bytes)')
 
         stencil_data = collections.namedtuple('StencilData', self.args)
         self._data = [
@@ -71,16 +70,20 @@ class Stencil(Benchmark):
         return data
 
     @property
+    def dtype_size(self):
+        return np.dtype(self.dtype).itemsize
+
+    @property
     def domain_with_halo(self):
         return tuple(np.array(self.domain) + 2 * self.halo)
 
     @property
     def strides(self):
-        return tuple(np.array(self._data[0][0].strides) // self.dtype.itemsize)
+        return tuple(np.array(self._data[0][0].strides) // self.dtype_size)
 
     @property
     def data_size(self):
-        return len(self.args) * np.product(self.domain) * self.dtype.itemsize
+        return len(self.args) * np.product(self.domain) * self.dtype_size
 
     def inner_slice(self, shift=None, expand=None):
         if shift is None:
@@ -214,7 +217,7 @@ class HorizontalDiffusionStencil(Stencil):
     @property
     def data_size(self):
         return (2 * np.product(self.domain) +
-                np.product(np.array(self.domain) + 4)) * self.dtype.itemsize
+                np.product(np.array(self.domain) + 4)) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality(data_before.inp, data_after.inp)
@@ -260,7 +263,7 @@ class VerticalAdvectionStencil(Stencil):
 
     @property
     def data_size(self):
-        return 16 * np.product(self.domain) * self.dtype.itemsize
+        return 16 * np.product(self.domain) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         # pylint: disable=unsubscriptable-object
