@@ -62,7 +62,8 @@ class Parameter:
 
         if self.nargs == 1:
             if not isinstance(value, self.dtype):
-                raise ParameterError(f'wrong type of argument "{value}"')
+                raise ParameterError(f'wrong type of argument "{value}", '
+                                     f' expected one of type "{self.dtype.__name__}"')
         else:
             if len(value) != self.nargs:
                 raise ParameterError(
@@ -137,7 +138,8 @@ class Benchmark(metaclass=BenchmarkMeta):
 
     def __setattr__(self, name, value):
         if name in self.parameters:
-            self.parameters[name] = value
+            param = type(self).parameters[name]
+            self.parameters[name] = param.validate(value)
         else:
             super().__setattr__(name, value)
 

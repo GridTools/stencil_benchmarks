@@ -56,6 +56,8 @@ class BenchmarkTest(unittest.TestCase):
             'parameter1': True,
             'parameter2': 42
         })
+        with self.assertRaises(benchmark.ParameterError):
+            SomeBenchmark(parameter1=3, parameter2='42')
 
     def test_derived_init(self):
         bmark = DerivedBenchmark(parameter1=True,
@@ -64,9 +66,26 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(bmark.parameter1, True)
         self.assertEqual(bmark.parameter2, 42)
         self.assertEqual(bmark.parameter3, '5')
+        self.assertEqual(
+            bmark.parameters, {
+                'parameter1': True,
+                'parameter2': 42,
+                'parameter3': '5'
+            })
         self.assertEqual(bmark.somevalue, 21)
         self.assertEqual(bmark.paramsum, 48)
+
 
     def test_run(self):
         bmark = SomeBenchmark(parameter1=False, parameter2=42)
         self.assertEqual(bmark.run(), 21)
+
+    def test_reassign(self):
+        bmark = DerivedBenchmark(parameter1=True,
+                                 parameter2=42,
+                                 parameter3='5')
+        bmark.parameter1 = False
+        self.assertFalse(bmark.parameter1)
+        self.assertFalse(bmark.parameters['parameter1'])
+        with self.assertRaises(benchmark.ParameterError):
+            bmark.parameter1 = 3
