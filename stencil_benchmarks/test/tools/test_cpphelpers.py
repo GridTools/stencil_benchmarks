@@ -10,11 +10,11 @@ class TestFormatCode(unittest.TestCase):
                 'int main(int argc ,const char**argv){'
                 'std::cout<<"Hello World!"<<std::endl;'
                 'return 0;}')
-        formatted = ('#include <iostream>\n'
-                     'int main(int argc, const char **argv) {\n'
-                     '  std::cout << "Hello World!" << std::endl;\n'
-                     '  return 0;\n'
-                     '}')
+        formatted = ('   1 #include <iostream>\n'
+                     '   2 int main(int argc, const char **argv) {\n'
+                     '   3   std::cout << "Hello World!" << std::endl;\n'
+                     '   4   return 0;\n'
+                     '   5 }')
         try:
             self.assertEqual(cpphelpers.format_code(code), formatted)
         except FileNotFoundError:

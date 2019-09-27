@@ -2,9 +2,10 @@ import subprocess
 
 
 def format_code(code):
-    result = subprocess.run('clang-format',
-                            input=code,
-                            encoding='ascii',
-                            stdout=subprocess.PIPE,
-                            check=True)
-    return result.stdout
+    code = subprocess.run('clang-format',
+                          input=code,
+                          encoding='ascii',
+                          stdout=subprocess.PIPE,
+                          check=True).stdout
+    return ''.join(f'{num:4} {line}\n'
+                   for num, line in enumerate(code.split('\n')))
