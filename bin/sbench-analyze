@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
+import functools
+import itertools
+import operator
 import os
+import textwrap
 
 import click
 import numpy as np
@@ -58,7 +62,7 @@ def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
         df.to_csv(output)
 
 
-@main.command(name='plot')
+@main.command()
 @click.argument('csv', type=click.Path(exists=True))
 @click.argument('by')
 @click.argument('x')
