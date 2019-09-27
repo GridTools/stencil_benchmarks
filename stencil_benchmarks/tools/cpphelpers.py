@@ -7,5 +7,5 @@ def format_code(code):
                           encoding='ascii',
                           stdout=subprocess.PIPE,
                           check=True).stdout
-    return ''.join(f'{num:4} {line}\n'
+    return ''.join(f'{num + 1:4} {line}\n'
                    for num, line in enumerate(code.split('\n')))
