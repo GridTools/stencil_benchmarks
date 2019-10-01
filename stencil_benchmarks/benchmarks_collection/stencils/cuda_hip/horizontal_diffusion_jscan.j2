@@ -4,26 +4,25 @@
 
 {% block gpu_kernel_body %}
     const std::ptrdiff_t ib = std::ptrdiff_t(threadIdx.x) - {{ block_halo }};
-    const std::ptrdiff_t block_size_x = std::ptrdiff_t(warpSize) - 2 * {{ block_halo }};
 
-    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * block_size_x + ib;
+    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + ib;
     const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
     const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
     if (k >= {{ domain[2] }})
         return;
 
     extern __shared__ {{ ctype }} smem[];
-    const std::size_t inc_size = warpSize * 3 * {{ block_size[2] }};
-    const std::size_t lap_size = warpSize * 2 * {{ block_size[2] }};
+    const std::size_t inc_size = {{ (block_size[0] + 2 * block_halo) * 3 * block_size[2] }};
+    const std::size_t lap_size = {{ (block_size[0] + 2 * block_halo) * 2 * block_size[2] }};
 
-    {{ ctype }}* inc = &smem[threadIdx.z * warpSize * 3];
-    {{ ctype }}* lap = &smem[threadIdx.z * warpSize * 2 + inc_size];
-    {{ ctype }}* flx = &smem[threadIdx.z * warpSize * 1 + inc_size + lap_size];
+    {{ ctype }}* inc = &smem[threadIdx.z * {{ block_size[0] + 2 * block_halo }} * 3];
+    {{ ctype }}* lap = &smem[threadIdx.z * {{ block_size[0] + 2 * block_halo }} * 2 + inc_size];
+    {{ ctype }}* flx = &smem[threadIdx.z * {{ block_size[0] + 2 * block_halo }} * 1 + inc_size + lap_size];
 
     constexpr std::ptrdiff_t cache_istride = 1;
-    const std::ptrdiff_t cache_jstride = warpSize;
+    const std::ptrdiff_t cache_jstride = {{ block_size[0] + 2 * block_halo }};
     
-    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * block_size_x <= {{ domain[0] }} ? block_size_x : {{ domain[0] }} - blockIdx.x * block_size_x;
+    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
     const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
 
     const std::ptrdiff_t cache_index = (ib + {{ block_halo }}) * cache_istride;
@@ -35,8 +34,12 @@
     inc[cache_index] = inp[index];
     inc[cache_index + cache_jstride] = inp[index + {{ strides[1] }}];
 
+    const bool sync_required = {{ block_size[0] + 2 * block_halo }} > warpSize;
+
     for (std::ptrdiff_t jb = -{{ block_halo }}; jb < jb_max; ++jb) {
         inc[cache_index + 2 * cache_jstride] = inp[index + 2 * {{ strides[1] }}];
+        if (sync_required)
+            __syncthreads();
 
         if (ib >= -1 && ib < ib_max + 1) {
             lap[cache_index + cache_jstride] = {{ ctype }}(4) * inc[cache_index + cache_jstride] -
@@ -44,21 +47,28 @@
                                                 inc[cache_index + cache_istride + cache_jstride] +
                                                 inc[cache_index + 2 * cache_jstride] +
                                                 inc[cache_index]);
+        }
 
-            
+        if (sync_required)
+            __syncthreads();
+
+        if (ib >= -1 && ib < ib_max + 1) {
             flx[cache_index] = lap[cache_index + cache_istride] - lap[cache_index];
             if (flx[cache_index] * (inc[cache_index + cache_istride] - inc[cache_index]) > {{ ctype }}(0)) {
                 flx[cache_index] = {{ ctype }}(0);
             }
+        }
 
-            if (jb >= -1) {
-                fly_ij = lap[cache_index + cache_jstride] - lap[cache_index];
-                if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > {{ ctype }}(0)) {
-                    fly_ij = {{ ctype }}(0);
-                }
+        if (sync_required)
+            __syncthreads();
+
+        if (ib >= 0 && ib < ib_max && jb >= -1) {
+            fly_ij = lap[cache_index + cache_jstride] - lap[cache_index];
+            if (fly_ij * (inc[cache_index + cache_jstride] - inc[cache_index]) > {{ ctype }}(0)) {
+                fly_ij = {{ ctype }}(0);
             }
 
-            if (ib >= 0 && ib < ib_max && jb >= 0) {
+            if (jb >= 0) {
                 out[index] = inc[cache_index] - coeff[index] * (flx[cache_index] - 
                                                                 flx[cache_index - cache_istride] +
                                                                 fly_ij -
@@ -77,13 +87,12 @@
 
 {% block kernel_prepare %}
 
-    block_size = dim3(device_properties.warpSize,
+    block_size = dim3({{ block_size[0] + 2 * block_halo }},
                       1,
                       {{ block_size[2] }});
-    auto logical_block_size_x = device_properties.warpSize - 2 * {{ block_halo }};
-    grid_size = dim3(({{ domain[0] }} + logical_block_size_x - 1) / logical_block_size_x,
+    grid_size = dim3({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
                      {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
                      {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
 
-    smem_size = sizeof({{ ctype }}) * device_properties.warpSize * 6 * {{ block_size[2] }};
+    smem_size = sizeof({{ ctype }}) * {{ (block_size[0] + 2 * block_halo) * 6 * block_size[2] }};
 {% endblock kernel_prepare %}
