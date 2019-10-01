@@ -1,0 +1,398 @@
+{% extends "base.j2" %}
+
+{% block gpu_kernel %}
+__forceinline__ __device__ void backward_sweep(
+    const {{ ctype }} *__restrict__ uccol,
+    const {{ ctype }} *__restrict__ udcol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage,
+    const {{ ctype }} *__restrict__ vccol,
+    const {{ ctype }} *__restrict__ vdcol,
+    const {{ ctype }} *__restrict__ vpos,
+    {{ ctype }} *__restrict__ vtensstage,
+    const {{ ctype }} *__restrict__ wccol,
+    const {{ ctype }} *__restrict__ wdcol,
+    const {{ ctype }} *__restrict__ wpos,
+    {{ ctype }} *__restrict__ wtensstage) {
+    constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
+    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
+
+    {{ ctype }} udatacol;
+    {{ ctype }} vdatacol;
+    {{ ctype }} wdatacol;
+
+    if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
+        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
+        // k maximum
+        {
+            udatacol = udcol[{{ domain[2] - 1 }}];
+            utensstage[index] = dtr_stage * (udatacol - upos[index]);
+
+            vdatacol = vdcol[{{ domain[2] - 1 }}];
+            vtensstage[index] = dtr_stage * (vdatacol - vpos[index]);
+
+            wdatacol = wdcol[{{ domain[2] - 1 }}];
+            wtensstage[index] = dtr_stage * (wdatacol - wpos[index]);
+
+            index -= {{ strides[2] }};
+        }
+
+        // k body
+{%- if unroll_factor >= 0 %}
+        #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
+{%- endif %}
+        for (std::ptrdiff_t k = {{ domain[2] }} - 2; k >= 0; --k) {
+            udatacol = udcol[k] - uccol[k] * udatacol;
+            utensstage[index] = dtr_stage * (udatacol - upos[index]);
+
+            vdatacol = vdcol[k] - vccol[k] * vdatacol;
+            vtensstage[index] = dtr_stage * (vdatacol - vpos[index]);
+
+            wdatacol = wdcol[k] - wccol[k] * wdatacol;
+            wtensstage[index] = dtr_stage * (wdatacol - wpos[index]);
+
+            index -= {{ strides[2] }};
+        }
+    }
+}
+
+__forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wcon,
+    {{ ctype }} *__restrict__ uccol,
+    {{ ctype }} *__restrict__ udcol,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage,
+    {{ ctype }} *__restrict__ vccol,
+    {{ ctype }} *__restrict__ vdcol,
+    const {{ ctype }} *__restrict__ vstage,
+    const {{ ctype }} *__restrict__ vpos,
+    const {{ ctype }} *__restrict__ vtens,
+    const {{ ctype }} *__restrict__ vtensstage,
+    {{ ctype }} *__restrict__ wccol,
+    {{ ctype }} *__restrict__ wdcol,
+    const {{ ctype }} *__restrict__ wstage,
+    const {{ ctype }} *__restrict__ wpos,
+    const {{ ctype }} *__restrict__ wtens,
+    const {{ ctype }} *__restrict__ wtensstage) {
+    constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+    constexpr {{ ctype }} beta_v = 0;
+    constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
+    constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
+    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
+    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
+
+    {{ ctype }} wcon0, wcon1;
+    {{ ctype }} uccol0, uccol1;
+    {{ ctype }} udcol0, udcol1;
+    {{ ctype }} ustage0, ustage1, ustage2;
+    {{ ctype }} uwcon_shift0, uwcon_shift1;
+    {{ ctype }} vccol0, vccol1;
+    {{ ctype }} vdcol0, vdcol1;
+    {{ ctype }} vstage0, vstage1, vstage2;
+    {{ ctype }} vwcon_shift0, vwcon_shift1;
+    {{ ctype }} wccol0, wccol1;
+    {{ ctype }} wdcol0, wdcol1;
+    {{ ctype }} wstage0, wstage1, wstage2;
+    {{ ctype }} wwcon_shift0, wwcon_shift1;
+
+    if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
+        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
+        // k minimum
+        {
+            wcon0 = wcon[index + {{ strides[2] }}];
+
+            uwcon_shift0 = wcon[index + 1 * {{ strides[0] }} + 0 * {{ strides[1] }} + {{ strides[2] }}];
+            {{ ctype }} ugcv = {{ ctype }}(0.25) * (uwcon_shift0 + wcon0);
+            {{ ctype }} ucs = ugcv * bet_m;
+
+            uccol0 = ugcv * bet_p;
+            {{ ctype }} ubcol = dtr_stage - uccol0;
+
+            ustage0 = ustage[index + {{ strides[2] }}];
+            ustage1 = ustage[index];
+            {{ ctype }} ucorrection_term = -ucs * (ustage0 - ustage1);
+            udcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + ucorrection_term;
+
+            {{ ctype }} udivided = {{ ctype }}(1.0) / ubcol;
+            uccol0 = uccol0 * udivided;
+            udcol0 = udcol0 * udivided;
+
+            uccol[0] = uccol0;
+            udcol[0] = udcol0;
+
+            vwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 1 * {{ strides[1] }} + {{ strides[2] }}];
+            {{ ctype }} vgcv = {{ ctype }}(0.25) * (vwcon_shift0 + wcon0);
+            {{ ctype }} vcs = vgcv * bet_m;
+
+            vccol0 = vgcv * bet_p;
+            {{ ctype }} vbcol = dtr_stage - vccol0;
+
+            vstage0 = vstage[index + {{ strides[2] }}];
+            vstage1 = vstage[index];
+            {{ ctype }} vcorrection_term = -vcs * (vstage0 - vstage1);
+            vdcol0 = dtr_stage * vpos[index] + vtens[index] + vtensstage[index] + vcorrection_term;
+
+            {{ ctype }} vdivided = {{ ctype }}(1.0) / vbcol;
+            vccol0 = vccol0 * vdivided;
+            vdcol0 = vdcol0 * vdivided;
+
+            vccol[0] = vccol0;
+            vdcol[0] = vdcol0;
+
+            wwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 0 * {{ strides[1] }} + {{ strides[2] }}];
+            {{ ctype }} wgcv = {{ ctype }}(0.25) * (wwcon_shift0 + wcon0);
+            {{ ctype }} wcs = wgcv * bet_m;
+
+            wccol0 = wgcv * bet_p;
+            {{ ctype }} wbcol = dtr_stage - wccol0;
+
+            wstage0 = wstage[index + {{ strides[2] }}];
+            wstage1 = wstage[index];
+            {{ ctype }} wcorrection_term = -wcs * (wstage0 - wstage1);
+            wdcol0 = dtr_stage * wpos[index] + wtens[index] + wtensstage[index] + wcorrection_term;
+
+            {{ ctype }} wdivided = {{ ctype }}(1.0) / wbcol;
+            wccol0 = wccol0 * wdivided;
+            wdcol0 = wdcol0 * wdivided;
+
+            wccol[0] = wccol0;
+            wdcol[0] = wdcol0;
+
+            index += {{ strides[2] }};
+        }
+
+        // k body
+{%- if unroll_factor >= 0 %}
+        #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
+{%- endif %}
+        for (std::ptrdiff_t k = 1; k < {{ domain[2] - 1 }}; ++k) {
+            wcon1 = wcon0;
+            uccol1 = uccol0;
+            udcol1 = udcol0;
+            ustage2 = ustage1;
+            ustage1 = ustage0;
+            uwcon_shift1 = uwcon_shift0;
+            vccol1 = vccol0;
+            vdcol1 = vdcol0;
+            vstage2 = vstage1;
+            vstage1 = vstage0;
+            vwcon_shift1 = vwcon_shift0;
+            wccol1 = wccol0;
+            wdcol1 = wdcol0;
+            wstage2 = wstage1;
+            wstage1 = wstage0;
+            wwcon_shift1 = wwcon_shift0;
+
+            wcon0 = wcon[index + {{ strides[2] }}];
+
+            {{ ctype }} ugav = {{ ctype }}(-0.25) * (uwcon_shift1 + wcon1);
+            uwcon_shift0 = wcon[index + 1 * {{ strides[0] }} + 0 * {{ strides[1] }} + {{ strides[2] }}];
+            {{ ctype }} ugcv = {{ ctype }}(0.25) * (uwcon_shift0 + wcon0);
+
+            {{ ctype }} uas = ugav * bet_m;
+            {{ ctype }} ucs = ugcv * bet_m;
+
+            {{ ctype }} uacol = ugav * bet_p;
+            uccol0 = ugcv * bet_p;
+            {{ ctype }} ubcol = dtr_stage - uacol - uccol0;
+
+            ustage0 = ustage[index + {{ strides[2] }}];
+            {{ ctype }} ucorrection_term = -uas * (ustage2 - ustage1) - ucs * (ustage0 - ustage1);
+            udcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + ucorrection_term;
+
+            {{ ctype }} udivided = {{ ctype }}(1.0) / (ubcol - uccol1 * uacol);
+            uccol0 = uccol0 * udivided;
+            udcol0 = (udcol0 - udcol1 * uacol) * udivided;
+
+            uccol[k] = uccol0;
+            udcol[k] = udcol0;
+
+            {{ ctype }} vgav = {{ ctype }}(-0.25) * (vwcon_shift1 + wcon1);
+            vwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 1 * {{ strides[1] }} + {{ strides[2] }}];
+            {{ ctype }} vgcv = {{ ctype }}(0.25) * (vwcon_shift0 + wcon0);
+
+            {{ ctype }} vas = vgav * bet_m;
+            {{ ctype }} vcs = vgcv * bet_m;
+
+            {{ ctype }} vacol = vgav * bet_p;
+            vccol0 = vgcv * bet_p;
+            {{ ctype }} vbcol = dtr_stage - vacol - vccol0;
+
+            vstage0 = vstage[index + {{ strides[2] }}];
+            {{ ctype }} vcorrection_term = -vas * (vstage2 - vstage1) - vcs * (vstage0 - vstage1);
+            vdcol0 = dtr_stage * vpos[index] + vtens[index] + vtensstage[index] + vcorrection_term;
+
+            {{ ctype }} vdivided = {{ ctype }}(1.0) / (vbcol - vccol1 * vacol);
+            vccol0 = vccol0 * vdivided;
+            vdcol0 = (vdcol0 - vdcol1 * vacol) * vdivided;
+
+            vccol[k] = vccol0;
+            vdcol[k] = vdcol0;
+
+            {{ ctype }} wgav = {{ ctype }}(-0.25) * (wwcon_shift1 + wcon1);
+            wwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 0 * {{ strides[1] }} + {{ strides[2] }}];
+            {{ ctype }} wgcv = {{ ctype }}(0.25) * (wwcon_shift0 + wcon0);
+
+            {{ ctype }} was = wgav * bet_m;
+            {{ ctype }} wcs = wgcv * bet_m;
+
+            {{ ctype }} wacol = wgav * bet_p;
+            wccol0 = wgcv * bet_p;
+            {{ ctype }} wbcol = dtr_stage - wacol - wccol0;
+
+            wstage0 = wstage[index + {{ strides[2] }}];
+            {{ ctype }} wcorrection_term = -was * (wstage2 - wstage1) - wcs * (wstage0 - wstage1);
+            wdcol0 = dtr_stage * wpos[index] + wtens[index] + wtensstage[index] + wcorrection_term;
+
+            {{ ctype }} wdivided = {{ ctype }}(1.0) / (wbcol - wccol1 * wacol);
+            wccol0 = wccol0 * wdivided;
+            wdcol0 = (wdcol0 - wdcol1 * wacol) * wdivided;
+
+            wccol[k] = wccol0;
+            wdcol[k] = wdcol0;
+
+            index += {{ strides[2] }};
+        }
+
+        // k maximum
+        {
+            wcon1 = wcon0;
+            uccol1 = uccol0;
+            udcol1 = udcol0;
+            ustage2 = ustage1;
+            ustage1 = ustage0;
+            uwcon_shift1 = uwcon_shift0;
+            vccol1 = vccol0;
+            vdcol1 = vdcol0;
+            vstage2 = vstage1;
+            vstage1 = vstage0;
+            vwcon_shift1 = vwcon_shift0;
+            wccol1 = wccol0;
+            wdcol1 = wdcol0;
+            wstage2 = wstage1;
+            wstage1 = wstage0;
+            wwcon_shift1 = wwcon_shift0;
+
+            {{ ctype }} ugav = {{ ctype }}(-0.25) * (uwcon_shift1 + wcon1);
+
+            {{ ctype }} uas = ugav * bet_m;
+
+            {{ ctype }} uacol = ugav * bet_p;
+            {{ ctype }} ubcol = dtr_stage - uacol;
+
+            {{ ctype }} ucorrection_term = -uas * (ustage2 - ustage1);
+            udcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + ucorrection_term;
+
+            {{ ctype }} udivided = {{ ctype }}(1.0) / (ubcol - uccol1 * uacol);
+            udcol0 = (udcol0 - udcol1 * uacol) * udivided;
+
+            uccol[{{ domain[2] - 1 }}] = uccol0;
+            udcol[{{ domain[2] - 1 }}] = udcol0;
+
+            {{ ctype }} vgav = {{ ctype }}(-0.25) * (vwcon_shift1 + wcon1);
+
+            {{ ctype }} vas = vgav * bet_m;
+
+            {{ ctype }} vacol = vgav * bet_p;
+            {{ ctype }} vbcol = dtr_stage - vacol;
+
+            {{ ctype }} vcorrection_term = -vas * (vstage2 - vstage1);
+            vdcol0 = dtr_stage * vpos[index] + vtens[index] + vtensstage[index] + vcorrection_term;
+
+            {{ ctype }} vdivided = {{ ctype }}(1.0) / (vbcol - vccol1 * vacol);
+            vdcol0 = (vdcol0 - vdcol1 * vacol) * vdivided;
+
+            vccol[{{ domain[2] - 1 }}] = vccol0;
+            vdcol[{{ domain[2] - 1 }}] = vdcol0;
+
+            {{ ctype }} wgav = {{ ctype }}(-0.25) * (wwcon_shift1 + wcon1);
+
+            {{ ctype }} was = wgav * bet_m;
+
+            {{ ctype }} wacol = wgav * bet_p;
+            {{ ctype }} wbcol = dtr_stage - wacol;
+
+            {{ ctype }} wcorrection_term = -was * (wstage2 - wstage1);
+            wdcol0 = dtr_stage * wpos[index] + wtens[index] + wtensstage[index] + wcorrection_term;
+
+            {{ ctype }} wdivided = {{ ctype }}(1.0) / (wbcol - wccol1 * wacol);
+            wdcol0 = (wdcol0 - wdcol1 * wacol) * wdivided;
+
+            wccol[{{ domain[2] - 1 }}] = wccol0;
+            wdcol[{{ domain[2] - 1 }}] = wdcol0;
+        }
+    }
+}
+
+
+__global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kernel(
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    {{ ctype }} *__restrict__ utensstage,
+    const {{ ctype }} *__restrict__ vstage,
+    const {{ ctype }} *__restrict__ vpos,
+    const {{ ctype }} *__restrict__ vtens,
+    {{ ctype }} *__restrict__ vtensstage,
+    const {{ ctype }} *__restrict__ wstage,
+    const {{ ctype }} *__restrict__ wpos,
+    const {{ ctype }} *__restrict__ wtens,
+    {{ ctype }} *__restrict__ wtensstage,
+    const {{ ctype }} *__restrict__ wcon,
+    {{ ctype }} *__restrict__ /*ccol*/,
+    {{ ctype }} *__restrict__ /*dcol*/,
+    {{ ctype }} *__restrict__ datacol) {
+
+    {{ ctype }} uccol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} udcol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} vccol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} vdcol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} wccol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} wdcol[{{ block_size[0] * block_size[1] * domain[2] }}];
+
+    forward_sweep(
+        wcon,
+        uccol,
+        udcol,
+        ustage,
+        upos,
+        utens,
+        utensstage,
+        vccol,
+        vdcol,
+        vstage,
+        vpos,
+        vtens,
+        vtensstage,
+        wccol,
+        wdcol,
+        wstage,
+        wpos,
+        wtens,
+        wtensstage);
+    backward_sweep(
+        uccol,
+        udcol,
+        upos,
+        utensstage,
+        vccol,
+        vdcol,
+        vpos,
+        vtensstage,
+        wccol,
+        wdcol,
+        wpos,
+        wtensstage);
+}
+{% endblock gpu_kernel %}
+
+{% block kernel_prepare %}
+    block_size = dim3({{ block_size[0] }},
+                      {{ block_size[1] }},
+                      1);
+    grid_size = dim3(({{ domain[0] }} + block_size.x - 1) / block_size.x,
+                     ({{ domain[1] }} + block_size.y - 1) / block_size.y,
+                     1);
+{% endblock kernel_prepare %}

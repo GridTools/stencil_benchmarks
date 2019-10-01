@@ -1,7 +1,9 @@
 {% extends "base.j2" %}
 
+{% set cache_strides = (1, block_size[0], block_size[0] * block_size[1]) %}
+
 {% block gpu_kernel %}
-__forceinline__ __device__ void backward_sweep(const {{ ctype }} *ccol,
+__forceinline__ __device__ void backward_sweep(const {{ ctype }} *__restrict__ ccol,
     const {{ ctype }} *__restrict__ dcol,
     const {{ ctype }} *__restrict__ upos,
     {{ ctype }} *__restrict__ utensstage) {
@@ -12,21 +14,27 @@ __forceinline__ __device__ void backward_sweep(const {{ ctype }} *ccol,
     {{ ctype }} datacol;
 
     if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
-        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + ({{ domain[2] }} - 1) * {{ strides[2] }};
+        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
+        std::ptrdiff_t cache_index = threadIdx.x * {{ cache_strides[0] }} + threadIdx.y * {{ cache_strides[1] }} + {{ (domain[2] - 1) * cache_strides[2] }};
         // k maximum
         {
-            datacol = dcol[index];
+            datacol = dcol[cache_index];
             utensstage[index] = dtr_stage * (datacol - upos[index]);
 
             index -= {{ strides[2] }};
+            cache_index -= {{ cache_strides[2] }};
         }
 
         // k body
-        for (std::ptrdiff_t k = {{ domain[2] }} - 2; k >= 0; --k) {
-            datacol = dcol[index] - ccol[index] * datacol;
+{%- if unroll_factor >= 0 %}
+        #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
+{%- endif %}
+        for (std::ptrdiff_t k = {{ domain[2] - 2 }}; k >= 0; --k) {
+            datacol = dcol[cache_index] - ccol[cache_index] * datacol;
             utensstage[index] = dtr_stage * (datacol - upos[index]);
 
             index -= {{ strides[2] }};
+            cache_index -= {{ cache_strides[2] }};
         }
     }
 }
@@ -55,6 +63,7 @@ __forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
 
     if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
         std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
+        std::ptrdiff_t cache_index = threadIdx.x * {{ cache_strides[0] }} + threadIdx.y * {{ cache_strides[1] }};
         // k minimum
         {
             wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
@@ -74,14 +83,18 @@ __forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
             ccol0 = ccol0 * divided;
             dcol0 = dcol0 * divided;
 
-            ccol[index] = ccol0;
-            dcol[index] = dcol0;
+            ccol[cache_index] = ccol0;
+            dcol[cache_index] = dcol0;
 
             index += {{ strides[2] }};
+            cache_index += {{ cache_strides[2] }};
         }
 
         // k body
-        for (std::ptrdiff_t k = 1; k < {{ domain[2] }} - 1; ++k) {
+{%- if unroll_factor >= 0 %}
+        #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
+{%- endif %}
+        for (std::ptrdiff_t k = 1; k < {{ domain[2] - 1 }}; ++k) {
             ccol1 = ccol0;
             dcol1 = dcol0;
             ustage2 = ustage1;
@@ -109,10 +122,11 @@ __forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
             ccol0 = ccol0 * divided;
             dcol0 = (dcol0 - dcol1 * acol) * divided;
 
-            ccol[index] = ccol0;
-            dcol[index] = dcol0;
+            ccol[cache_index] = ccol0;
+            dcol[cache_index] = dcol0;
 
             index += {{ strides[2] }};
+            cache_index += {{ cache_strides[2] }};
         }
 
         // k maximum
@@ -137,8 +151,8 @@ __forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
             {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
             dcol0 = (dcol0 - dcol1 * acol) * divided;
 
-            ccol[index] = ccol0;
-            dcol[index] = dcol0;
+            ccol[cache_index] = ccol0;
+            dcol[cache_index] = dcol0;
         }
     }
 }
@@ -158,9 +172,13 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ wtens,
     {{ ctype }} *__restrict__ wtensstage,
     const {{ ctype }} *__restrict__ wcon,
-    {{ ctype }} *__restrict__ ccol,
-    {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *__restrict__ /*ccol*/,
+    {{ ctype }} *__restrict__ /*dcol*/,
     {{ ctype }} *__restrict__ datacol) {
+
+    __shared__ {{ ctype }} ccol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    __shared__ {{ ctype }} dcol[{{ block_size[0] * block_size[1] * domain[2] }}];
+
     forward_sweep(1,
         0,
         ccol,

@@ -171,6 +171,10 @@ class BasicStencilMixin(StencilMixin):
 
 class VerticalAdvectionMixin(StencilMixin):
     block_size = benchmark.Parameter('block size', (32, 1))
+    unroll_factor = benchmark.Parameter(
+        'force unrolling of vertical loop '
+        '(-1: no enforced unrolling, 0: full unrolling,'
+        ' > 0: unrolling factor)', -1)
 
     def template_file(self):
         return ('vertical_advection_' + type(self).__name__.lower() + '.j2')
@@ -182,7 +186,8 @@ class VerticalAdvectionMixin(StencilMixin):
                     domain=self.domain,
                     block_size=self.block_size,
                     backend=self.backend,
-                    gpu_timers=self.gpu_timers)
+                    gpu_timers=self.gpu_timers,
+                    unroll_factor=self.unroll_factor)
 
 
 class HorizontalDiffusionMixin(StencilMixin):
