@@ -19,21 +19,21 @@ def benchmark_domains():
         yield d, d, 80
 
 
-def truncate_block_size_to_domain(kwargs):
+def truncate_block_size_to_domain(**kwargs):
     if 'block_size' in kwargs and 'domain' in kwargs:
         kwargs['block_size'] = tuple(
             min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
     return kwargs
 
 
-def benchmark(stencils_and_kwargs, executions, preprocess_kwargs=None):
-    if preprocess_kwargs is None:
-        preprocess_kwargs = lambda x: x
+def benchmark(stencils_and_kwargs, executions, preprocess_args=None):
+    if preprocess_args is None:
+        preprocess_args = lambda x: x
     results = []
     with cli.ProgressBar() as progress:
         for domain in progress.report(benchmark_domains()):
             for name, Stencil, kwargs in progress.report(stencils_and_kwargs):
-                stencil = Stencil(domain=domain, **preprocess_kwargs(kwargs))
+                stencil = Stencil(**preprocess_args(domain=domain, **kwargs))
 
                 for _ in progress.report(range(executions)):
                     result = stencil.run()
@@ -125,7 +125,7 @@ def horizontal_diffusion_bandwidth(backend, gpu_architecture, output,
 
     table = benchmark(stencils,
                       executions,
-                      preprocess_kwargs=truncate_block_size_to_domain)
+                      preprocess_args=truncate_block_size_to_domain)
     table.to_csv(output)
 
 
@@ -141,11 +141,12 @@ def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
 
     kwargs['block_size'] = (1024, 1)
 
-    stencils = [('on-the-fly', vertical_advection.KInnermost, kwargs)]
+    stencils = [('classic', vertical_advection.Classic, kwargs),
+                ('merged', vertical_advection.Merged, kwargs)]
 
     table = benchmark(stencils,
                       executions,
-                      preprocess_kwargs=truncate_block_size_to_domain)
+                      preprocess_args=truncate_block_size_to_domain)
     table.to_csv(output)
 
 
