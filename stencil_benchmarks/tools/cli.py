@@ -1,5 +1,6 @@
 import itertools
 import operator
+import re
 import sys
 import types
 import typing
@@ -81,20 +82,13 @@ class MaybeRange(click.ParamType):
             self.base_type.convert(v, param, ctx) for v in value.split(','))
 
     def _parse_range(self, value, param, ctx):
-        try:
-            value, step = value.split(':')
-        except ValueError:
-            step = '1'
+        match = re.match(r'^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$', value)
 
-        try:
-            start, stop = value.split('-')
-        except ValueError:
-            self.fail(
-                f'expected range of {self.base_type.name},'
-                f' got {value}', param, ctx)
+        if not match:
+            self.fail(f'could not parse range "{value}"')
 
-        start = self.base_type.convert(start, param, ctx)
-        stop = self.base_type.convert(stop, param, ctx)
+        start = self.base_type.convert(match.group('start'), param, ctx)
+        stop = self.base_type.convert(match.group('stop'), param, ctx)
 
         range_op = operator.add
         valid_ops = {
@@ -103,10 +97,12 @@ class MaybeRange(click.ParamType):
             '*': operator.mul,
             '/': operator.truediv
         }
-        if step[0] in valid_ops:
-            range_op = valid_ops[step[0]]
-            step = step[1:]
-        step = self.base_type.convert(step, param, ctx)
+        if match.group('op'):
+            range_op = valid_ops[match.group('op')]
+        if match.group('step'):
+            step = self.base_type.convert(match.group('step'), param, ctx)
+        else:
+            step = 1
         result = []
         current = start
         while start <= current <= stop:
