@@ -11,26 +11,27 @@ __forceinline__ __device__ void backward_sweep(const {{ ctype }} *__restrict__ c
 
     {{ ctype }} datacol;
 
-    if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
-        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
-        // k maximum
-        {
-            datacol = dcol[{{ domain[2] - 1 }}];
-            utensstage[index] = dtr_stage * (datacol - upos[index]);
+    if (i >= {{ domain[0] }} && j >= {{ domain[1] }})
+        return;
 
-            index -= {{ strides[2] }};
-        }
+    std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
+    // k maximum
+    {
+        datacol = dcol[{{ domain[2] - 1 }}];
+        utensstage[index] = dtr_stage * (datacol - upos[index]);
 
-        // k body
+        index -= {{ strides[2] }};
+    }
+
+    // k body
 {%- if unroll_factor >= 0 %}
-        #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
+    #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
 {%- endif %}
-        for (std::ptrdiff_t k = {{ domain[2] }} - 2; k >= 0; --k) {
-            datacol = dcol[k] - ccol[k] * datacol;
-            utensstage[index] = dtr_stage * (datacol - upos[index]);
+    for (std::ptrdiff_t k = {{ domain[2] }} - 2; k >= 0; --k) {
+        datacol = dcol[k] - ccol[k] * datacol;
+        utensstage[index] = dtr_stage * (datacol - upos[index]);
 
-            index -= {{ strides[2] }};
-        }
+        index -= {{ strides[2] }};
     }
 }
 
@@ -56,96 +57,97 @@ __forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
     {{ ctype }} wcon0, wcon1;
     {{ ctype }} wcon_shift0, wcon_shift1;
 
-    if (i < {{ domain[0] }} && j < {{ domain[1] }}) {
-        std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
-        // k minimum
-        {
-            wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
-            wcon0 = wcon[index + {{ strides[2] }}];
-            {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
-            {{ ctype }} cs = gcv * bet_m;
+    if (i >= {{ domain[0] }} && j >= {{ domain[1] }})
+        return;
 
-            ccol0 = gcv * bet_p;
-            {{ ctype }} bcol = dtr_stage - ccol0;
+    std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
+    // k minimum
+    {
+        wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+        wcon0 = wcon[index + {{ strides[2] }}];
+        {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+        {{ ctype }} cs = gcv * bet_m;
 
-            ustage0 = ustage[index + {{ strides[2] }}];
-            ustage1 = ustage[index];
-            {{ ctype }} correction_term = -cs * (ustage0 - ustage1);
-            dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+        ccol0 = gcv * bet_p;
+        {{ ctype }} bcol = dtr_stage - ccol0;
 
-            {{ ctype }} divided = {{ ctype }}(1.0) / bcol;
-            ccol0 = ccol0 * divided;
-            dcol0 = dcol0 * divided;
+        ustage0 = ustage[index + {{ strides[2] }}];
+        ustage1 = ustage[index];
+        {{ ctype }} correction_term = -cs * (ustage0 - ustage1);
+        dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-            ccol[0] = ccol0;
-            dcol[0] = dcol0;
+        {{ ctype }} divided = {{ ctype }}(1.0) / bcol;
+        ccol0 = ccol0 * divided;
+        dcol0 = dcol0 * divided;
 
-            index += {{ strides[2] }};
-        }
+        ccol[0] = ccol0;
+        dcol[0] = dcol0;
 
-        // k body
+        index += {{ strides[2] }};
+    }
+
+    // k body
 {%- if unroll_factor >= 0 %}
-        #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
+    #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
 {%- endif %}
-        for (std::ptrdiff_t k = 1; k < {{ domain[2] - 1 }}; ++k) {
-            ccol1 = ccol0;
-            dcol1 = dcol0;
-            ustage2 = ustage1;
-            ustage1 = ustage0;
-            wcon1 = wcon0;
-            wcon_shift1 = wcon_shift0;
+    for (std::ptrdiff_t k = 1; k < {{ domain[2] - 1 }}; ++k) {
+        ccol1 = ccol0;
+        dcol1 = dcol0;
+        ustage2 = ustage1;
+        ustage1 = ustage0;
+        wcon1 = wcon0;
+        wcon_shift1 = wcon_shift0;
 
-            {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
-            wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
-            wcon0 = wcon[index + {{ strides[2] }}];
-            {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+        {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+        wcon_shift0 = wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+        wcon0 = wcon[index + {{ strides[2] }}];
+        {{ ctype }} gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
 
-            {{ ctype }} as = gav * bet_m;
-            {{ ctype }} cs = gcv * bet_m;
+        {{ ctype }} as = gav * bet_m;
+        {{ ctype }} cs = gcv * bet_m;
 
-            {{ ctype }} acol = gav * bet_p;
-            ccol0 = gcv * bet_p;
-            {{ ctype }} bcol = dtr_stage - acol - ccol0;
+        {{ ctype }} acol = gav * bet_p;
+        ccol0 = gcv * bet_p;
+        {{ ctype }} bcol = dtr_stage - acol - ccol0;
 
-            ustage0 = ustage[index + {{ strides[2] }}];
-            {{ ctype }} correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
-            dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+        ustage0 = ustage[index + {{ strides[2] }}];
+        {{ ctype }} correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
+        dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-            {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
-            ccol0 = ccol0 * divided;
-            dcol0 = (dcol0 - dcol1 * acol) * divided;
+        {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+        ccol0 = ccol0 * divided;
+        dcol0 = (dcol0 - dcol1 * acol) * divided;
 
-            ccol[k] = ccol0;
-            dcol[k] = dcol0;
+        ccol[k] = ccol0;
+        dcol[k] = dcol0;
 
-            index += {{ strides[2] }};
-        }
+        index += {{ strides[2] }};
+    }
 
-        // k maximum
-        {
-            ccol1 = ccol0;
-            dcol1 = dcol0;
-            ustage2 = ustage1;
-            ustage1 = ustage0;
-            wcon1 = wcon0;
-            wcon_shift1 = wcon_shift0;
+    // k maximum
+    {
+        ccol1 = ccol0;
+        dcol1 = dcol0;
+        ustage2 = ustage1;
+        ustage1 = ustage0;
+        wcon1 = wcon0;
+        wcon_shift1 = wcon_shift0;
 
-            {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+        {{ ctype }} gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
 
-            {{ ctype }} as = gav * bet_m;
+        {{ ctype }} as = gav * bet_m;
 
-            {{ ctype }} acol = gav * bet_p;
-            {{ ctype }} bcol = dtr_stage - acol;
+        {{ ctype }} acol = gav * bet_p;
+        {{ ctype }} bcol = dtr_stage - acol;
 
-            {{ ctype }} correction_term = -as * (ustage2 - ustage1);
-            dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
+        {{ ctype }} correction_term = -as * (ustage2 - ustage1);
+        dcol0 = dtr_stage * upos[index] + utens[index] + utensstage[index] + correction_term;
 
-            {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
-            dcol0 = (dcol0 - dcol1 * acol) * divided;
+        {{ ctype }} divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+        dcol0 = (dcol0 - dcol1 * acol) * divided;
 
-            ccol[{{ domain[2] - 1 }}] = ccol0;
-            dcol[{{ domain[2] - 1 }}] = dcol0;
-        }
+        ccol[{{ domain[2] - 1 }}] = ccol0;
+        dcol[{{ domain[2] - 1 }}] = dcol0;
     }
 }
 
