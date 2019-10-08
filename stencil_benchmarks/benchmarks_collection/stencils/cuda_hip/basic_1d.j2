@@ -20,4 +20,7 @@
     grid_size = dim3({{ (elements + block_size[0] - 1) // block_size[0] if block_size[0] > 1 else 1 }},
                      {{ (elements + block_size[1] - 1) // block_size[1] if block_size[1] > 1 else 1 }},
                      {{ (elements + block_size[2] - 1) // block_size[2] if block_size[2] > 1 else 1 }});
+    block_size = dim3({{ block_size[0] }},
+                      {{ block_size[1] }},
+                      {{ block_size[2] }});
 {% endblock kernel_prepare %}
