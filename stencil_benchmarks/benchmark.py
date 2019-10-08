@@ -154,6 +154,8 @@ class Benchmark(metaclass=BenchmarkMeta):
     @abc.abstractmethod
     def run(self):
         """Run the benchmark and return time."""
+    def __call__(self):
+        return self.run()
     def __repr__(self):
         return f'{type(self).__name__}(' + ', '.join(
             f'{param}={value!r}'
