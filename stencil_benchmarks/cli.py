@@ -7,7 +7,7 @@ import click
 import pandas as pd
 
 from . import benchmark
-from .tools import cli as cli_tools
+from .tools import cli as cli_tools, validation
 
 
 def _cli_command(bmark):
@@ -43,6 +43,9 @@ def _cli_func(bmark):
                                 continue
                             click.echo(*error.args)
                             sys.exit(1)
+                        except validation.ValidationError:
+                            click.echo('error: validation failed')
+                            sys.exit(2)
                         result.update(
                             cli_tools.pretty_parameters(bmark_instance))
                         results.append(result)
