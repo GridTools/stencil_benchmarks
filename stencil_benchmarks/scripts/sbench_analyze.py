@@ -81,7 +81,11 @@ def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
     import matplotlib
     matplotlib.use('Agg')
     from matplotlib import pyplot as plt
+    import cycler
     plt.style.use('ggplot')
+
+    plt.rcParams['axes.prop_cycle'] = (cycler.cycler(marker=['o', '^', 's']) *
+                                       plt.rcParams['axes.prop_cycle'])
 
     def pivot_and_plot(df, prefix=None):
         df = df.pivot_table(index=x, columns=by, aggfunc=aggregation)[y]
@@ -90,7 +94,7 @@ def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
         for label, values in df.items():
             if prefix:
                 label = prefix + label
-            plt.plot(xticks, values.values, marker='o', label=label)
+            plt.plot(xticks, values.values, label=label)
         if uniform:
             plt.xticks(xticks, df.index)
 
