@@ -227,21 +227,27 @@ class HorizontalDiffusionStencil(Stencil):
         coeff = data_before.coeff
         out = data_after.out
 
-        lap = 4 * inp[1:-1, 1:-1, :] - (inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] +
-                                        inp[1:-1, 2:, :] + inp[1:-1, :-2, :])
+        lap = np.zeros_like(inp)
+        lap[1:-1, 1:-1, :] = 4 * inp[1:-1, 1:-1, :] - (
+            inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] + inp[1:-1, 2:, :] +
+            inp[1:-1, :-2, :])
 
-        flx = lap[1:, :-1, :] - lap[:-1, :-1, :]
-        flx = np.where(flx * (inp[2:-1, 1:-2, :] - inp[1:-2, 1:-2, :]) > 0, 0,
-                       flx)
+        flx = np.zeros_like(inp)
+        flx[:-1, :, :] = lap[1:, :, :] - lap[:-1, :, :]
+        flx[:-1, :, :] = np.where(
+            flx[:-1, :, :] * (inp[1:, :, :] - inp[:-1, :, :]) > 0, 0,
+            flx[:-1, :, :])
 
-        fly = lap[:-1, 1:, :] - lap[:-1, :-1, :]
-        fly = np.where(fly * (inp[1:-2, 2:-1, :] - inp[1:-2, 1:-2, :]) > 0, 0,
-                       fly)
+        fly = np.zeros_like(inp)
+        fly[:, :-1, :] = lap[:, 1:, :] - lap[:, :-1, :]
+        fly[:, :-1, :] = np.where(
+            fly[:, :-1, :] * (inp[:, 1:, :] - inp[:, :-1, :]) > 0, 0,
+            fly[:, :-1, :])
 
-        result = np.empty_like(out)
-        result[2:-2, 2:-2, :] = inp[2:-2, 2:-2, :] - coeff[2:-2, 2:-2, :] * (
-            flx[1:, 1:, :] - flx[:-1, 1:, :] + fly[1:, 1:, :] -
-            fly[1:, :-1, :])
+        result = np.zeros_like(inp)
+        result[1:-1, 1:-1, :] = inp[1:-1, 1:-1, :] - coeff[1:-1, 1:-1, :] * (
+            flx[1:-1, 1:-1, :] - flx[:-2, 1:-1, :] + fly[1:-1, 1:-1, :] -
+            fly[1:-1, :-2, :])
 
         validation.check_equality(out[self.inner_slice()],
                                   result[self.inner_slice()])
