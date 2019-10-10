@@ -40,9 +40,11 @@
     std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k_min * {{ strides[2] }};
 
     for (std::ptrdiff_t k = k_min; k < k_max; ++k) {
-        if (ib >= -2 && ib < ib_max + 2 && jb >= -2 && jb < jb_max + 2) {
-            inc[cache_index] = __ldg(&inp[index]);
-        }
+        if (k != k_min)
+            __syncthreads();
+
+        if (ib >= -2 && ib < ib_max + 2 && jb >= -2 && jb < jb_max + 2)
+            inc[cache_index] = inp[index];
 
         __syncthreads();
 
@@ -108,4 +110,7 @@
                   "too many threads per block");
     static_assert({{ block_size[0] }} >= {{ (block_size[1] + 2 * block_halo) * block_halo }},
                   "unsupported block size");
+    {% if backend == "hip" %}
+    smem_size = sizeof({{ ctype }}) * {{ cache_size }};
+    {% endif %}
 {% endblock kernel_prepare %}

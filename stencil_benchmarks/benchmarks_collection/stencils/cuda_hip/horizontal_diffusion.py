@@ -51,7 +51,7 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
                 '''
 
 
-class OnTheFlyInCache(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class OnTheFlyIncache(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 
 
@@ -59,7 +59,11 @@ class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 
 
-class JScan(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class JScanSharedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass
+
+
+class JScanOtfIncache(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 
 
@@ -67,9 +71,15 @@ class JScanOtf(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 
 
-class JScanOtfAligned(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class JScanShuffleIncache(HorizontalDiffusionMixin,
+                          HorizontalDiffusionStencil):
     pass
 
 
 class JScanShuffle(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    pass
+
+
+class JScanShuffleSystolic(HorizontalDiffusionMixin,
+                           HorizontalDiffusionStencil):
     pass

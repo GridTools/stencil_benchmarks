@@ -1,0 +1,109 @@
+{% extends "base.j2" %}
+
+{% set block_halo = 2 %}
+
+{% block gpu_kernel_body %}
+    const std::ptrdiff_t ib = std::ptrdiff_t(threadIdx.x) - {{ block_halo }};
+
+    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + ib;
+    const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
+    const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
+    if (k >= {{ domain[2] }})
+        return;
+
+    __shared__ {{ ctype }} inc[{{ (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo) * block_size[2] }}];
+
+    {% set cache_strides = (1, block_size[0] + 2 * block_halo, (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo)) %}
+    
+    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
+    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+
+    {{ ctype }} fly_ij, fly_ijm1;
+    {{ ctype }} lap_ij, lap_ijp1;    
+
+    {%- if backend == "hip" %}
+#define SHFL_UP(x) __shfl_up((x), 1)
+#define SHFL_DOWN(x) __shfl_down((x), 1)
+    {%- else %}
+#define SHFL_UP(x) __shfl_up_sync(0xffffffff, (x), 1)
+#define SHFL_DOWN(x) __shfl_down_sync(0xffffffff, (x), 1)
+    {%- endif%}
+
+    std::ptrdiff_t index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
+    std::ptrdiff_t cache_index = (ib + {{ block_halo }}) * {{ cache_strides[0] }} + threadIdx.z * {{ cache_strides[2] }};
+
+#pragma unroll
+    for (std::ptrdiff_t jb = {{ -block_halo }}; jb < {{ block_size[1] + block_halo }}; ++jb) {
+        if (ib < ib_max + {{ block_halo }} && jb < jb_max + {{ block_halo }}) {
+            inc[cache_index] = inp[index];
+            index += {{ strides[1] }};
+            cache_index += {{ cache_strides[1] }};
+        }
+    }
+
+    __syncthreads();
+
+    index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
+    cache_index = (ib + {{ block_halo }}) * {{ cache_strides[0] }} + threadIdx.z * {{ cache_strides[2] }};
+
+#pragma unroll
+    for (std::ptrdiff_t jb = {{ -block_halo }}; jb < {{ block_size[1] }}; ++jb) {
+        if (jb < jb_max) {
+            if (ib >= -1 && ib < ib_max + 1) {
+                lap_ijp1 = {{ ctype }}(4) * inc[cache_index + {{ cache_strides[1] }}] -
+                           (inc[cache_index - {{ cache_strides[0] }} + {{ cache_strides[1] }}] +
+                            inc[cache_index + {{ cache_strides[0] }} + {{ cache_strides[1] }}] +
+                            inc[cache_index + 2 * {{ cache_strides[1] }}] +
+                            inc[cache_index]);
+            }
+
+            {{ ctype }} flx_ij = {{ ctype }}(0);
+            {{ ctype }} lap_ip1j = SHFL_DOWN(lap_ij);
+
+            if (ib >= -1 && ib < ib_max && jb >= 0) {
+                flx_ij = lap_ip1j - lap_ij;
+                if (flx_ij * (inc[cache_index + {{ cache_strides[0] }}] - inc[cache_index]) > {{ ctype }}(0)) {
+                    flx_ij = {{ ctype }}(0);
+                }
+            }
+
+            if (ib >= 0 && ib < ib_max && jb >= -1) {
+                fly_ij = lap_ijp1 - lap_ij;
+                if (fly_ij * (inc[cache_index + {{ cache_strides[1] }}] - inc[cache_index]) > {{ ctype }}(0)) {
+                    fly_ij = {{ ctype }}(0);
+                }
+            }
+
+            {{ ctype }} flx_im1j = SHFL_UP(flx_ij);
+            if (ib >= 0 && ib < ib_max && jb >= 0) {
+                out[index] = inc[cache_index] - coeff[index] * (flx_ij - 
+                                                                flx_im1j +
+                                                                fly_ij -
+                                                                fly_ijm1);
+            }
+
+            lap_ij = lap_ijp1;
+            fly_ijm1 = fly_ij;
+
+            index += {{ strides[1] }};
+            cache_index += {{ cache_strides[1] }};
+        }
+    }
+{% endblock gpu_kernel_body %}
+
+{% block kernel_prepare %}
+    if ({{ block_size[0] + 2 * block_halo }} != device_properties.warpSize) {
+        std::cerr << "only supported block size along first dimension is "
+                  << (device_properties.warpSize - {{ 2 * block_halo }}) << std::endl;
+        return 0.0;
+    }
+    block_size = dim3({{ block_size[0] + 2 * block_halo }},
+                      1,
+                      {{ block_size[2] }});
+    grid_size = dim3({{ (domain[0] + block_size[0] - 1) // block_size[0] }},
+                     {{ (domain[1] + block_size[1] - 1) // block_size[1] }},
+                     {{ (domain[2] + block_size[2] - 1) // block_size[2] }});
+    {%- if backend == "hip" %}
+    smem_size = {{ (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo) * block_size[2] }} * sizeof({{ ctype }});
+    {% endif %}
+{% endblock kernel_prepare %}

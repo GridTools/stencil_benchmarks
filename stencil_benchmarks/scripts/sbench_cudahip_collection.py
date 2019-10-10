@@ -1,16 +1,40 @@
 #!/usr/bin/env python
 
-import gc
-import itertools
+import re
 
 import click
-import numpy as np
 import pandas as pd
 
-from stencil_benchmarks.benchmark import ExecutionError, ParameterError
 from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
-    basic, horizontal_diffusion, vertical_advection)
+    basic, horizontal_diffusion as hdiff, vertical_advection as vadv)
 from stencil_benchmarks.tools import cli
+
+
+class Configuration:
+    def __init__(self, ctor, name=None, **kwargs):
+        self.ctor = ctor
+        if name is None:
+            self.name = re.sub('(?!^)([A-Z1-9]+)', r'-\1',
+                               ctor.__name__).lower()
+        else:
+            self.name = name
+        self.kwargs = kwargs
+
+    def __call__(self, preprocess_args=None, **kwargs):
+        if preprocess_args is None:
+
+            def preprocess_args(**kwargs):
+                return kwargs
+
+        run = self.ctor(**preprocess_args(**self.kwargs, **kwargs))
+
+        def modified_run():
+            result = run()
+            result.update(name=self.name)
+            result.update(cli.pretty_parameters(run))
+            return result
+
+        return modified_run
 
 
 def benchmark_domains():
@@ -26,23 +50,13 @@ def truncate_block_size_to_domain(**kwargs):
     return kwargs
 
 
-def benchmark(stencils_and_kwargs, executions, preprocess_args=None):
-    if preprocess_args is None:
-        preprocess_args = lambda x: x
+def benchmark(configurations, executions, preprocess_args=None):
     results = []
     with cli.ProgressBar() as progress:
         for domain in progress.report(benchmark_domains()):
-            for name, Stencil, kwargs in progress.report(stencils_and_kwargs):
-                stencil = Stencil(**preprocess_args(domain=domain, **kwargs))
-
-                for _ in progress.report(range(executions)):
-                    result = stencil.run()
-                    result.update(stencil=name)
-                    result.update(cli.pretty_parameters(stencil))
-                    results.append(result)
-
-                del stencil
-                gc.collect()
+            for config in progress.report(configurations):
+                run = config(preprocess_args=preprocess_args, domain=domain)
+                results += [run() for _ in progress.report(range(executions))]
     return pd.DataFrame(results)
 
 
@@ -67,7 +81,7 @@ def common_kwargs(backend, gpu_architecture, dtype):
 @click.argument('gpu-architecture')
 @click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
-@click.option('--dtype', '-d', default='float64')
+@click.option('--dtype', '-d', default='float32')
 def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
     kwargs.update(
@@ -79,18 +93,34 @@ def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
     stream_kwargs = kwargs.copy()
     stream_kwargs.update(loop='1D', block_size=(1024, 1, 1), halo=0)
 
-    stencils = [('stream', basic.Copy, stream_kwargs),
-                ('empty', basic.Empty, kwargs), ('copy', basic.Copy, kwargs),
-                ('avg-i', basic.OnesidedAverage, dict(axis=0, **kwargs)),
-                ('avg-j', basic.OnesidedAverage, dict(axis=1, **kwargs)),
-                ('avg-k', basic.OnesidedAverage, dict(axis=2, **kwargs)),
-                ('sym-avg-i', basic.SymmetricAverage, dict(axis=0, **kwargs)),
-                ('sym-avg-j', basic.SymmetricAverage, dict(axis=1, **kwargs)),
-                ('sym-avg-k', basic.SymmetricAverage, dict(axis=2, **kwargs)),
-                ('lap-ij', basic.Laplacian,
-                 dict(along_x=True, along_y=True, along_z=False, **kwargs))]
+    configurations = [
+        Configuration(basic.Copy, name='stream', **stream_kwargs),
+        Configuration(basic.Empty, name='empty', **kwargs),
+        Configuration(basic.Copy, name='copy', **kwargs),
+        Configuration(basic.OnesidedAverage, name='avg-i', axis=0, **kwargs),
+        Configuration(basic.OnesidedAverage, name='avg-j', axis=1, **kwargs),
+        Configuration(basic.OnesidedAverage, name='avg-k', axis=2, **kwargs),
+        Configuration(basic.SymmetricAverage,
+                      name='sym-avg-i',
+                      axis=0,
+                      **kwargs),
+        Configuration(basic.SymmetricAverage,
+                      name='sym-avg-j',
+                      axis=1,
+                      **kwargs),
+        Configuration(basic.SymmetricAverage,
+                      name='sym-avg-k',
+                      axis=2,
+                      **kwargs),
+        Configuration(basic.Laplacian,
+                      name='lap-ij',
+                      along_x=True,
+                      along_y=True,
+                      along_z=False,
+                      **kwargs)
+    ]
 
-    table = benchmark(stencils, executions)
+    table = benchmark(configurations, executions)
     table.to_csv(output)
 
 
@@ -104,28 +134,49 @@ def horizontal_diffusion_bandwidth(backend, gpu_architecture, output,
                                    executions, dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
 
-    otf_kwargs = kwargs.copy()
-    classic_kwargs = kwargs.copy()
-    jscan_kwargs = kwargs.copy()
+    def choose(hip, cuda):
+        return hip if backend == 'hip' else cuda
 
-    otf_kwargs['loop'] = '3D'
-    if backend == 'hip':
-        otf_kwargs['block_size'] = (128, 4, 1)
-        classic_kwargs['block_size'] = (64, 8, 1)
-        jscan_kwargs['block_size'] = (256, 4, 1)
-    else:
-        otf_kwargs['block_size'] = (256, 2, 1)
-        classic_kwargs['block_size'] = (32, 16, 1)
-        jscan_kwargs['block_size'] = (256, 2, 2)
+    configurations = [
+        Configuration(hdiff.Classic,
+                      block_size=choose((64, 8, 1), (32, 16, 1)),
+                      **kwargs),
+        Configuration(hdiff.OnTheFly,
+                      block_size=choose((128, 4, 1), (256, 2, 1)),
+                      loop='3D',
+                      **kwargs),
+        Configuration(hdiff.OnTheFlyIncache,
+                      block_size=choose((32, 8, 4), (32, 8, 1)),
+                      **kwargs),
+        Configuration(hdiff.JScanSharedMem,
+                      block_size=choose((512, 16, 1), (256, 32, 1)),
+                      **kwargs),
+        Configuration(hdiff.JScanOtfIncache,
+                      block_size=choose((128, 4, 1), (256, 4, 1)),
+                      **kwargs),
+        Configuration(hdiff.JScanOtf,
+                      block_size=choose((256, 4, 1), (256, 2, 1)),
+                      **kwargs),
+        Configuration(hdiff.JScanShuffleIncache,
+                      block_size=choose((60, 4, 1), (28, 4, 2)),
+                      **kwargs),
+        Configuration(hdiff.JScanShuffle,
+                      block_size=choose((60, 3, 1), (28, 3, 2)),
+                      **kwargs),
+        Configuration(hdiff.JScanShuffleSystolic,
+                      block_size=choose((60, 4, 1), (28, 2, 2)),
+                      **kwargs)
+    ]
 
-    stencils = [('on-the-fly', horizontal_diffusion.OnTheFly, otf_kwargs),
-                ('classic', horizontal_diffusion.Classic, classic_kwargs),
-                ('j-scan-otf-aligned', horizontal_diffusion.JScanOtfAligned,
-                 jscan_kwargs)]
+    def truncate_block_size_to_domain_if_possible(**kwargs):
+        if kwargs['block_size'][0] not in (28, 60):
+            return truncate_block_size_to_domain(**kwargs)
+        return kwargs
 
-    table = benchmark(stencils,
-                      executions,
-                      preprocess_args=truncate_block_size_to_domain)
+    table = benchmark(
+        configurations,
+        executions,
+        preprocess_args=truncate_block_size_to_domain_if_possible)
     table.to_csv(output)
 
 
@@ -139,12 +190,29 @@ def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
                                  dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
 
-    kwargs['block_size'] = (1024, 1)
+    def choose(hip, cuda):
+        return hip if backend == 'hip' else cuda
 
-    stencils = [('classic', vertical_advection.Classic, kwargs),
-                ('merged', vertical_advection.Merged, kwargs)]
+    configurations = [
+        Configuration(vadv.Classic,
+                      block_size=choose((128, 8), (512, 2)),
+                      unroll_factor=5,
+                      **kwargs),
+        Configuration(vadv.LocalMem,
+                      block_size=choose((256, 1), (64, 4)),
+                      unroll_factor=8,
+                      **kwargs),
+        Configuration(vadv.LocalMemMerged,
+                      block_size=choose((32, 1), (32, 1)),
+                      unroll_factor=0,
+                      **kwargs),
+        Configuration(vadv.SharedMem,
+                      block_size=choose((64, 1), (64, 1)),
+                      unroll_factor=0,
+                      **kwargs)
+    ]
 
-    table = benchmark(stencils,
+    table = benchmark(configurations,
                       executions,
                       preprocess_args=truncate_block_size_to_domain)
     table.to_csv(output)
