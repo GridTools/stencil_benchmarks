@@ -59,7 +59,8 @@ def _cli_func(bmark):
             table.to_csv(ctx.obj.output)
 
         nunique = table.apply(pd.Series.nunique)
-        table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
+        if len(table.index) > 1:
+            table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
 
         if ctx.obj.report == 'full':
             click.echo(table.to_string())
