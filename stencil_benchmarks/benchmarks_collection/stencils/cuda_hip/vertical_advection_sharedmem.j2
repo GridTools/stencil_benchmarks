@@ -176,7 +176,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ wcon,
     {{ ctype }} *__restrict__ /*ccol*/,
     {{ ctype }} *__restrict__ /*dcol*/,
-    {{ ctype }} *__restrict__ datacol) {
+    {{ ctype }} *__restrict__ /*datacol*/) {
 
     __shared__ {{ ctype }} ccol[{{ block_size[0] * block_size[1] * domain[2] }}];
     __shared__ {{ ctype }} dcol[{{ block_size[0] * block_size[1] * domain[2] }}];
