@@ -4,7 +4,6 @@ import sys
 import types
 
 import click
-import pandas as pd
 
 from . import benchmark
 from .tools import cli as cli_tools, validation
@@ -19,6 +18,8 @@ def _cli_command(bmark):
 def _cli_func(bmark):
     @click.pass_context
     def run_bmark(ctx, **kwargs):
+        import pandas as pd
+
         unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
         result_keys = None
         results = []
