@@ -73,8 +73,6 @@ class ArgRange(typing.NamedTuple):
 
 
 class MaybeRange(click.ParamType):
-    name = 'range or value'
-
     def __init__(self, base_type):
         self.base_type = base_type
         self._anonymous_range_count = 0
@@ -84,7 +82,9 @@ class MaybeRange(click.ParamType):
             self.base_type.convert(v, param, ctx) for v in value.split(','))
 
     def _parse_range(self, value, param, ctx):
-        match = re.match(r'^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$', value)
+        match = re.match(
+            r'^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$',
+            value)
 
         if not match:
             self.fail(f'could not parse range "{value}"')
@@ -133,6 +133,10 @@ class MaybeRange(click.ParamType):
             return ArgRange(name, values)
 
         return self.base_type.convert(value, param, ctx)
+
+    @property
+    def name(self):
+        return self.base_type.name
 
 
 _RANGE_TYPES = {
