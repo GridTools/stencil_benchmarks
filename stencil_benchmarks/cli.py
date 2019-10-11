@@ -79,17 +79,21 @@ def _cli_func(bmark):
     func = run_bmark
     for name, param in bmark.parameters.items():
         name = '--' + name.replace('_', '-')
+        description = (param.description[0].upper() + param.description[1:] +
+                       '.')
         if param.dtype is bool:
             option = click.option(name + '/' + name.replace('--', '--no-'),
                                   default=param.default,
-                                  help=param.description)
+                                  help=description,
+                                  show_default=True)
         else:
             option = click.option(name,
                                   type=cli_tools.range_type(param.dtype),
                                   nargs=param.nargs,
-                                  help=param.description,
+                                  help=description,
                                   required=param.default is None,
-                                  default=param.default)
+                                  default=param.default,
+                                  show_default=param.default is not None)
         func = option(func)
     return func
 
