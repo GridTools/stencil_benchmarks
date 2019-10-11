@@ -196,21 +196,26 @@ def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
     configurations = [
         Configuration(vadv.Classic,
                       block_size=choose((128, 8), (512, 2)),
-                      unroll_factor=5,
+                      unroll_factor=choose(3, 5),
                       **kwargs),
         Configuration(vadv.LocalMem,
                       block_size=choose((256, 1), (64, 4)),
-                      unroll_factor=8,
-                      **kwargs),
-        Configuration(vadv.LocalMemMerged,
-                      block_size=choose((32, 1), (32, 1)),
-                      unroll_factor=0,
+                      unroll_factor=choose(10, 8),
                       **kwargs),
         Configuration(vadv.SharedMem,
-                      block_size=choose((64, 1), (64, 1)),
-                      unroll_factor=0,
+                      block_size=choose((32, 1), (64, 1)),
+                      unroll_factor=choose(6, 0),
                       **kwargs)
     ]
+
+    if backend == 'cuda':
+        # does not verify on HIPCC (compiler bug?)
+        configurations += [
+            Configuration(vadv.LocalMemMerged,
+                          block_size=(32, 1),
+                          unroll_factor=choose(-1, 0),
+                          **kwargs)
+        ]
 
     table = benchmark(configurations,
                       executions,
