@@ -269,7 +269,9 @@ class VerticalAdvectionStencil(Stencil):
 
     @property
     def data_size(self):
-        return 16 * np.product(self.domain) * self.dtype_size
+        reads = 16  # including ccol + dcol, but not datacol
+        writes = 5  # including ccol + dcol, but not datacol
+        return (reads + writes) * np.product(self.domain) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         # pylint: disable=unsubscriptable-object
