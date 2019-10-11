@@ -7,6 +7,8 @@ import typing
 
 import click
 
+from .. import __version__
+
 
 class ProgressBar:
     def __init__(self):
@@ -194,4 +196,5 @@ def pretty_parameters(bmark):
                 parameters[f'{name}-{i}'] = v
         else:
             parameters[name] = value
+    parameters['sbench-version'] = __version__
     return parameters
