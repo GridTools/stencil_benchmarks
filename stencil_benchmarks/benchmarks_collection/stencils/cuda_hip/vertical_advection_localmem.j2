@@ -1,8 +1,8 @@
 {% extends "base.j2" %}
 
 {% block gpu_kernel %}
-__forceinline__ __device__ void backward_sweep(const {{ ctype }} *__restrict__ ccol,
-    const {{ ctype }} *__restrict__ dcol,
+__forceinline__ __device__ void backward_sweep(const {{ ctype }} *ccol,
+    const {{ ctype }} *dcol,
     const {{ ctype }} *__restrict__ upos,
     {{ ctype }} *__restrict__ utensstage) {
     constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
@@ -37,8 +37,8 @@ __forceinline__ __device__ void backward_sweep(const {{ ctype }} *__restrict__ c
 
 __forceinline__ __device__ void forward_sweep(const std::ptrdiff_t ishift,
     const std::ptrdiff_t jshift,
-    {{ ctype }} *__restrict__ ccol,
-    {{ ctype }} *__restrict__ dcol,
+    {{ ctype }} *ccol,
+    {{ ctype }} *dcol,
     const {{ ctype }} *__restrict__ wcon,
     const {{ ctype }} *__restrict__ ustage,
     const {{ ctype }} *__restrict__ upos,
@@ -170,8 +170,8 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     {{ ctype }} *__restrict__ /*dcol*/,
     {{ ctype }} *__restrict__ datacol) {
 
-    {{ ctype }} ccol[{{ block_size[0] * block_size[1] * domain[2] }}];
-    {{ ctype }} dcol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} ccol[{{ domain[2] }}];
+    {{ ctype }} dcol[{{ domain[2] }}];
 
     forward_sweep(1,
         0,

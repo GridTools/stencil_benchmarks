@@ -2,16 +2,16 @@
 
 {% block gpu_kernel %}
 __forceinline__ __device__ void backward_sweep(
-    const {{ ctype }} *__restrict__ uccol,
-    const {{ ctype }} *__restrict__ udcol,
+    const {{ ctype }} *uccol,
+    const {{ ctype }} *udcol,
     const {{ ctype }} *__restrict__ upos,
     {{ ctype }} *__restrict__ utensstage,
-    const {{ ctype }} *__restrict__ vccol,
-    const {{ ctype }} *__restrict__ vdcol,
+    const {{ ctype }} *vccol,
+    const {{ ctype }} *vdcol,
     const {{ ctype }} *__restrict__ vpos,
     {{ ctype }} *__restrict__ vtensstage,
-    const {{ ctype }} *__restrict__ wccol,
-    const {{ ctype }} *__restrict__ wdcol,
+    const {{ ctype }} *wccol,
+    const {{ ctype }} *wdcol,
     const {{ ctype }} *__restrict__ wpos,
     {{ ctype }} *__restrict__ wtensstage) {
     constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
@@ -59,20 +59,20 @@ __forceinline__ __device__ void backward_sweep(
 }
 
 __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wcon,
-    {{ ctype }} *__restrict__ uccol,
-    {{ ctype }} *__restrict__ udcol,
+    {{ ctype }} *uccol,
+    {{ ctype }} *udcol,
     const {{ ctype }} *__restrict__ ustage,
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
     const {{ ctype }} *__restrict__ utensstage,
-    {{ ctype }} *__restrict__ vccol,
-    {{ ctype }} *__restrict__ vdcol,
+    {{ ctype }} *vccol,
+    {{ ctype }} *vdcol,
     const {{ ctype }} *__restrict__ vstage,
     const {{ ctype }} *__restrict__ vpos,
     const {{ ctype }} *__restrict__ vtens,
     const {{ ctype }} *__restrict__ vtensstage,
-    {{ ctype }} *__restrict__ wccol,
-    {{ ctype }} *__restrict__ wdcol,
+    {{ ctype }} *wccol,
+    {{ ctype }} *wdcol,
     const {{ ctype }} *__restrict__ wstage,
     const {{ ctype }} *__restrict__ wpos,
     const {{ ctype }} *__restrict__ wtens,
@@ -347,12 +347,12 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     {{ ctype }} *__restrict__ /*dcol*/,
     {{ ctype }} *__restrict__ datacol) {
 
-    {{ ctype }} uccol[{{ block_size[0] * block_size[1] * domain[2] }}];
-    {{ ctype }} udcol[{{ block_size[0] * block_size[1] * domain[2] }}];
-    {{ ctype }} vccol[{{ block_size[0] * block_size[1] * domain[2] }}];
-    {{ ctype }} vdcol[{{ block_size[0] * block_size[1] * domain[2] }}];
-    {{ ctype }} wccol[{{ block_size[0] * block_size[1] * domain[2] }}];
-    {{ ctype }} wdcol[{{ block_size[0] * block_size[1] * domain[2] }}];
+    {{ ctype }} uccol[{{ domain[2] }}];
+    {{ ctype }} udcol[{{ domain[2] }}];
+    {{ ctype }} vccol[{{ domain[2] }}];
+    {{ ctype }} vdcol[{{ domain[2] }}];
+    {{ ctype }} wccol[{{ domain[2] }}];
+    {{ ctype }} wdcol[{{ domain[2] }}];
 
     forward_sweep(
         wcon,
