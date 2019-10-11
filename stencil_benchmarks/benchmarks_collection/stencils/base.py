@@ -16,9 +16,9 @@ class Stencil(Benchmark):
         'number of data sets, if bigger than one, data sets are cycled before '
         'each execution to start with cold cache', 1)
     halo = Parameter('halo size', 3)
-    dtype = Parameter('data type in numpy format, e.g. float32 or float64',
+    dtype = Parameter('data type in NumPy format, e.g. float32 or float64',
                       'float64')
-    layout = Parameter('data layout, 0 means innermost dimension, 2 outermost',
+    layout = Parameter('data layout, 2 means innermost dimension, 0 outermost',
                        (2, 1, 0))
     alignment = Parameter('data alignment in bytes', 0)
     huge_pages = Parameter('use huge pages', False)
