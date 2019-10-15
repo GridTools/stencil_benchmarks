@@ -10,6 +10,20 @@ import click
 from .. import __version__
 
 
+def colorize(string, rgb=None, hsv=None):
+    if hsv:
+        h, s, v = hsv
+
+        def f(n):
+            k = (n + h / 60) % 6
+            return v - v * s * max(min(k, 4 - k, 1), 0)
+
+        rgb = f(5), f(3), f(1)
+
+    r, g, b = (int(255 * x) for x in rgb)
+    return f'\x1b[38;2;{r};{g};{b}m{string}\x1b[0m'
+
+
 class ProgressBar:
     def __init__(self):
         self._progress = []
@@ -50,8 +64,9 @@ class ProgressBar:
 
     def _print(self):
         percent = round(self.progress)
-        click.echo('\r' + '#' * percent + '-' * (100 - percent) +
-                   f' {percent:3}%',
+        click.echo('\r|' + colorize('█' * percent + '-' * (100 - percent),
+                                    hsv=(percent * 1.2, 1, 1)) +
+                   f'| {percent:3}%',
                    nl=False)
         sys.stdout.flush()
 
