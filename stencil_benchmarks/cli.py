@@ -102,7 +102,7 @@ def _cli_func(bmark):
 @click.option('--executions', '-e', type=int, default=3)
 @click.option('--report',
               '-r',
-              default='best-median',
+              default='all-medians',
               type=click.Choice(['best-median', 'all-medians', 'full']))
 @click.option('--skip-invalid-parameters', '-s', is_flag=True)
 @click.option('--skip-execution-failures', '-q', is_flag=True)
