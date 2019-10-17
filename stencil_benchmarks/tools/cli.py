@@ -1,3 +1,5 @@
+"""Helper functions for click CLI applications."""
+
 import itertools
 import operator
 import re
@@ -11,11 +13,36 @@ from .. import __version__
 
 
 def colorize(string, rgb=None, hsv=None):
+    """Add truecolor terminal color code to `string`.
+
+    Either RGB or HSV values must be given.
+
+    Parameters
+    ----------
+    string : str
+        String to colorize.
+    rgb : None or tuple of float
+        3-tuple of RGB values in range [0, 1].
+    hsv : None or tuple of float
+        3-tuple of HSV values in range [0, 1].
+
+    Returns
+    -------
+    str
+        Input string surrounded by truecolor terminal color code.
+
+    Examples
+    --------
+    >>> colorize('foo', rgb=(1, 0, 0)) # doctest: +ELLIPSIS
+    '...foo...'
+    >>> colorize('foo', hsv=(1, 0, 0)) # doctest: +ELLIPSIS
+    '...foo...'
+    """
     if hsv:
         h, s, v = hsv
 
         def f(n):
-            k = (n + h / 60) % 6
+            k = (n + h * 6) % 6
             return v - v * s * max(min(k, 4 - k, 1), 0)
 
         rgb = f(5), f(3), f(1)
@@ -25,10 +52,40 @@ def colorize(string, rgb=None, hsv=None):
 
 
 class ProgressBar:
-    def __init__(self):
+    """Simple CLI progress bar.
+
+    Examples
+    --------
+    >>> p = ProgressBar(colored=False)
+    """
+    def __init__(self, colored=True):
         self._progress = []
 
     def report(self, iterable):
+        r"""Report progress when looping over `iterable`.
+
+        Reports progress on an iterable, usable as a context manager.
+        Nested application possible.
+
+        Parameters
+        ----------
+        iterable : iterable
+            Iterable to wrap.
+
+        Returns
+        -------
+        list
+            `iterable` converted into a list.
+
+        Examples
+        --------
+        >>> import time
+        >>> with ProgressBar() as p:
+        ...     for i in p.report(range(5)):
+        ...         for j in p.report(range(2)):
+        ...             time.sleep(0.1)
+        \\r...
+        """
         iterable = list(iterable)
         index = len(self._progress)
         self._progress.append(
@@ -45,6 +102,21 @@ class ProgressBar:
 
     @property
     def progress(self):
+        """Get the current progress in percent.
+
+        Value is only meaningful inside a report() loop.
+
+        Returns
+        -------
+        float
+            Current progress in percent.
+
+        Example
+        -------
+        >>> p = ProgressBar()
+        >>> p.progress
+        0.0
+        """
         percent = 0.0
         width = 100.0
         for sub_progress in self._progress:
@@ -53,9 +125,15 @@ class ProgressBar:
         return percent
 
     def __enter__(self):
+        """Context manager entry point."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit point.
+
+        Clears progress bar in case of succes,
+        otherwise prints a newline.
+        """
         if exc_type is None:
             click.echo('\r' + ' ' * 110 + '\r', nl=False)
         else:
@@ -64,30 +142,57 @@ class ProgressBar:
 
     def _print(self):
         percent = round(self.progress)
-        click.echo('\r|' + colorize('█' * percent + '-' * (100 - percent),
-                                    hsv=(percent * 1.2, 1, 1)) +
-                   f'| {percent:3}%',
-                   nl=False)
+        bar = colorize('█' * percent + '-' * (100 - percent),
+                       hsv=(percent / 300, 1, 1))
+        click.echo('\r|' + bar + f'| {percent:3}%', nl=False)
         sys.stdout.flush()
 
 
 class ArgRange(typing.NamedTuple):
+    """Argument range, i.e. range name and associated values.
+
+    Properties
+    ----------
+    name : str
+        Identifier of the range.
+    values : tuple or None
+        Tuple of all values in the range or None if unknown.
+    """
+
     name: str
-    values: tuple
+    values: typing.Optional[tuple]
 
     def unique_values(self, *others):
+        """Collect unique values definition from multiple occurences of a range.
+
+        Examples
+        --------
+        >>> x = ArgRange('foo', (1, 2, 3))
+        >>> y = ArgRange('foo', (1, 2, 3))
+        >>> z = ArgRange('foo', None)
+        >>> x.unique_values(y, z)
+        (1, 2, 3)
+        >>> x.unique_values()
+        (1, 2, 3)
+        >>> z.unique_values()
+        Traceback (most recent call last):
+            ...
+        ValueError: missing value definition for argument range "foo"
+        """
+        assert all(self.name == other.name for other in others)
         all_ranges = (self, ) + others
         values = set(r.values for r in all_ranges if r.values)
         if not values:
             raise ValueError(
-                f'missing value definition for argument range "{self.name}')
+                f'missing value definition for argument range "{self.name}"')
         if len(values) > 1:
             raise ValueError(
                 f'multiple definitions for argument range "{self.name}"')
         return next(iter(values))
 
 
-class MaybeRange(click.ParamType):
+class _MaybeRange(click.ParamType):
+    """Click ParamType for parameters that accept ranges."""
     def __init__(self, base_type):
         self.base_type = base_type
         self._anonymous_range_count = 0
@@ -98,8 +203,8 @@ class MaybeRange(click.ParamType):
 
     def _parse_range(self, value, param, ctx):
         match = re.match(
-            r'^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$',
-            value)
+            r'^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)'
+            r'(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$', value)
 
         if not match:
             self.fail(f'could not parse range "{value}"')
@@ -143,7 +248,7 @@ class MaybeRange(click.ParamType):
                 else:
                     values = self._parse_range(value, param, ctx)
             else:
-                values = ()
+                values = None
 
             return ArgRange(name, values)
 
@@ -155,13 +260,48 @@ class MaybeRange(click.ParamType):
 
 
 _RANGE_TYPES = {
-    int: MaybeRange(click.INT),
-    float: MaybeRange(click.FLOAT),
-    str: MaybeRange(click.STRING)
+    int: _MaybeRange(click.INT),
+    float: _MaybeRange(click.FLOAT),
+    str: _MaybeRange(click.STRING)
 }
 
 
 def range_type(dtype):
+    """Get click range type.
+
+    The range type allows parsing click options and arguments in range form,
+    that allow to easily specify a whole range of values for a single option.
+
+    To be used with `unpack_ranges`.
+
+    Parameters
+    ----------
+    dtype : int or float or str
+        Range value type.
+
+    Returns
+    -------
+    range object
+        A range param object, that can be used
+        in click.argument() and click.option().
+
+    Examples
+    --------
+    Create a click.command that accepts range args:
+    >>> @click.command()
+    ... @click.argument('arg', type=range_type(int))
+    ... @click.option('--option', type=range_type(int))
+    ... def foo(arg, option):
+    ...     return arg, option
+
+    Calling the function with normal args behaves as normal:
+    >>> foo(args=['1', '--option', '3'], standalone_mode=False)
+    (1, 3)
+
+    Calling the function with range arguments gives ArgRange objects:
+    >>> foo(args=['[x=1-3]', '--option', '[3,4]'], standalone_mode=False)
+    (ArgRange(name='x', values=(1, 2, 3)), ArgRange(name='...', values=(3, 4)))
+    """
     return _RANGE_TYPES[dtype]
 
 
@@ -187,6 +327,34 @@ def _values_from_range_map(range_map):
 
 
 def unpack_ranges(**kwargs):
+    """Unpack range arguments in `kwargs`.
+
+    Generates a list of kwargs of the cartesian product of all range
+    values inside kwargs.
+
+    Parameters
+    ----------
+    kwargs : dict
+        Keyword arguments to unpack, possibly with `ArgRange` values.
+
+    Returns
+    -------
+    list of dict
+        List of kwargs, with all `ArgRanges` unpacked.
+
+    Examples
+    --------
+    >>> unpack_ranges(a=3, b=5)
+    [{'a': 3, 'b': 5}]
+    >>> unpack_ranges(a=3, b=ArgRange(name='r0', values=(1, 2, 3)))
+    [{'a': 3, 'b': 1}, {'a': 3, 'b': 2}, {'a': 3, 'b': 3}]
+    >>> unpack_ranges(a=ArgRange(name='r0', values=(1, 2)),
+    ...               b=ArgRange(name='r1', values=(3, 4)))
+    [{'a': 1, 'b': 3}, {'a': 1, 'b': 4}, {'a': 2, 'b': 3}, {'a': 2, 'b': 4}]
+    >>> unpack_ranges(a=ArgRange(name='r0', values=(1, 2)),
+    ...               b=ArgRange(name='r0', values=None))
+    [{'a': 1, 'b': 1}, {'a': 2, 'b': 2}]
+    """
     ranges = _extract_ranges(kwargs.values())
     range_name = operator.attrgetter('name')
     grouped_ranges = itertools.groupby(sorted(ranges, key=range_name),
@@ -200,13 +368,60 @@ def unpack_ranges(**kwargs):
 
 
 def range_args(**kwargs):
+    """Iterate over all range arguments in `kwargs`.
+
+    Parameters
+    ----------
+    kwargs : dict
+        Keyword arguments to iterate on.
+
+    Yields
+    ------
+    generator of str
+        Names of the range arguments in `kwargs`.
+
+    Example
+    -------
+    >>> [x for x in range_args(a=1, b=2)]
+    []
+    >>> [x for x in range_args(a=1, b=ArgRange(name='r0', values=(1, 2)))]
+    ['b']
+    """
     for arg, value in kwargs.items():
         if isinstance(value, ArgRange) or isinstance(value, tuple) and any(
                 isinstance(v, ArgRange) for v in value):
             yield arg
 
 
-def pretty_parameters(bmark):
+def pretty_parameters(bmark, include_version=True):
+    """Get pretty formatted dict of benchmark parameters.
+
+    Parameters
+    ----------
+    bmark : stencil_benchmarks.benchmark.Benchmark
+        Benchmark instance to retrieve parameters from.
+    include_version : bool
+        Include stencil_benchmarks version information.
+
+    Returns
+    -------
+    dict
+        Dict of all parameter names and values of `bmark`,
+        with prettyfied names and unpacked tuple values.
+
+    Examples
+    --------
+    >>> from stencil_benchmarks.benchmark import (
+    ...     Benchmark, Parameter)
+    >>> class BMark(Benchmark):
+    ...     foo_bar = Parameter('foo param', dtype=int, nargs=1)
+    ...     baz = Parameter('bar param', default=(1, 2))
+    ...     def run(self):
+    ...         pass
+    >>> bmark = BMark(foo_bar=42)
+    >>> pretty_parameters(bmark, include_version=False)
+    {'foo-bar': 42, 'baz-0': 1, 'baz-1': 2}
+    """
     parameters = dict()
     for name, value in bmark.parameters.items():
         name = name.replace('_', '-')
@@ -215,5 +430,6 @@ def pretty_parameters(bmark):
                 parameters[f'{name}-{i}'] = v
         else:
             parameters[name] = value
-    parameters['sbench-version'] = __version__
+    if include_version:
+        parameters['sbench-version'] = __version__
     return parameters
