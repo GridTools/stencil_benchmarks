@@ -1,6 +1,6 @@
 import unittest
 
-from stencil_benchmarks import cli
+from stencil_benchmarks import benchmarks_collection, cli  # noqa: F401
 
 
 class TestMain(unittest.TestCase):
