@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import stencil_benchmarks.benchmarks_collection
-from  stencil_benchmarks import cli
+import stencil_benchmarks.benchmarks_collection  # noqa: F401
+from stencil_benchmarks import cli
 
 main = cli.main()
 
