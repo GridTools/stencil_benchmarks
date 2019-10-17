@@ -14,7 +14,7 @@ class TestFormatCode(unittest.TestCase):
                      '   2 int main(int argc, const char **argv) {\n'
                      '   3   std::cout << "Hello World!" << std::endl;\n'
                      '   4   return 0;\n'
-                     '   5 }')
+                     '   5 }\n')
         try:
             self.assertEqual(cpphelpers.format_code(code), formatted)
         except FileNotFoundError:
