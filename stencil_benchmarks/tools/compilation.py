@@ -1,6 +1,7 @@
 import ctypes
 import subprocess
 import tempfile
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -9,7 +10,9 @@ class CompilationError(RuntimeError):
     pass
 
 
-def gnu_library(compile_command, code, extension=None):
+def gnu_library(compile_command: List[str],
+                code: str,
+                extension: Optional[str] = None):
     if compile_command[0].endswith('nvcc'):
         lib_flags = ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
     else:
@@ -30,12 +33,12 @@ def gnu_library(compile_command, code, extension=None):
             return ctypes.cdll.LoadLibrary(library.name)
 
 
-def gnu_func(compile_command,
-             code,
-             funcname,
-             restype=None,
-             argtypes=None,
-             source_extension=None):
+def gnu_func(compile_command: List[str],
+             code: str,
+             funcname: str,
+             restype: List[Any] = None,
+             argtypes: List[Any] = None,
+             source_extension=Optional[str]):
     func = getattr(gnu_library(compile_command, code, source_extension),
                    funcname)
     if restype is not None:
@@ -45,7 +48,7 @@ def gnu_func(compile_command,
     return func
 
 
-def dtype_as_ctype(dtype):
+def dtype_as_ctype(dtype: np.dtype):
     dtype = np.dtype(dtype)
     if dtype.kind == 'f':
         if dtype.itemsize == 4:
@@ -73,7 +76,7 @@ def dtype_as_ctype(dtype):
     raise NotImplementedError(f'Conversion of type {dtype} is not supported')
 
 
-def ctype_cname(ctype):
+def ctype_cname(ctype) -> str:
     if ctype is ctypes.c_float:
         return 'float'
     if ctype is ctypes.c_double:
@@ -100,7 +103,7 @@ def ctype_cname(ctype):
     raise NotImplementedError(f'Conversion of type {ctype} is not supported')
 
 
-def dtype_cname(dtype):
+def dtype_cname(dtype: np.dtype) -> str:
     dtype = np.dtype(dtype)
     if dtype.kind == 'f':
         if dtype.itemsize == 2:
@@ -119,7 +122,8 @@ def dtype_cname(dtype):
     raise NotImplementedError(f'Conversion of type {dtype} is not supported')
 
 
-def data_ptr(array, offset=None):
+def data_ptr(array: np.ndarray,
+             offset=Union[int, Tuple[int, ...], None]) -> ctypes.c_void_p:
     if offset is None:
         offset = 0
     elif isinstance(offset, int):

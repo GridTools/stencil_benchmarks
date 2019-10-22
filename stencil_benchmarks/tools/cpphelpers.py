@@ -1,7 +1,7 @@
 import subprocess
 
 
-def format_code(code):
+def format_code(code: str) -> str:
     code = subprocess.run('clang-format',
                           input=code,
                           encoding='ascii',
