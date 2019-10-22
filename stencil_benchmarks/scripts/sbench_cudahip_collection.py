@@ -47,6 +47,10 @@ def truncate_block_size_to_domain(**kwargs):
     if 'block_size' in kwargs and 'domain' in kwargs:
         kwargs['block_size'] = tuple(
             min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
+        if 'threads_per_block' in kwargs:
+            kwargs['threads_per_block'] = tuple(
+                min(t, b) for t, b in zip(kwargs['threads_per_block'],
+                                          kwargs['block_size']))
     return kwargs
 
 
@@ -72,7 +76,8 @@ def common_kwargs(backend, gpu_architecture, dtype):
                 verify=False,
                 run_twice=True,
                 gpu_timers=True,
-                alignment=128 if backend == 'cuda' else 64,
+                alignment=128 if backend == 'cuda' else 256,
+                offset_allocations=backend == 'hip',
                 dtype=dtype)
 
 
@@ -84,14 +89,22 @@ def common_kwargs(backend, gpu_architecture, dtype):
 @click.option('--dtype', '-d', default='float32')
 def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
+
+    def choose(hip, cuda):
+        return hip if backend == 'hip' else cuda
+
     kwargs.update(
         loop='3D',
-        block_size=(32, 8, 1),
+        block_size=choose((64, 4, 2), (64, 8, 1)),
+        threads_per_block=choose((64, 4, 1), (64, 8, 1)),
         halo=1,
     )
 
     stream_kwargs = kwargs.copy()
-    stream_kwargs.update(loop='1D', block_size=(1024, 1, 1), halo=0)
+    stream_kwargs.update(loop='1D',
+                         block_size=choose((4096, 1, 1), (8192, 1, 1)),
+                         threads_per_block=(1024, 1, 1),
+                         halo=0)
 
     configurations = [
         Configuration(basic.Copy, name='stream', **stream_kwargs),
@@ -203,7 +216,7 @@ def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
                       unroll_factor=choose(10, 8),
                       **kwargs),
         Configuration(vadv.SharedMem,
-                      block_size=choose((32, 1), (64, 1)),
+                      block_size=choose((32, 1), (32, 1)),
                       unroll_factor=choose(6, 0),
                       **kwargs)
     ]

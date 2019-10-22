@@ -70,21 +70,18 @@ class StencilMixin(benchmark.Benchmark):
     def ctype_name(self):
         return compilation.dtype_cname(self.dtype)
 
-    @property
-    def sorted_domain(self):
+    def sort_by_strides(self, values):
         # pylint: disable=invalid-unary-operand-type
         indices = np.argsort(-np.array(self.strides))
-        return tuple(np.array(self.domain)[indices])
+        return tuple(np.asarray(values)[indices])
+
+    @property
+    def sorted_domain(self):
+        return self.sort_by_strides(self.domain)
 
     @property
     def sorted_strides(self):
         return tuple(sorted(self.strides, key=lambda x: -x))
-
-    @property
-    def sorted_block_size(self):
-        # pylint: disable=invalid-unary-operand-type
-        indices = np.argsort(-np.array(self.strides))
-        return tuple(np.array(self.block_size)[indices])
 
     @abc.abstractmethod
     def template_file(self):
@@ -140,13 +137,30 @@ class StencilMixin(benchmark.Benchmark):
 
 class BasicStencilMixin(StencilMixin):
     loop = benchmark.Parameter('loop kind', '1D', choices=['1D', '3D'])
-    block_size = benchmark.Parameter('block_size', (1024, 1, 1))
+    block_size = benchmark.Parameter('block size', (1024, 1, 1))
+    threads_per_block = benchmark.Parameter(
+        'threads per block (0 means equal to block size)', (0, 0, 0))
+
+    @property
+    def sorted_block_size(self):
+        return self.sort_by_strides(self.block_size)
+
+    @property
+    def sorted_threads_per_block(self):
+        return self.sort_by_strides(self.threads_per_block)
 
     def setup(self):
-        super().setup()
         if self.loop == '1D' and sum(b != 1 for b in self.block_size) != 1:
             raise benchmark.ParameterError('block size must be 1 along '
                                            'all but one direction')
+        if any(t > b for t, b in zip(self.threads_per_block, self.block_size)):
+            raise benchmark.ParameterError(
+                'threads per block must be less than block size')
+        self.threads_per_block = tuple(
+            t if t > 0 else b
+            for t, b in zip(self.threads_per_block, self.block_size))
+
+        super().setup()
 
     @abc.abstractmethod
     def stencil_body(self):
@@ -164,6 +178,8 @@ class BasicStencilMixin(StencilMixin):
                     sorted_domain=self.sorted_domain,
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
+                    threads_per_block=self.threads_per_block,
+                    sorted_threads_per_block=self.sorted_threads_per_block,
                     body=self.stencil_body(),
                     backend=self.backend,
                     gpu_timers=self.gpu_timers)

@@ -3,24 +3,28 @@
 {% set elements = strides[0] * (domain[0] - 1) + strides[1] * (domain[1] - 1) + strides[2] * (domain[2] - 1) + 1 %}
 
 {% block gpu_kernel_body %}
-    {%- if block_size[2] > 1 %}
-        int index = {{ block_size[2] }} * blockIdx.z + threadIdx.z;
-    {%- elif block_size[1] > 1 %}
-        int index = {{ block_size[1] }} * blockIdx.y + threadIdx.y;
-    {%- else %}
-        int index = {{ block_size[0] }} * blockIdx.x + threadIdx.x;
-    {%- endif %}
+    {% set indices = (block_size[0] ~ ' * blockIdx.x + threadIdx.x', block_size[1] ~ ' * blockIdx.y + threadIdx.y', block_size[2] ~ ' * blockIdx.z + threadIdx.z') %}
+    {% set dim = 0 if block_size[0] > 1 else 1 if block_size[1] > 1 else 2%}
 
-    if (index < {{ elements }}) {
-        {{ body }}
+    const std::ptrdiff_t base_index = {{ indices[dim] }};
+
+    {% for ib in range(0, block_size[dim], threads_per_block[dim]) %}
+    {
+        const std::ptrdiff_t index = base_index + {{ ib }};
+        if (index < {{ elements }}) {
+            {{ body }}
+        }
     }
+    {% endfor %}
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
     grid_size = dim3({{ (elements + block_size[0] - 1) // block_size[0] if block_size[0] > 1 else 1 }},
                      {{ (elements + block_size[1] - 1) // block_size[1] if block_size[1] > 1 else 1 }},
                      {{ (elements + block_size[2] - 1) // block_size[2] if block_size[2] > 1 else 1 }});
-    block_size = dim3({{ block_size[0] }},
-                      {{ block_size[1] }},
-                      {{ block_size[2] }});
+    block_size = dim3({{ threads_per_block[0] }},
+                      {{ threads_per_block[1] }},
+                      {{ threads_per_block[2] }});
+    static_assert({{ threads_per_block[0] * threads_per_block[1] * threads_per_block[2] }} <= 1024,
+                  "too many threads per block");
 {% endblock kernel_prepare %}

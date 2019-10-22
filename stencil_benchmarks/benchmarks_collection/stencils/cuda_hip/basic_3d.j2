@@ -1,25 +1,32 @@
 {% extends "base.j2" %}
 
 {% block gpu_kernel_body %}
-    std::ptrdiff_t i = {{ sorted_block_size[0] }} * blockIdx.z + threadIdx.z;
-    std::ptrdiff_t j = {{ sorted_block_size[1] }} * blockIdx.y + threadIdx.y;
-    std::ptrdiff_t k = {{ sorted_block_size[2] }} * blockIdx.x + threadIdx.x;
+    const std::ptrdiff_t i = {{ sorted_block_size[0] }} * blockIdx.z + threadIdx.z;
+    const std::ptrdiff_t j = {{ sorted_block_size[1] }} * blockIdx.y + threadIdx.y;
+    const std::ptrdiff_t k = {{ sorted_block_size[2] }} * blockIdx.x + threadIdx.x;
+    const std::ptrdiff_t base_index = i * {{ sorted_strides[0] }} + j * {{ sorted_strides[1] }} + k * {{ sorted_strides[2] }};
 
-    if (i < {{ sorted_domain[0] }} &&
-        j < {{ sorted_domain[1] }} && 
-        k < {{ sorted_domain[2] }}) {
-        std::ptrdiff_t index = i * {{ sorted_strides[0] }} + j * {{ sorted_strides[1] }} + k * {{ sorted_strides[2] }};
-        {{ body }}
-    }
+    {%- for ib in range(0, sorted_block_size[0], sorted_threads_per_block[0]) %}
+        {%- for jb in range(0, sorted_block_size[1], sorted_threads_per_block[1]) %}
+            {%- for kb in range(0, sorted_block_size[2], sorted_threads_per_block[2]) %}
+                if (i + {{ ib }} < {{ sorted_domain[0] }} &&
+                    j + {{ jb }} < {{ sorted_domain[1] }} &&
+                    k + {{ kb }} < {{ sorted_domain[2] }}) {
+                    const std::ptrdiff_t index = base_index + {{ ib * sorted_strides[0] + jb * sorted_strides[1] + kb * sorted_strides[2] }};
+                    {{ body}}
+                }
+            {%- endfor %}
+        {%- endfor %}
+    {%- endfor %}
 {% endblock gpu_kernel_body %}
 
 {% block kernel_prepare %}
-    block_size = dim3({{ sorted_block_size[2] }},
-                      {{ sorted_block_size[1] }},
-                      {{ sorted_block_size[0] }});
+    block_size = dim3({{ sorted_threads_per_block[2] }},
+                      {{ sorted_threads_per_block[1] }},
+                      {{ sorted_threads_per_block[0] }});
     grid_size = dim3({{ (sorted_domain[2] + sorted_block_size[2] - 1) // sorted_block_size[2] }},
                      {{ (sorted_domain[1] + sorted_block_size[1] - 1) // sorted_block_size[1] }},
                      {{ (sorted_domain[0] + sorted_block_size[0] - 1) // sorted_block_size[0] }});
-    static_assert({{ sorted_block_size[0] * sorted_block_size[1] * sorted_block_size[2] }} <= 1024,
+    static_assert({{ sorted_threads_per_block[0] * sorted_threads_per_block[1] * sorted_threads_per_block[2] }} <= 1024,
                   "too many threads per block");
 {% endblock kernel_prepare %}
