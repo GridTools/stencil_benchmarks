@@ -1,10 +1,25 @@
 {% extends "base.j2" %}
 
-{% block kernel_invoke %}
+{% block kernel_prepare %}
     constexpr std::ptrdiff_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
                                     {{ strides[1] }} * ({{ domain[1] }} - 1) +
                                     {{ strides[2] }} * ({{ domain[2] }} - 1);
 
+    {% if numa %}
+    #pragma omp parallel
+    {
+        size_t threads = omp_get_num_threads();
+        size_t thread = omp_get_thread_num();
+        size_t begin = last * thread / threads;
+        size_t end = last * (thread + 1) / threads;
+        {% for arg in args %}
+        move_to_local_numa_domain(&{{ arg }}[begin], &{{ arg }}[end]);
+        {% endfor %}
+    }
+    {% endif %}
+{% endblock kernel_prepare %}
+
+{% block kernel_invoke %}
     #pragma omp parallel for simd
     #ifdef __INTEL_COMPILER
     #pragma vector nontemporal
@@ -12,5 +27,4 @@
     for (std::ptrdiff_t index = 0; index <= last; ++index) {
         {{ body }}
     }
-
 {% endblock kernel_invoke %}
