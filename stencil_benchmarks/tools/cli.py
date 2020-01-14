@@ -62,7 +62,7 @@ class ProgressBar:
         self._progress = []
 
     def report(self, iterable):
-        r"""Report progress when looping over `iterable`.
+        """Report progress when looping over `iterable`.
 
         Reports progress on an iterable, usable as a context manager.
         Nested application possible.
@@ -84,7 +84,7 @@ class ProgressBar:
         ...     for i in p.report(range(5)):
         ...         for j in p.report(range(2)):
         ...             time.sleep(0.1)
-        \\r...
+        \r...
         """
         iterable = list(iterable)
         index = len(self._progress)
