@@ -18,6 +18,7 @@ class StencilMixin(benchmark.Benchmark):
         'native',
         choices=['none', 'native', 'knl'])
     print_code = benchmark.Parameter('print generated code', False)
+    numa = benchmark.Parameter('enable NUMA-awareness', False)
 
     def setup(self):
         super().setup()
@@ -32,8 +33,14 @@ class StencilMixin(benchmark.Benchmark):
         if self.compiler.endswith('icpc'):
             os.environ['KMP_INIT_AT_FORK'] = '0'
 
-        self.compiled = compilation.gnu_func(self.compile_command(), code,
-                                             'kernel', float)
+        libaries = []
+        if self.numa:
+            libaries += ['-lnuma']
+        self.compiled = compilation.gnu_func(self.compile_command(),
+                                             code,
+                                             'kernel',
+                                             float,
+                                             libraries=libaries)
 
     def compile_command(self):
         command = [self.compiler]
@@ -121,6 +128,8 @@ class BasicStencilMixin(StencilMixin):
                     sorted_domain=self.sorted_domain,
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
+                    numa=self.numa,
+                    halo=self.halo,
                     body=self.stencil_body())
 
 

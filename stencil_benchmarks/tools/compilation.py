@@ -9,13 +9,15 @@ class CompilationError(RuntimeError):
     pass
 
 
-def gnu_library(compile_command, code, extension=None):
+def gnu_library(compile_command, code, extension=None, libraries=None):
     if compile_command[0].endswith('nvcc'):
         lib_flags = ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
     else:
         lib_flags = ['-shared', '-fPIC']
     if extension is None:
         extension = '.cpp'
+    if libraries is None:
+        libraries = []
     with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
         srcfile.write(code.encode())
         srcfile.flush()
@@ -23,7 +25,7 @@ def gnu_library(compile_command, code, extension=None):
         with tempfile.NamedTemporaryFile(suffix='.so') as library:
             try:
                 subprocess.run(compile_command + lib_flags +
-                               ['-o', library.name, srcfile.name],
+                               ['-o', library.name, srcfile.name] + libraries,
                                check=True)
             except subprocess.CalledProcessError as error:
                 raise CompilationError(*error.args) from None
@@ -35,9 +37,11 @@ def gnu_func(compile_command,
              funcname,
              restype=None,
              argtypes=None,
-             source_extension=None):
-    func = getattr(gnu_library(compile_command, code, source_extension),
-                   funcname)
+             source_extension=None,
+             libraries=None):
+    func = getattr(
+        gnu_library(compile_command, code, source_extension, libraries),
+        funcname)
     if restype is not None:
         func.restype = dtype_as_ctype(restype)
     if argtypes is not None:
