@@ -90,7 +90,7 @@ def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
     def pivot_and_plot(df, prefix=None):
         df = df.pivot_table(index=x, columns=by, aggfunc=aggregation)[y]
 
-        xticks = np.arange(len(df.index)) if uniform else df.index
+        xticks = np.arange(len(df.index)) if uniform else df.index.to_numpy()
         for label, values in df.items():
             if prefix:
                 label = prefix + label
