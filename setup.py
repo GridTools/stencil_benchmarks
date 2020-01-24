@@ -24,6 +24,25 @@ def version():
     raise RuntimeError('Unable to find version string')
 
 
+class pybind11_include:
+    def __init__(self, user):
+        self.user = user
+
+    def __str__(self):
+        import pybind11
+        return pybind11.get_include(self.user)
+
+
+def pybind11_extension(m):
+    return setuptools.Extension(
+        m, [m.replace('.', '/') + '.cpp'],
+        include_dirs=[pybind11_include(False),
+                      pybind11_include(True)],
+        language='c++')
+
+
+ext_modules = [pybind11_extension('stencil_benchmarks.tools.alloc')]
+
 setuptools.setup(
     name='stencil_benchmarks',
     version=version(),
@@ -33,6 +52,7 @@ setuptools.setup(
     long_description=long_description(),
     long_description_content_type='text/markdown',
     packages=setuptools.find_packages(),
+    ext_modules=ext_modules,
     entry_points={
         'console_scripts': [
             'sbench=stencil_benchmarks.scripts.sbench:main',
@@ -42,5 +62,6 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        'click', 'numba', 'numpy', 'pandas', 'jinja2', 'matplotlib'
-    ])
+        'click', 'numba', 'numpy', 'pandas', 'jinja2', 'matplotlib', 'pybind11'
+    ],
+    setup_requires=['pybind11>'])
