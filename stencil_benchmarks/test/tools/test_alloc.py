@@ -23,3 +23,14 @@ class TestMmap(unittest.TestCase):
 
         for i in range(size):
             self.assertEqual(buffer[i], 42 * i)
+
+
+class TestCacheFunctions(unittest.TestCase):
+    def test_l1_dcache_assoc(self):
+        self.assertGreaterEqual(alloc.l1_dcache_assoc(), 1)
+
+    def test_l1_dcache_linesize(self):
+        self.assertGreaterEqual(alloc.l1_dcache_linesize(), 4)
+
+    def test_l1_dcache_size(self):
+        self.assertGreaterEqual(alloc.l1_dcache_size(), 0)

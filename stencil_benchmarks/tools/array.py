@@ -2,9 +2,9 @@ import ctypes
 
 import numpy as np
 
-from .alloc import malloc
+from .alloc import l1_dcache_assoc, l1_dcache_linesize, l1_dcache_size, malloc
 
-_offset = 64
+_offset = l1_dcache_linesize()
 
 
 def alloc_array(shape,
@@ -54,8 +54,8 @@ def alloc_array(shape,
     if apply_offset:
         offset += _offset
         _offset *= 2
-        if _offset > 2048:
-            _offset = 64
+        if _offset >= l1_dcache_size() / l1_dcache_assoc():
+            _offset = l1_dcache_linesize()
     return np.ndarray(shape=shape,
                       dtype=dtype,
                       buffer=buffer,

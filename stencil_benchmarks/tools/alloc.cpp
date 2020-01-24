@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include <pybind11/pybind11.h>
 
@@ -68,4 +69,11 @@ PYBIND11_MODULE(alloc, m) {
                                py::format_descriptor<char>::format(), 1,
                                {mb.data.get_deleter().size}, {1});
       });
+
+  m.def("l1_dcache_size", []() { return sysconf(_SC_LEVEL1_DCACHE_SIZE); });
+
+  m.def("l1_dcache_linesize",
+        []() { return sysconf(_SC_LEVEL1_DCACHE_LINESIZE); });
+
+  m.def("l1_dcache_assoc", []() { return sysconf(_SC_LEVEL1_DCACHE_ASSOC); });
 }
