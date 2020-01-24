@@ -41,7 +41,10 @@ def pybind11_extension(m):
         language='c++')
 
 
-ext_modules = [pybind11_extension('stencil_benchmarks.tools.alloc')]
+ext_modules = [
+    pybind11_extension('stencil_benchmarks.tools.alloc'),
+    pybind11_extension('stencil_benchmarks.tools.parallel')
+]
 
 setuptools.setup(
     name='stencil_benchmarks',

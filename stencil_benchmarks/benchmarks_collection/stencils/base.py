@@ -5,7 +5,7 @@ import copy
 import numpy as np
 
 from ...benchmark import Benchmark, Parameter, ParameterError
-from ...tools import alloc, array, validation
+from ...tools import alloc, array, parallel, validation
 
 # pylint: disable=abstract-method
 
@@ -63,8 +63,7 @@ class Stencil(Benchmark):
 
     def random_field(self):
         data = self.empty_field()
-        data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
-            self.dtype)
+        parallel.random_fill(data)
         return data
 
     @property
