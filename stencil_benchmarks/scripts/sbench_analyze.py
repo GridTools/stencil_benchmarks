@@ -53,7 +53,7 @@ def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
         groups = [g for g in nunique.index if df.dtypes[g] != float]
         df = df.groupby(groups).agg(aggregation)
     if group:
-        df = df.groupby(list(groups)).agg(aggregation)
+        df = df.groupby(list(group)).agg(aggregation)
     if select:
         df = df[select[0] if len(select) == 1 else list(select)]
 
