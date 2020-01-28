@@ -40,8 +40,9 @@ def strip(df, invert=False):
 @click.option('--select', '-s', multiple=True)
 @click.option('--pivot', '-p', nargs=2)
 @click.option('--aggregation', default='median')
+@click.option('--sort/--no-sort', default=False)
 @click.option('--output', '-o', type=click.Path())
-def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
+def print_csv(csv, common, auto_group, group, select, pivot, aggregation, sort,
               output):
     df = read_csv(csv)
     df = strip(df, invert=common)
@@ -56,6 +57,8 @@ def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
         df = df.groupby(list(group)).agg(aggregation)
     if select:
         df = df[select[0] if len(select) == 1 else list(select)]
+    if sort:
+        df = df.sort_values()
 
     click.echo(df.to_string())
     if output:
