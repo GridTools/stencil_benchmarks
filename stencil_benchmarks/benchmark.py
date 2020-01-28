@@ -66,6 +66,10 @@ class Parameter:
                     f'wrong type of argument "{value}", '
                     f' expected one of type "{self.dtype.__name__}"')
         else:
+            if not isinstance(value, (tuple, list)):
+                raise ParameterError(
+                    f'{self.nargs} arguments of type '
+                    f'"{self.dtype.__name__}" required, found "{value}"')
             if len(value) != self.nargs:
                 raise ParameterError(
                     f'wrong number of arguments in argument "{value}"')
