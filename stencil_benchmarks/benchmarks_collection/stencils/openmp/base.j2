@@ -2,9 +2,41 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
+
+#include <errno.h>
+#include <linux/mempolicy.h>
+#include <numa.h>
+#include <numaif.h>
+#include <omp.h>
+#include <sched.h>
+#include <unistd.h>
 
 {% block pre_kernel %}
 {% endblock pre_kernel %}
+
+{% if numa %}
+void move_to_local_numa_domain(void* begin, void* end) {
+    std::size_t page_size = getpagesize();
+
+    begin = (void*) ((std::size_t) begin / page_size * page_size);
+    end = (void*) ((std::size_t) end / page_size * page_size);
+    std::size_t size = (char*) end - (char*) begin;
+    if (!size)
+        return;
+
+    auto local_node = numa_node_of_cpu(sched_getcpu());
+    auto* bitmask = numa_allocate_nodemask();
+    numa_bitmask_clearall(bitmask);
+    numa_bitmask_setbit(bitmask, local_node);
+    if (mbind(begin, size, MPOL_BIND, bitmask->maskp, bitmask->size, MPOL_MF_MOVE | MPOL_MF_STRICT)) {
+        auto errsv = errno;
+        std::cerr << "mbind failed on OpenMP thread " << omp_get_thread_num()
+                  << " (CPU " << sched_getcpu() << ") with error " << strerror(errsv);
+    }
+    numa_free_nodemask(bitmask);
+}
+{% endif %}
 
 {% block kernel %}
 extern "C" double kernel(

@@ -40,8 +40,9 @@ def strip(df, invert=False):
 @click.option('--select', '-s', multiple=True)
 @click.option('--pivot', '-p', nargs=2)
 @click.option('--aggregation', default='median')
+@click.option('--sort/--no-sort', default=False)
 @click.option('--output', '-o', type=click.Path())
-def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
+def print_csv(csv, common, auto_group, group, select, pivot, aggregation, sort,
               output):
     df = read_csv(csv)
     df = strip(df, invert=common)
@@ -53,13 +54,37 @@ def print_csv(csv, common, auto_group, group, select, pivot, aggregation,
         groups = [g for g in nunique.index if df.dtypes[g] != float]
         df = df.groupby(groups).agg(aggregation)
     if group:
-        df = df.groupby(list(groups)).agg(aggregation)
+        df = df.groupby(list(group)).agg(aggregation)
     if select:
         df = df[select[0] if len(select) == 1 else list(select)]
+    if sort:
+        df = df.sort_values()
 
     click.echo(df.to_string())
     if output:
         df.to_csv(output)
+
+
+@main.command()
+@click.argument('csv', type=click.Path(exists=True))
+@click.option('--best-only/--all', '-b', default=False)
+@click.option('--select', '-s', multiple=True, default=['time', 'bandwidth'])
+def summary(csv, best_only, select):
+    df = read_csv(csv)
+    nunique = df.apply(pd.Series.nunique)
+    if len(df.index) > 1:
+        df.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
+
+    select = list(set(df.columns) - set(select))
+    if select:
+        medians = df.groupby(select).median()
+        if best_only:
+            best = medians['time'].idxmin()
+            click.echo(medians.loc[[best]])
+        else:
+            click.echo(medians.sort_values(by='time').to_string())
+    else:
+        click.echo(df.median().to_string())
 
 
 @main.command()
@@ -90,7 +115,7 @@ def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
     def pivot_and_plot(df, prefix=None):
         df = df.pivot_table(index=x, columns=by, aggfunc=aggregation)[y]
 
-        xticks = np.arange(len(df.index)) if uniform else df.index
+        xticks = np.arange(len(df.index)) if uniform else df.index.to_numpy()
         for label, values in df.items():
             if prefix:
                 label = prefix + label

@@ -1,67 +1,12 @@
 #!/usr/bin/env python
 
-import re
-
 import click
-import pandas as pd
 
 from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
     basic, horizontal_diffusion as hdiff, vertical_advection as vadv)
-from stencil_benchmarks.tools import cli
-
-
-class Configuration:
-    def __init__(self, ctor, name=None, **kwargs):
-        self.ctor = ctor
-        if name is None:
-            self.name = re.sub('(?!^)([A-Z1-9]+)', r'-\1',
-                               ctor.__name__).lower()
-        else:
-            self.name = name
-        self.kwargs = kwargs
-
-    def __call__(self, preprocess_args=None, **kwargs):
-        if preprocess_args is None:
-
-            def preprocess_args(**kwargs):
-                return kwargs
-
-        run = self.ctor(**preprocess_args(**self.kwargs, **kwargs))
-
-        def modified_run():
-            result = run()
-            result.update(name=self.name)
-            result.update(cli.pretty_parameters(run))
-            return result
-
-        return modified_run
-
-
-def benchmark_domains():
-    for exponent in range(5, 11):
-        d = 2**exponent
-        yield d, d, 80
-
-
-def truncate_block_size_to_domain(**kwargs):
-    if 'block_size' in kwargs and 'domain' in kwargs:
-        kwargs['block_size'] = tuple(
-            min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
-        if 'threads_per_block' in kwargs:
-            kwargs['threads_per_block'] = tuple(
-                min(t, b) for t, b in zip(kwargs['threads_per_block'],
-                                          kwargs['block_size']))
-    return kwargs
-
-
-def benchmark(configurations, executions, preprocess_args=None):
-    results = []
-    with cli.ProgressBar() as progress:
-        for domain in progress.report(benchmark_domains()):
-            for config in progress.report(configurations):
-                run = config(preprocess_args=preprocess_args, domain=domain)
-                results += [run() for _ in progress.report(range(executions))]
-    return pd.DataFrame(results)
+from stencil_benchmarks.tools.multirun import (Configuration,
+                                               run_scaling_benchmark,
+                                               truncate_block_size_to_domain)
 
 
 @click.group()
@@ -76,8 +21,7 @@ def common_kwargs(backend, gpu_architecture, dtype):
                 verify=False,
                 run_twice=True,
                 gpu_timers=True,
-                alignment=128 if backend == 'cuda' else 256,
-                offset_allocations=backend == 'hip',
+                alignment=128 if backend == 'cuda' else 64,
                 dtype=dtype)
 
 
@@ -89,22 +33,14 @@ def common_kwargs(backend, gpu_architecture, dtype):
 @click.option('--dtype', '-d', default='float32')
 def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
     kwargs = common_kwargs(backend, gpu_architecture, dtype)
-
-    def choose(hip, cuda):
-        return hip if backend == 'hip' else cuda
-
     kwargs.update(
         loop='3D',
-        block_size=choose((64, 4, 2), (64, 8, 1)),
-        threads_per_block=choose((64, 4, 1), (64, 8, 1)),
+        block_size=(32, 8, 1),
         halo=1,
     )
 
     stream_kwargs = kwargs.copy()
-    stream_kwargs.update(loop='1D',
-                         block_size=choose((4096, 1, 1), (8192, 1, 1)),
-                         threads_per_block=(1024, 1, 1),
-                         halo=0)
+    stream_kwargs.update(loop='1D', block_size=(1024, 1, 1), halo=0)
 
     configurations = [
         Configuration(basic.Copy, name='stream', **stream_kwargs),
@@ -133,7 +69,7 @@ def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
                       **kwargs)
     ]
 
-    table = benchmark(configurations, executions)
+    table = run_scaling_benchmark(configurations, executions)
     table.to_csv(output)
 
 
@@ -186,7 +122,7 @@ def horizontal_diffusion_bandwidth(backend, gpu_architecture, output,
             return truncate_block_size_to_domain(**kwargs)
         return kwargs
 
-    table = benchmark(
+    table = run_scaling_benchmark(
         configurations,
         executions,
         preprocess_args=truncate_block_size_to_domain_if_possible)
@@ -216,7 +152,7 @@ def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
                       unroll_factor=choose(10, 8),
                       **kwargs),
         Configuration(vadv.SharedMem,
-                      block_size=choose((32, 1), (32, 1)),
+                      block_size=choose((32, 1), (64, 1)),
                       unroll_factor=choose(6, 0),
                       **kwargs)
     ]
@@ -230,9 +166,10 @@ def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
                           **kwargs)
         ]
 
-    table = benchmark(configurations,
-                      executions,
-                      preprocess_args=truncate_block_size_to_domain)
+    table = run_scaling_benchmark(
+        configurations,
+        executions,
+        preprocess_args=truncate_block_size_to_domain)
     table.to_csv(output)
 
 

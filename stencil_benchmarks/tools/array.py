@@ -1,154 +1,11 @@
 import ctypes
-from typing import Callable, Dict, Optional, Tuple, Union
-import weakref
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 
+from .alloc import l1_dcache_assoc, l1_dcache_linesize, l1_dcache_size, malloc
 
-def alloc_buffer(nbytes: int, alloc: Callable[[int], int],
-                 free: Callable[[int, int], None]):
-    """Allocate a Python buffer object.
-
-    Uses the given `alloc` and `free` functions to allocate,
-    respectively free the data pointer.
-
-    Calls `alloc(nbytes)` for allocation and `free(ptr, nbytes)`
-    for deallocation.
-
-    Parameters
-    ----------
-    nbytes : int
-        Size of the buffer in bytes.
-    alloc : func
-        Memory allocation function. Must accept one parameter `nbytes`
-        and return a pointer.
-    free : func
-        Memory freeing function. Must accept two parameters `ptr` and
-        `nbytes`.
-
-    Returns
-    -------
-    A Python memory byffer object.
-
-    Examples
-    --------
-    >>> buffer = alloc_buffer(4, cmalloc, cfree)
-    >>> view = memoryview(buffer).cast('B')
-    >>> view.nbytes
-    4
-    >>> view[:] = bytes.fromhex('01020304')
-    >>> view.tolist()
-    [1, 2, 3, 4]
-    """
-    pointer = alloc(int(nbytes))
-    buffer = (ctypes.c_byte * nbytes).from_address(pointer)
-    weakref.finalize(buffer, free, pointer, nbytes)
-    return buffer
-
-
-_LIBC = ctypes.cdll.LoadLibrary('libc.so.6')
-_LIBC.malloc.restype = ctypes.c_void_p
-_LIBC.malloc.argtypes = [ctypes.c_size_t]
-_LIBC.free.argtypes = [ctypes.c_void_p]
-
-_LIBC.mmap.restype = ctypes.c_void_p
-_LIBC.mmap.argtypes = [
-    ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-    ctypes.c_size_t
-]
-_LIBC.munmap.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
-
-
-def cmalloc(nbytes: int) -> int:
-    """C malloc() wrapper.
-
-    Parameters
-    ----------
-    nbytes : int
-        Number of bytes to allocate.
-
-    Returns
-    -------
-    int
-        Pointer to a memory allocation of size `nbytes`.
-
-    Examples
-    --------
-    >>> ptr = cmalloc(100)
-    >>> print(f'ptr: 0x{ptr:02x}')
-    ptr: 0x...
-    >>> cfree(ptr)
-    """
-    pointer = _LIBC.malloc(nbytes)
-    if not pointer:
-        raise RuntimeError('could not allocate memory')
-    return pointer
-
-
-def cfree(pointer: int, nbytes: Optional[int] = None) -> None:
-    """C free() wrapper.
-
-    Parameters
-    ----------
-    pointer : int
-        Pointer to memory which should be freed.
-    nbytes : int, optional
-        Number of bytes of the allocation (ignored).
-        For compatibility with `alloc_buffer`.
-
-    Examples
-    --------
-    >>> ptr = cmalloc(100)
-    >>> cfree(ptr)
-    """
-    _LIBC.free(pointer)
-
-
-def huge_alloc(nbytes: int) -> int:
-    """Huge-page allocation with mmap.
-
-    Parameters
-    ----------
-    nbytes : int
-        Number of bytes to allocate.
-
-    Returns
-    -------
-    int
-        Pointer to a memory allocation of size `nbytes`.
-
-    Examples
-    --------
-    >>> ptr = huge_alloc(100)
-    >>> print(f'ptr: 0x{ptr:02x}')
-    ptr: 0x...
-    >>> huge_free(ptr, 100)
-    """
-    pointer = _LIBC.mmap(0, nbytes, 3, 278562, -1, 0)
-    if not pointer:
-        raise RuntimeError('could not allocate memory')
-    return pointer
-
-
-def huge_free(pointer: int, nbytes: int) -> None:
-    """C free() wrapper.
-
-    Parameters
-    ----------
-    pointer : int
-        Pointer to memory which should be freed.
-    nbytes : int
-        Number of bytes of the allocation.
-
-    Examples
-    --------
-    >>> ptr = huge_alloc(100)
-    >>> huge_free(ptr, 100)
-    """
-    _LIBC.munmap(pointer, nbytes)
-
-
-_offset: Dict[int, int] = dict()
+_offset: int = l1_dcache_linesize()
 
 
 def alloc_array(shape: Tuple[int, ...],
@@ -156,10 +13,8 @@ def alloc_array(shape: Tuple[int, ...],
                 layout: Tuple[int, ...],
                 alignment: int = 0,
                 index_to_align: Optional[Tuple[int, ...]] = None,
-                alloc: Optional[Callable[[int], int]] = None,
-                free: Optional[Callable[[int, int], None]] = None,
-                apply_offset: bool = False,
-                max_offset: int = 2048) -> np.ndarray:
+                alloc: Optional[Callable[[int], Any]] = None,
+                apply_offset: bool = False) -> np.ndarray:
     """Allocate aligned and padded numpy array.
 
     Parameters
@@ -179,10 +34,8 @@ def alloc_array(shape: Tuple[int, ...],
         the array).
     alloc : func
         Memory allocation function accepting a single argument, the size of the
-        allocation in bytes (default: `cmalloc`).
-    free : func
-        Memory freeing function accepting two arguments, a pointer to an
-        allocation and the size of the allocation (default: `cfree`).
+        allocation in bytes. Has to return an object supporting Python’s buffer
+        protocol (default: allocation with `malloc`).
     apply_offset : bool
         Apply an offset (multiple of alignment) to reduce chance of cache
         conflicts.
@@ -228,8 +81,7 @@ def alloc_array(shape: Tuple[int, ...],
     layout = tuple(layout)
     alignment = int(alignment)
     index_to_align = (0, ) * ndim if index_to_align is None else index_to_align
-    alloc = cmalloc if alloc is None else alloc
-    free = cfree if free is None else free
+    alloc = malloc if alloc is None else alloc
 
     if tuple(sorted(layout)) != tuple(range(ndim)):
         raise ValueError('invalid layout specification')
@@ -249,23 +101,22 @@ def alloc_array(shape: Tuple[int, ...],
             strides_product = (strides_product + alignment -
                                1) // alignment * alignment
 
-    if alignment not in _offset:
-        _offset[alignment] = alignment
-    buffer = alloc_buffer(strides_product + alignment + _offset[alignment],
-                          alloc, free)
+    global _offset
+    buffer = alloc(strides_product + alignment + _offset)
     if alignment:
-        pointer_to_align = ctypes.addressof(buffer) + np.sum(
-            np.array(strides) * np.array(index_to_align))
+        pointer_to_align = ctypes.addressof(
+            ctypes.c_char.from_buffer(buffer)) + np.sum(
+                np.array(strides) * np.array(index_to_align))
         aligned_pointer = (pointer_to_align + alignment -
                            1) // alignment * alignment
         offset = aligned_pointer - pointer_to_align
     else:
         offset = 0
     if apply_offset:
-        offset += _offset[alignment]
-        _offset[alignment] *= 2
-        if _offset[alignment] > max_offset:
-            _offset[alignment] = alignment
+        offset += _offset
+        _offset *= 2
+        if _offset >= l1_dcache_size() / max(l1_dcache_assoc(), 1):
+            _offset = l1_dcache_linesize()
     return np.ndarray(shape=shape,
                       dtype=dtype,
                       buffer=buffer,

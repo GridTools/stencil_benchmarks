@@ -66,15 +66,13 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(bmark.parameter1, True)
         self.assertEqual(bmark.parameter2, 42)
         self.assertEqual(bmark.parameter3, '5')
-        self.assertEqual(
-            bmark.parameters, {
-                'parameter1': True,
-                'parameter2': 42,
-                'parameter3': '5'
-            })
+        self.assertEqual(bmark.parameters, {
+            'parameter1': True,
+            'parameter2': 42,
+            'parameter3': '5'
+        })
         self.assertEqual(bmark.somevalue, 21)
         self.assertEqual(bmark.paramsum, 48)
-
 
     def test_run(self):
         bmark = SomeBenchmark(parameter1=False, parameter2=42)

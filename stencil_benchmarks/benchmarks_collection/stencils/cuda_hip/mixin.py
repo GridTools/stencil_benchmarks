@@ -100,7 +100,6 @@ class StencilMixin(benchmark.Benchmark):
                               self.alignment,
                               index_to_align=offset,
                               alloc=self.runtime.malloc,
-                              free=self.runtime.free,
                               apply_offset=self.offset_allocations)
             for _ in data
         ]

@@ -1,6 +1,7 @@
 import ctypes
 import functools
 import gc
+import weakref
 
 
 class Runtime:
@@ -25,10 +26,15 @@ class Runtime:
             gc.collect()
             self._check_call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
                              [ctypes.byref(ptr), nbytes])
-        return ptr.value
 
-    def free(self, ptr, nbytes=None):
-        self._check_call('Free', [ctypes.c_void_p], [ptr])
+        ptr = ptr.value
+        buffer = (ctypes.c_byte * nbytes).from_address(ptr)
+
+        def free(p):
+            self._check_call('Free', [ctypes.c_void_p], [p])
+
+        weakref.finalize(buffer, free, ptr)
+        return buffer
 
     def memcpy(self, dst, src, nbytes, kind='Default'):
         kind = {

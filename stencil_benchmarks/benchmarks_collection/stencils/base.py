@@ -5,7 +5,7 @@ import copy
 import numpy as np
 
 from ...benchmark import Benchmark, Parameter, ParameterError
-from ...tools import array, validation
+from ...tools import alloc, array, parallel, validation
 
 # pylint: disable=abstract-method
 
@@ -50,23 +50,20 @@ class Stencil(Benchmark):
         self._run = 0
 
     def empty_field(self):
-        if self.huge_pages:
-            alloc, free = array.huge_alloc, array.huge_free
-        else:
-            alloc, free = array.cmalloc, array.cfree
+        def alloc_data(nbytes):
+            return alloc.mmap(nbytes, self.huge_pages)
+
         return array.alloc_array(self.domain_with_halo,
                                  self.dtype,
                                  self.layout,
                                  self.alignment,
                                  index_to_align=(self.halo, ) * 3,
-                                 alloc=alloc,
-                                 free=free,
+                                 alloc=alloc_data,
                                  apply_offset=self.offset_allocations)
 
     def random_field(self):
         data = self.empty_field()
-        data[:, :, :] = np.random.uniform(size=self.domain_with_halo).astype(
-            self.dtype)
+        parallel.random_fill(data)
         return data
 
     @property
