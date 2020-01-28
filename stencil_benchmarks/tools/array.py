@@ -54,7 +54,7 @@ def alloc_array(shape,
     if apply_offset:
         offset += _offset
         _offset *= 2
-        if _offset >= l1_dcache_size() / l1_dcache_assoc():
+        if _offset >= l1_dcache_size() / max(l1_dcache_assoc(), 1):
             _offset = l1_dcache_linesize()
     return np.ndarray(shape=shape,
                       dtype=dtype,
