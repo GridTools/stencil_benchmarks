@@ -2,7 +2,7 @@ import warnings
 import subprocess
 
 
-def format_code(code):
+def format_code(code: str) -> str:
     try:
         code = subprocess.run('clang-format',
                               input=code,

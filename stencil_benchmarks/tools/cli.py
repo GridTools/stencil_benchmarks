@@ -5,14 +5,17 @@ import operator
 import re
 import sys
 import types
-import typing
+from typing import (Any, Dict, Iterable, Iterator, List, NamedTuple, Optional,
+                    Tuple)
 
 import click
 
 from .. import __version__
 
 
-def colorize(string, rgb=None, hsv=None):
+def colorize(string: str,
+             rgb: Optional[Tuple[float, float, float]] = None,
+             hsv: Optional[Tuple[float, float, float]] = None) -> str:
     """Add truecolor terminal color code to `string`.
 
     Either RGB or HSV values must be given.
@@ -47,6 +50,9 @@ def colorize(string, rgb=None, hsv=None):
 
         rgb = f(5), f(3), f(1)
 
+    if not rgb:
+        raise ValueError('missing color specification')
+
     r, g, b = (int(255 * x) for x in rgb)
     return f'\x1b[38;2;{r};{g};{b}m{string}\x1b[0m'
 
@@ -56,16 +62,15 @@ class ProgressBar:
 
     Examples
     --------
-    >>> p = ProgressBar(colored=False)
+    >>> p = ProgressBar()
     """
-    def __init__(self, colored=True):
+    def __init__(self):
         self._progress = []
 
-    def report(self, iterable):
+    def report(self, iterable: Iterable[Any]) -> Iterator[Any]:
         """Report progress when looping over `iterable`.
 
-        Reports progress on an iterable, usable as a context manager.
-        Nested application possible.
+        Reports progress on an iterable. Nested application possible.
 
         Parameters
         ----------
@@ -101,7 +106,7 @@ class ProgressBar:
             self._progress.pop()
 
     @property
-    def progress(self):
+    def progress(self) -> float:
         """Get the current progress in percent.
 
         Value is only meaningful inside a report() loop.
@@ -128,7 +133,7 @@ class ProgressBar:
         """Context manager entry point."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         """Context manager exit point.
 
         Clears progress bar in case of succes,
@@ -140,7 +145,7 @@ class ProgressBar:
             click.echo()
         return False
 
-    def _print(self):
+    def _print(self) -> None:
         percent = round(self.progress)
         bar = colorize('█' * percent + '-' * (100 - percent),
                        hsv=(percent / 300, 1, 1))
@@ -148,7 +153,7 @@ class ProgressBar:
         sys.stdout.flush()
 
 
-class ArgRange(typing.NamedTuple):
+class ArgRange(NamedTuple):
     """Argument range, i.e. range name and associated values.
 
     Properties
@@ -160,9 +165,9 @@ class ArgRange(typing.NamedTuple):
     """
 
     name: str
-    values: typing.Optional[tuple]
+    values: Optional[tuple]
 
-    def unique_values(self, *others):
+    def unique_values(self, *others) -> tuple:
         """Collect unique values definition from multiple occurences of a range.
 
         Examples
@@ -266,7 +271,7 @@ _RANGE_TYPES = {
 }
 
 
-def range_type(dtype):
+def range_type(dtype: type) -> _MaybeRange:
     """Get click range type.
 
     The range type allows parsing click options and arguments in range form,
@@ -305,7 +310,7 @@ def range_type(dtype):
     return _RANGE_TYPES[dtype]
 
 
-def _extract_ranges(values):
+def _extract_ranges(values: Iterable[Any]) -> Iterator[ArgRange]:
     for value in values:
         if isinstance(value, ArgRange):
             yield value
@@ -326,7 +331,7 @@ def _values_from_range_map(range_map):
         yield dict(zip(range_map.keys(), values))
 
 
-def unpack_ranges(**kwargs):
+def unpack_ranges(**kwargs: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Unpack range arguments in `kwargs`.
 
     Generates a list of kwargs of the cartesian product of all range
@@ -367,7 +372,7 @@ def unpack_ranges(**kwargs):
             for value_dict in _values_from_range_map(range_map)]
 
 
-def range_args(**kwargs):
+def range_args(**kwargs: Dict[str, Any]) -> Iterator[str]:
     """Iterate over all range arguments in `kwargs`.
 
     Parameters
@@ -393,7 +398,7 @@ def range_args(**kwargs):
             yield arg
 
 
-def pretty_parameters(bmark, include_version=True):
+def pretty_parameters(bmark, include_version: bool = True) -> Dict[str, Any]:
     """Get pretty formatted dict of benchmark parameters.
 
     Parameters
