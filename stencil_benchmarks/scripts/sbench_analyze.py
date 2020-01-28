@@ -68,23 +68,33 @@ def print_csv(csv, common, auto_group, group, select, pivot, aggregation, sort,
 @main.command()
 @click.argument('csv', type=click.Path(exists=True))
 @click.option('--best-only/--all', '-b', default=False)
-@click.option('--select', '-s', multiple=True, default=['time', 'bandwidth'])
-def summary(csv, best_only, select):
+@click.option('--select', multiple=True, default=['time', 'bandwidth'])
+@click.option('--separate-by')
+def summary(csv, best_only, select, separate_by):
     df = read_csv(csv)
     nunique = df.apply(pd.Series.nunique)
     if len(df.index) > 1:
         df.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
 
-    select = list(set(df.columns) - set(select))
-    if select:
-        medians = df.groupby(select).median()
-        if best_only:
-            best = medians['time'].idxmin()
-            click.echo(medians.loc[[best]])
+    def show(df):
+        groups = list(set(df.columns) - set(select))
+        if groups:
+            medians = df.groupby(groups).median()
+            if best_only:
+                best = medians['time'].idxmin()
+                click.echo(medians.loc[[best]])
+            else:
+                click.echo(medians.sort_values(by='time').to_string())
         else:
-            click.echo(medians.sort_values(by='time').to_string())
+            click.echo(df.median().to_string())
+
+    if separate_by:
+        values = df[separate_by].unique()
+        for value in values:
+            click.echo(f'{separate_by} = {value}:')
+            show(df.loc[df[separate_by] == value])
     else:
-        click.echo(df.median().to_string())
+        show(df)
 
 
 @main.command()
