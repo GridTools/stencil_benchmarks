@@ -61,7 +61,9 @@ setuptools.setup(
             'sbench=stencil_benchmarks.scripts.sbench:main',
             'sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main',
             'sbench-cudahip-collection=stencil_benchmarks.scripts'
-            '.sbench_cudahip_collection:main'
+            '.sbench_cudahip_collection:main',
+            'sbench-openmp-collection=stencil_benchmarks.scripts'
+            '.sbench_openmp_collection:main'
         ]
     },
     install_requires=[
