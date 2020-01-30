@@ -128,7 +128,8 @@ def dtype_cname(dtype: np.dtype) -> str:
 
 
 def data_ptr(array: np.ndarray,
-             offset=Union[int, Tuple[int, ...], None]) -> ctypes.c_void_p:
+             offset: Union[int, Tuple[int, ...], None] = None
+             ) -> ctypes.c_void_p:
     if offset is None:
         offset = 0
     elif isinstance(offset, int):
