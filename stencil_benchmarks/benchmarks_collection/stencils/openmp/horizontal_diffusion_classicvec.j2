@@ -1,0 +1,115 @@
+{% extends "base.j2" %}
+
+{% block kernel_invoke %}
+#pragma omp parallel
+  {
+    using simdv_t = simdv<{{ ctype }}, {{ vector_size }}>;
+    alignas(sizeof({{ ctype }}) * {{ vector_size }}) {{ ctype }} lap[{{ block_size[1] + 4 }}][{{ (block_size[0] + 4 + 2 * vector_size - 1) // vector_size * vector_size }}];
+    alignas(sizeof({{ ctype }}) * {{ vector_size }}) {{ ctype }} flx[{{ block_size[1] + 4 }}][{{ (block_size[0] + 4 + 2 * vector_size - 1) // vector_size * vector_size }}];
+    alignas(sizeof({{ ctype }}) * {{ vector_size }}) {{ ctype }} fly[{{ block_size[1] + 4 }}][{{ (block_size[0] + 4 + 2 * vector_size - 1) // vector_size * vector_size }}];
+
+#pragma omp for collapse(3)
+    for (std::ptrdiff_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
+      for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+          {%- if block_size[2] > 1 %}
+            const std::ptrdiff_t kmax = std::min({{ domain[2] }} - kb, (std::ptrdiff_t){{ block_size[2] }});
+            for (std::ptrdiff_t k = 0; k < kmax; ++k) {
+          {%- else %}
+            const std::ptrdiff_t k = 0;
+            {
+          {%- endif %}
+              for (std::ptrdiff_t j = -2; j < {{ block_size[1] }} + 2; ++j) {
+                std::ptrdiff_t i = -2;
+                std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
+                for (; i < 0; ++i) {
+                  lap[j + 2][i + {{ vector_size }}] = 4 * inp[index]
+                                                        - inp[index - {{ strides[0] }}]
+                                                        - inp[index + {{ strides[0] }}]
+                                                        - inp[index - {{ strides[1] }}]
+                                                        - inp[index + {{ strides[1] }}];
+                  index += {{ strides[0] }};
+                }
+
+                const auto four = simdv_t::broadcast(4);
+                for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
+                  (four * simdv_t::load(&inp[index])
+                        - simdv_t::load(&inp[index - {{ strides[0] }}])
+                        - simdv_t::load(&inp[index + {{ strides[0] }}])
+                        - simdv_t::load(&inp[index - {{ strides[1] }}])
+                        - simdv_t::load(&inp[index + {{ strides[1] }}])).store(&lap[j + 2][i + {{ vector_size }}]);
+                  index += {{ vector_size * strides[0] }};
+                }
+
+                for (; i < {{ block_size[0] + 2 }}; ++i) {
+                  lap[j + 2][i + {{ vector_size }}] = 4 * inp[index]
+                                                        - inp[index - {{ strides[0] }}]
+                                                        - inp[index + {{ strides[0] }}]
+                                                        - inp[index - {{ strides[1] }}]
+                                                        - inp[index + {{ strides[1] }}];
+                  index += {{ strides[0] }};
+                }
+              }
+
+              for (std::ptrdiff_t j = -1; j < {{ block_size[1] }} + 1; ++j) {
+                std::ptrdiff_t i = -1;
+                std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
+                for (; i < 0; ++i) {
+                  {{ ctype }} flx_ij = lap[j + 2][i + {{ vector_size + 1 }}] - lap[j + 2][i + {{ vector_size }}];
+                  flx[j + 2][i + {{ vector_size }}] = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
+
+                  {{ ctype }} fly_ij = lap[j + 3][i + {{ vector_size }}] - lap[j + 2][i + {{ vector_size }}];
+                  fly[j + 2][i + {{ vector_size }}] = fly_ij * (inp[index + {{ strides[1] }}] - inp[index]) > 0 ? 0 : fly_ij;
+
+                  index += {{ strides[0] }};
+                }
+
+                const auto zero = simdv_t::broadcast(0);
+                for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
+                  simdv_t flx_ij = simdv_t::load(&lap[j + 2][i + {{ vector_size + 1 }}])
+                                 - simdv_t::load(&lap[j + 2][i + {{ vector_size }}]);
+                  simdv_t::where(flx_ij * (simdv_t::load(&inp[index + {{ strides[0] }}]) - simdv_t::load(&inp[index])) > zero,
+                                 zero,
+                                 flx_ij).store(&flx[j + 2][i + {{ vector_size }}]);
+
+                  simdv_t fly_ij = simdv_t::load(&lap[j + 3][i + {{ vector_size }}])
+                                 - simdv_t::load(&lap[j + 2][i + {{ vector_size }}]);
+                  simdv_t::where(fly_ij * (simdv_t::load(&inp[index + {{ strides[1] }}]) - simdv_t::load(&inp[index])) > zero,
+                                 zero,
+                                 fly_ij).store(&fly[j + 2][i + {{ vector_size }}]);
+
+                  index += {{ strides[0] * vector_size }};
+                }
+
+                for (; i < {{ block_size[0] + 1 }}; ++i) {
+                  {{ ctype }} flx_ij = lap[j + 2][i + {{ vector_size + 1 }}] - lap[j + 2][i + {{ vector_size }}];
+                  flx[j + 2][i + {{ vector_size }}] = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
+
+                  {{ ctype }} fly_ij = lap[j + 3][i + {{ vector_size }}] - lap[j + 2][i + {{ vector_size }}];
+                  fly[j + 2][i + {{ vector_size }}] = fly_ij * (inp[index + {{ strides[1] }}] - inp[index]) > 0 ? 0 : fly_ij;
+
+                  index += {{ strides[0] }};
+                }
+              }
+
+              for (std::ptrdiff_t j = 0; j < {{ block_size[1] }}; ++j) {
+                std::ptrdiff_t i = 0;
+                std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+                for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
+                  (simdv_t::load(&inp[index])
+                   - simdv_t::load(&coeff[index]) * (simdv_t::load(&flx[j + 2][i + {{ vector_size }}])
+                                                   - simdv_t::load(&flx[j + 2][i + {{ vector_size - 1}}])
+                                                   + simdv_t::load(&fly[j + 2][i + {{ vector_size }}])
+                                                   - simdv_t::load(&fly[j + 1][i + {{ vector_size }}]))).store(&out[index]);
+
+                  index += {{ strides[0] * vector_size }};
+                }
+              }
+            }
+        }
+      }
+    }
+  }
+{% endblock kernel_invoke %}

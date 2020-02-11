@@ -1,5 +1,6 @@
 from .mixin import BasicStencilMixin, HorizontalDiffusionMixin
 from ..base import HorizontalDiffusionStencil
+from .... import benchmark
 
 
 class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
@@ -53,6 +54,13 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
 
 class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
+
+
+class ClassicVec(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+
+    def template_args(self):
+        return dict(**super().template_args(), vector_size=self.vector_size)
 
 
 class ReducedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
