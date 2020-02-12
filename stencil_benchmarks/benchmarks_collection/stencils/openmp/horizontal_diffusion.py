@@ -69,3 +69,10 @@ class ReducedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
 
 class MinimumMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
+
+
+class Rolling(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+
+    def template_args(self):
+        return dict(**super().template_args(), vector_size=self.vector_size)
