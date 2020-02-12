@@ -1,7 +1,9 @@
 {% extends "base.j2" %}
 
 {% block pre_kernel %}
+#if defined(__amd64__) || defined(__x86_64__)
 #include <xmmintrin.h>
+#endif
 
 static constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
 static constexpr {{ ctype }} beta_v = 0;

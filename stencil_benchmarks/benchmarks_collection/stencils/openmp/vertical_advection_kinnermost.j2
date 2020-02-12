@@ -1,7 +1,9 @@
 {% extends "base.j2" %}
 
 {% block pre_kernel %}
+#if defined(__amd64__) || defined(__x86_64__)
 #include <xmmintrin.h>
+#endif
 
 static constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
 static constexpr {{ ctype }} beta_v = 0;
@@ -55,8 +57,9 @@ __attribute__((always_inline)) inline void forward_sweep(int i,
 
     // k body
     for (int k = 1; k < {{ domain[2] }} - 1; ++k) {
+        {% if prefetch_distance > 0 %}
 #ifdef __SSE__
-        constexpr int prefdist = 3;
+        constexpr int prefdist = {{ prefetch_distance }};
         if (k < {{ domain[2] }} - prefdist) {
             const int prefindex = index + prefdist * {{ strides[2] }};
             _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_T1);
@@ -70,7 +73,22 @@ __attribute__((always_inline)) inline void forward_sweep(int i,
             _mm_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]), _MM_HINT_T1);
             _mm_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]), _MM_HINT_T1);
         }
+#else
+        constexpr int prefdist = {{ prefetch_distance }};
+        if (k < {{ domain[2] }} - prefdist) {
+            const int prefindex = index + prefdist * {{ strides[2] }};
+            __builtin_prefetch(reinterpret_cast<const char *>(&upos[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&ustage[prefindex + {{ strides[2] }}]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&utens[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + {{ strides[2] }}]));
+            __builtin_prefetch(reinterpret_cast<const char *>(
+                                &wcon[prefindex + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&ccol[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&dcol[prefindex]));
+        }
 #endif
+        {% endif %}
 
         ccol1 = ccol0;
         dcol1 = dcol0;
