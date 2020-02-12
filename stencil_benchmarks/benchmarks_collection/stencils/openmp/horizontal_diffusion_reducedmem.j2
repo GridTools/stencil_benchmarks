@@ -7,36 +7,36 @@
     {{ctype }} flx[{{ block_size[0] }} + 2];
     {{ctype }} fly[{{ block_size[0] }} + 2];
 #pragma omp for collapse(3)
-    for (std::ptrdiff_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
-      for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
-        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
-            const std::ptrdiff_t imax = std::min({{ domain[0] }} - ib, (std::ptrdiff_t){{ block_size[0] }});
-            const std::ptrdiff_t jmax = std::min({{ domain[1] }} - jb, (std::ptrdiff_t){{ block_size[1] }});
+    for (index_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
+      for (index_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (index_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+            const index_t imax = std::min({{ domain[0] }} - ib, (index_t){{ block_size[0] }});
+            const index_t jmax = std::min({{ domain[1] }} - jb, (index_t){{ block_size[1] }});
           {%- if block_size[2] > 1 %}
-            const std::ptrdiff_t kmax = std::min({{ domain[2] }} - kb, (std::ptrdiff_t){{ block_size[2] }});
-            for (std::ptrdiff_t k = 0; k < kmax; ++k) {
+            const index_t kmax = std::min({{ domain[2] }} - kb, (index_t){{ block_size[2] }});
+            for (index_t k = 0; k < kmax; ++k) {
           {%- else %}
-            const std::ptrdiff_t k = 0;
+            const index_t k = 0;
             {
           {%- endif %}
-              for (std::ptrdiff_t j = -2; j < jmax + 2; ++j) {
+              for (index_t j = -2; j < jmax + 2; ++j) {
 #pragma omp simd
-                for (std::ptrdiff_t i = -2; i < imax + 2; ++i) {
-                  std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+                for (index_t i = -2; i < imax + 2; ++i) {
+                  index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
 
                   lap[j + 2][i + 2] = 4 * inp[index] - inp[index - {{ strides[0] }}] - inp[index + {{ strides[0] }}] -
                                                        inp[index - {{ strides[1] }}] - inp[index + {{ strides[1] }}];
                 }
               }
 
-              for (std::ptrdiff_t j = -1; j < jmax + 1; ++j) {
+              for (index_t j = -1; j < jmax + 1; ++j) {
 #pragma omp simd
-                for (std::ptrdiff_t i = -1; i < imax + 1; ++i) {
-                  std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
-                  
+                for (index_t i = -1; i < imax + 1; ++i) {
+                  index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
                   {{ ctype }} flx_ij = lap[j + 2][i + 3] - lap[j + 2][i + 2];
                   flx[i + 1] = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
-                  
+
                   {{ ctype }} fly_ij = lap[j + 3][i + 2] - lap[j + 2][i + 2];
                   fly_ij = fly_ij * (inp[index + {{ strides[1] }}] - inp[index]) > 0 ? 0 : fly_ij;
 

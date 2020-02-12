@@ -7,23 +7,23 @@
     {{ctype }} flx[{{ block_size[0] }} + 2];
     {{ctype }} fly[{{ block_size[0] }} + 2];
 #pragma omp for collapse(3)
-    for (std::ptrdiff_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
-      for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
-        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
-            const std::ptrdiff_t imax = std::min({{ domain[0] }} - ib, (std::ptrdiff_t){{ block_size[0] }});
-            const std::ptrdiff_t jmax = std::min({{ domain[1] }} - jb, (std::ptrdiff_t){{ block_size[1] }});
+    for (index_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
+      for (index_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (index_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+            const index_t imax = std::min({{ domain[0] }} - ib, (index_t){{ block_size[0] }});
+            const index_t jmax = std::min({{ domain[1] }} - jb, (index_t){{ block_size[1] }});
           {%- if block_size[2] > 1 %}
-            const std::ptrdiff_t kmax = std::min({{ domain[2] }} - kb, (std::ptrdiff_t){{ block_size[2] }});
-            for (std::ptrdiff_t k = 0; k < kmax; ++k) {
+            const index_t kmax = std::min({{ domain[2] }} - kb, (index_t){{ block_size[2] }});
+            for (index_t k = 0; k < kmax; ++k) {
           {%- else %}
-            const std::ptrdiff_t k = 0;
+            const index_t k = 0;
             {
           {%- endif %}
 
-              for (std::ptrdiff_t j = -2; j < jmax; ++j) {
+              for (index_t j = -2; j < jmax; ++j) {
 #pragma omp simd
-                for (std::ptrdiff_t i = -1; i < imax + 1; ++i) {
-                  const std::ptrdiff_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+                for (index_t i = -1; i < imax + 1; ++i) {
+                  const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
 
                   const {{ctype}} lap_ijp1 = 4 * inp[index + {{ strides[1] }}] - inp[index - {{ strides[0] }} + {{ strides[1] }}]
                                                                                - inp[index + {{ strides[0] }} + {{ strides[1] }}]

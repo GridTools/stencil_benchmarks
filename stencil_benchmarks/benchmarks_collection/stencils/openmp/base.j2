@@ -15,6 +15,12 @@
 {% block pre_kernel %}
 {% endblock pre_kernel %}
 
+{%- if ctype == 'float' %}
+using index_t = std::int32_t;
+{%- elif ctype == 'double' %}
+using index_t = std::int64_t;
+{%- endif %}
+
 {% if numa %}
 void move_to_local_numa_domain(void* begin, void* end) {
     std::size_t page_size = getpagesize();

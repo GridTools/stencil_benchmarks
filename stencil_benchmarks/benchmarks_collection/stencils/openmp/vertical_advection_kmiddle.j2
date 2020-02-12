@@ -210,87 +210,87 @@ __attribute__((always_inline)) inline void backward_sweep_k(int i,
 
 {% block kernel_invoke %}
 #pragma omp parallel for collapse(2)
-    for (std::ptrdiff_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
-        for (std::ptrdiff_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+    for (index_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (index_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
             {%- if block_size[1] > 1 %}
-                const std::ptrdiff_t jmax = std::min((std::ptrdiff_t){{ domain[1] }}, jb + {{ block_size[1] }});
-                for (std::ptrdiff_t j = jb; j < jmax; ++j) {
+                const index_t jmax = std::min((index_t){{ domain[1] }}, jb + {{ block_size[1] }});
+                for (index_t j = jb; j < jmax; ++j) {
             {%- else %}
-                const std::ptrdiff_t j = jb;
+                const index_t j = jb;
                 {
             {%- endif %}
-                    for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
+                    for (index_t k = 0; k < {{ domain[2] }}; ++k) {
                         {%- if block_size[0] > 1 %}
-                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+                            const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
     #pragma omp simd
-                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                            for (index_t i = ib; i < imax; ++i) {
                         {%- else %}
-                            const std::ptrdiff_t i = ib;
+                            const index_t i = ib;
                             {
                         {%- endif %}
 
                                 forward_sweep_k(i, j, k, 1, 0, ccol, dcol, wcon, ustage, upos, utens, utensstage);
                             }
                     }
-                    for (std::ptrdiff_t k = {{ domain[2] }} - 1; k >= 0; --k) {
+                    for (index_t k = {{ domain[2] }} - 1; k >= 0; --k) {
                         {%- if block_size[0] > 1 %}
-                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+                            const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
     #pragma omp simd
-                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                            for (index_t i = ib; i < imax; ++i) {
                         {%- else %}
-                            const std::ptrdiff_t i = ib;
+                            const index_t i = ib;
                             {
                         {%- endif %}
 
                                 backward_sweep_k(i, j, k, ccol, dcol, datacol, upos, utensstage);
                             }
                     }
-                    for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
+                    for (index_t k = 0; k < {{ domain[2] }}; ++k) {
                         {%- if block_size[0] > 1 %}
-                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+                            const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
     #pragma omp simd
-                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                            for (index_t i = ib; i < imax; ++i) {
                         {%- else %}
-                            const std::ptrdiff_t i = ib;
+                            const index_t i = ib;
                             {
                         {%- endif %}
 
                                 forward_sweep_k(i, j, k, 0, 1, ccol, dcol, wcon, vstage, vpos, vtens, vtensstage);
                             }
                     }
-                    for (std::ptrdiff_t k = {{ domain[2] }} - 1; k >= 0; --k) {
+                    for (index_t k = {{ domain[2] }} - 1; k >= 0; --k) {
                         {%- if block_size[0] > 1 %}
-                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+                            const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
     #pragma omp simd
-                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                            for (index_t i = ib; i < imax; ++i) {
                         {%- else %}
-                            const std::ptrdiff_t i = ib;
+                            const index_t i = ib;
                             {
                         {%- endif %}
 
                                 backward_sweep_k(i, j, k, ccol, dcol, datacol, vpos, vtensstage);
                             }
                     }
-                    for (std::ptrdiff_t k = 0; k < {{ domain[2] }}; ++k) {
+                    for (index_t k = 0; k < {{ domain[2] }}; ++k) {
                         {%- if block_size[0] > 1 %}
-                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+                            const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
     #pragma omp simd
-                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                            for (index_t i = ib; i < imax; ++i) {
                         {%- else %}
-                            const std::ptrdiff_t i = ib;
+                            const index_t i = ib;
                             {
                         {%- endif %}
 
                                 forward_sweep_k(i, j, k, 0, 0, ccol, dcol, wcon, wstage, wpos, wtens, wtensstage);
                             }
                     }
-                    for (std::ptrdiff_t k = {{ domain[2] }} - 1; k >= 0; --k) {
+                    for (index_t k = {{ domain[2] }} - 1; k >= 0; --k) {
                         {%- if block_size[0] > 1 %}
-                            const std::ptrdiff_t imax = std::min((std::ptrdiff_t){{ domain[0] }}, ib + {{ block_size[0] }});
+                            const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
     #pragma omp simd
-                            for (std::ptrdiff_t i = ib; i < imax; ++i) {
+                            for (index_t i = ib; i < imax; ++i) {
                         {%- else %}
-                            const std::ptrdiff_t i = ib;
+                            const index_t i = ib;
                             {
                         {%- endif %}
 

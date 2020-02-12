@@ -1,7 +1,7 @@
 {% extends "base.j2" %}
 
 {% block kernel_prepare %}
-    constexpr std::ptrdiff_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
+    constexpr index_t last = {{ strides[0] }} * ({{ domain[0] }} - 1) +
                                     {{ strides[1] }} * ({{ domain[1] }} - 1) +
                                     {{ strides[2] }} * ({{ domain[2] }} - 1);
 
@@ -24,7 +24,7 @@
     #ifdef __INTEL_COMPILER
     #pragma vector nontemporal
     #endif
-    for (std::ptrdiff_t index = 0; index <= last; ++index) {
+    for (index_t index = 0; index <= last; ++index) {
         {{ body }}
     }
 {% endblock kernel_invoke %}
