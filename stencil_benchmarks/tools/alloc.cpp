@@ -24,7 +24,9 @@ struct malloc_buffer {
 
 struct mmap_deleter {
   void operator()(void *ptr) const {
-    if (munmap(ptr, size)) {
+    // TODO: get correct huge page size (currently assume 2MB)
+    auto paged_size = (size / (2 * 1024 * 1024)) * (2 * 1024 * 1024);
+    if (munmap(ptr, paged_size)) {
       auto err = errno;
       throw std::runtime_error(std::string("munmap failed with error ") +
                                strerror(err));
