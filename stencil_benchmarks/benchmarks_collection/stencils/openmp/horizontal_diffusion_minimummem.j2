@@ -3,9 +3,25 @@
 {% block kernel_invoke %}
 #pragma omp parallel
   {
-    {{ctype }} lap[{{ block_size[0] }} + 2];
-    {{ctype }} flx[{{ block_size[0] }} + 2];
-    {{ctype }} fly[{{ block_size[0] }} + 2];
+    using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+    {%- if ctype == 'double' %}
+    using ivec_t = std::int64_t __attribute__((vector_size({{ vector_size * 8}})));
+      {%- if alignment == 8 * vector_size %}
+        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+      {%- else %}
+        using vec_t = unaligned_vec_t;
+      {%- endif %}
+    {%- else %}
+    using ivec_t = std::int32_t __attribute__((vector_size({{ vector_size * 4}})));
+      {%- if alignment == 4 * vector_size %}
+        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+      {%- else %}
+        using vec_t = unaligned_vec_t;
+      {%- endif %}
+    {%- endif %}
+
+    alignas({{ alignment }}) {{ctype }} lap[{{ block_size[0] + vector_size + 2 }}];
+    alignas({{ alignment }}) {{ctype }} fly[{{ block_size[0] + vector_size + 2 }}];
 #pragma omp for collapse(3)
     for (index_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
       for (index_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
@@ -21,8 +37,56 @@
           {%- endif %}
 
               for (index_t j = -2; j < jmax; ++j) {
-#pragma omp simd
-                for (index_t i = -1; i < imax + 1; ++i) {
+                vec_t flx_imvj = {0};
+                constexpr ivec_t iminus_mask = { {% for m in range(vector_size, 2 * vector_size) %}{{ m - 1 }}{{ ', ' if not loop.last }}{% endfor %} };
+
+                {
+                  index_t i = -1;
+                  const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
+                  const {{ ctype }} lap_ijp1 = 4 * inp[index + {{ strides[1] }}] - inp[index - {{ strides[0] }} + {{ strides[1] }}]
+                                                                                 - inp[index + {{ strides[0] }} + {{ strides[1] }}]
+                                                                                 - inp[index]
+                                                                                 - inp[index + 2 * {{ strides[1] }}];
+                  if (j >= -1) {
+                    {{ ctype }} flx_ij = lap[i + {{ vector_size + 1 }}] - lap[i + {{ vector_size }}];
+                    flx_ij = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
+
+                    flx_imvj[{{ vector_size }} - 1] = flx_ij;
+                  }
+                  lap[i + {{ vector_size }}] = lap_ijp1;
+                }
+
+                index_t i;
+                for (i = 0; i < imax - {{ vector_size - 1 }}; i += {{ vector_size }}) {
+                  const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
+                  const vec_t lap_ijp1 = 4 * *(vec_t*)&inp[index + {{ strides[1] }}] - *(unaligned_vec_t*)&inp[index - {{ strides[0] }} + {{ strides[1] }}]
+                                                                                     - *(unaligned_vec_t*)&inp[index + {{ strides[0] }} + {{ strides[1] }}]
+                                                                                     - *(vec_t*)&inp[index]
+                                                                                     - *(vec_t*)&inp[index + 2 * {{ strides[1] }}];
+
+                  if (j >= -1) {
+                    vec_t flx_ij = *(unaligned_vec_t*)&lap[i + {{ vector_size + 1 }}] - *(vec_t*)&lap[i + {{ vector_size }}];
+                    flx_ij = flx_ij * (*(unaligned_vec_t*)&inp[index + {{ strides[0] }}] - *(vec_t*)&inp[index]) > 0 ? 0 : flx_ij;
+
+                    vec_t fly_ij = lap_ijp1 - *(vec_t*)&lap[i + {{ vector_size }}];
+                    fly_ij = fly_ij * (*(vec_t*)&inp[index + {{ strides[1] }}] - *(vec_t*)&inp[index]) > 0 ? 0 : fly_ij;
+
+                    vec_t flx_im1j = __builtin_shuffle(flx_imvj, flx_ij, iminus_mask);
+
+                    if (j >= 0) {
+                      *(vec_t*)&out[index] = *(vec_t*)&inp[index] - *(vec_t*)&coeff[index] * (flx_ij - flx_im1j +
+                                                                                              fly_ij - *(vec_t*)&fly[i + {{ vector_size }}]);
+                    }
+                    *(vec_t*)&fly[i + {{ vector_size }}] = fly_ij;
+                    flx_imvj = flx_ij;
+                  }
+                  *(vec_t*)&lap[i + {{ vector_size }}] = lap_ijp1;
+                }
+
+                {{ ctype }} flx_im1j = flx_imvj[{{ vector_size - 1 }}];
+                for (; i < imax + 1; ++i) {
                   const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
 
                   const {{ctype}} lap_ijp1 = 4 * inp[index + {{ strides[1] }}] - inp[index - {{ strides[0] }} + {{ strides[1] }}]
@@ -30,19 +94,20 @@
                                                                                - inp[index]
                                                                                - inp[index + 2 * {{ strides[1] }}];
                   if (j >= -1) {
-                    {{ ctype }} flx_ij = lap[i + 2] - lap[i + 1];
-                    flx[i + 1] = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
+                    {{ ctype }} flx_ij = lap[i + {{ vector_size + 1 }}] - lap[i + {{ vector_size }}];
+                    flx_ij = flx_ij * (inp[index + {{ strides[0] }}] - inp[index]) > 0 ? 0 : flx_ij;
 
-                    {{ ctype }} fly_ij = lap_ijp1 - lap[i + 1];
+                    {{ ctype }} fly_ij = lap_ijp1 - lap[i + {{ vector_size }}];
                     fly_ij = fly_ij * (inp[index + {{ strides[1] }}] - inp[index]) > 0 ? 0 : fly_ij;
 
                     if (i >= 0 && i < imax && j >= 0) {
-                      out[index] = inp[index] - coeff[index] * (flx[i + 1] - flx[i] +
-                                                                fly_ij - fly[i + 1]);
+                      out[index] = inp[index] - coeff[index] * (flx_ij - flx_im1j +
+                                                                fly_ij - fly[i + {{ vector_size }}]);
                     }
-                    fly[i + 1] = fly_ij;
+                    fly[i + {{ vector_size }}] = fly_ij;
+                    flx_im1j = flx_ij;
                   }
-                  lap[i + 1] = lap_ijp1;
+                  lap[i + {{ vector_size }}] = lap_ijp1;
                 }
               }
             }
