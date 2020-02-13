@@ -86,19 +86,20 @@ class StencilMixin(benchmark.Benchmark):
     def sorted_strides(self):
         return tuple(sorted(self.strides, key=lambda x: -x))
 
-    @property
-    def sorted_block_size(self):
-        # pylint: disable=invalid-unary-operand-type
-        indices = np.argsort(-np.array(self.strides))
-        return tuple(np.array(self.block_size)[indices])
-
     @abc.abstractmethod
     def template_file(self):
         pass
 
-    @abc.abstractmethod
     def template_args(self):
-        pass
+        return dict(args=self.args,
+                    ctype=self.ctype_name,
+                    strides=self.strides,
+                    sorted_strides=self.sorted_strides,
+                    domain=self.domain,
+                    sorted_domain=self.sorted_domain,
+                    numa=self.numa,
+                    halo=self.halo,
+                    alignment=self.alignment)
 
     def run_stencil(self, data):
         offset = (self.halo, ) * 3
@@ -119,17 +120,16 @@ class BasicStencilMixin(StencilMixin):
     def template_file(self):
         return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
 
+    @property
+    def sorted_block_size(self):
+        # pylint: disable=invalid-unary-operand-type
+        indices = np.argsort(-np.array(self.strides))
+        return tuple(np.array(self.block_size)[indices])
+
     def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    sorted_strides=self.sorted_strides,
-                    domain=self.domain,
-                    sorted_domain=self.sorted_domain,
+        return dict(**super().template_args(),
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
-                    numa=self.numa,
-                    halo=self.halo,
                     body=self.stencil_body())
 
 
@@ -140,11 +140,7 @@ class VerticalAdvectionMixin(StencilMixin):
         return ('vertical_advection_' + type(self).__name__.lower() + '.j2')
 
     def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    domain=self.domain,
-                    block_size=self.block_size)
+        return dict(**super().template_args(), block_size=self.block_size)
 
 
 class HorizontalDiffusionMixin(StencilMixin):
@@ -154,8 +150,4 @@ class HorizontalDiffusionMixin(StencilMixin):
         return ('horizontal_diffusion_' + type(self).__name__.lower() + '.j2')
 
     def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    domain=self.domain,
-                    block_size=self.block_size)
+        return dict(**super().template_args(), block_size=self.block_size)
