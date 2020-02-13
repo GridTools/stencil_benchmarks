@@ -1,0 +1,139 @@
+{% extends "base.j2" %}
+
+{% block kernel_invoke %}
+#pragma omp parallel
+  {
+    using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+    {%- if ctype == 'double' %}
+      {%- if alignment == 8 * vector_size %}
+        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+      {%- else %}
+        using vec_t = unaligned_vec_t;
+      {%- endif %}
+    {%- else %}
+      {%- if alignment == 4 * vector_size %}
+        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+      {%- else %}
+        using vec_t = unaligned_vec_t;
+      {%- endif %}
+    {%- endif %}
+
+#pragma omp for collapse(3)
+    for (index_t kb = 0; kb < {{ domain[2] }}; kb += {{ block_size[2] }}) {
+      for (index_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+        for (index_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+            const index_t imax = std::min({{ domain[0] }} - ib, (index_t){{ block_size[0] }});
+            const index_t jmax = std::min({{ domain[1] }} - jb, (index_t){{ block_size[1] }});
+          {%- if block_size[2] > 1 %}
+            const index_t kmax = std::min({{ domain[2] }} - kb, (index_t){{ block_size[2] }});
+            for (index_t k = 0; k < kmax; ++k) {
+          {%- else %}
+            const index_t k = 0;
+            {
+          {%- endif %}
+
+              for (index_t j = 0; j < jmax; ++j) {
+
+                index_t i;
+                for (i = 0; i < imax - {{ vector_size - 1 }}; i += {{ vector_size }}) {
+                  const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+                  
+                  const vec_t inp_ij = *(vec_t*)&inp[index];
+                  const vec_t inp_im1j = *(unaligned_vec_t*)&inp[index - {{ strides[0] }}];
+                  const vec_t inp_ip1j = *(unaligned_vec_t*)&inp[index + {{ strides[0] }}];
+                  const vec_t inp_ijm1 = *(vec_t*)&inp[index - {{ strides[1] }}];
+                  const vec_t inp_ijp1 = *(vec_t*)&inp[index + {{ strides[1] }}];
+                  const vec_t inp_im2j = *(unaligned_vec_t*)&inp[index - 2 * {{ strides[0] }}];
+                  const vec_t inp_im1jm1 = *(unaligned_vec_t*)&inp[index - {{ strides[0] }} - {{ strides[1] }}];
+                  const vec_t inp_im1jp1 = *(unaligned_vec_t*)&inp[index - {{ strides[0] }} + {{ strides[1] }}];
+                  const vec_t inp_ip2j = *(unaligned_vec_t*)&inp[index + 2 * {{ strides[0] }}];
+                  const vec_t inp_ip1jm1 = *(unaligned_vec_t*)&inp[index + {{ strides[0] }} - {{ strides[1] }}];
+                  const vec_t inp_ip1jp1 = *(unaligned_vec_t*)&inp[index + {{ strides[0] }} + {{ strides[1] }}];
+                  const vec_t inp_ijm2 = *(vec_t*)&inp[index - 2 * {{ strides[1] }}];
+                  const vec_t inp_ijp2 = *(vec_t*)&inp[index + 2 * {{ strides[1] }}];
+
+                  const vec_t lap_ij = 4 * inp_ij - inp_im1j - inp_ip1j -
+                  inp_ijm1 - inp_ijp1;
+                  const vec_t lap_imj = 4 * inp_im1j - inp_im2j -
+                      inp_ij - inp_im1jm1 -
+                      inp_im1jp1;
+                  const vec_t lap_ipj = 4 * inp_ip1j - inp_ij -
+                      inp_ip2j - inp_ip1jm1 -
+                      inp_ip1jp1;
+                  const vec_t lap_ijm = 4 * inp_ijm1 - inp_im1jm1 -
+                      inp_ip1jm1 - inp_ijm2 -
+                      inp_ij;
+                  const vec_t lap_ijp = 4 * inp_ijp1 - inp_im1jp1 -
+                      inp_ip1jp1 - inp_ij -
+                      inp_ijp2;
+
+                  vec_t flx_ij = lap_ipj - lap_ij;
+                  flx_ij = flx_ij * (inp_ip1j - inp_ij) > 0 ? 0 : flx_ij;
+
+                  vec_t flx_imj = lap_ij - lap_imj;
+                  flx_imj = flx_imj * (inp_ij - inp_im1j) > 0 ? 0 : flx_imj;
+
+                  vec_t fly_ij = lap_ijp - lap_ij;
+                  fly_ij = fly_ij * (inp_ijp1 - inp_ij) > 0 ? 0 : fly_ij;
+
+                  vec_t fly_ijm = lap_ij - lap_ijm;
+                  fly_ijm = fly_ijm * (inp_ij - inp_ijm1) > 0 ? 0 : fly_ijm;
+
+                   *(vec_t*)&out[index] = inp_ij -  *(vec_t*)&coeff[index] * (flx_ij - flx_imj +
+                                          fly_ij - fly_ijm);
+                }
+
+                for (; i < imax; ++i) {
+                  const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+
+                  const {{ ctype }} inp_ij = inp[index];
+                  const {{ ctype }} inp_im1j = inp[index - {{ strides[0] }}];
+                  const {{ ctype }} inp_ip1j = inp[index + {{ strides[0] }}];
+                  const {{ ctype }} inp_ijm1 = inp[index - {{ strides[1] }}];
+                  const {{ ctype }} inp_ijp1 = inp[index + {{ strides[1] }}];
+                  const {{ ctype }} inp_im2j = inp[index - 2 * {{ strides[0] }}];
+                  const {{ ctype }} inp_im1jm1 = inp[index - {{ strides[0] }} - {{ strides[1] }}];
+                  const {{ ctype }} inp_im1jp1 = inp[index - {{ strides[0] }} + {{ strides[1] }}];
+                  const {{ ctype }} inp_ip2j = inp[index + 2 * {{ strides[0] }}];
+                  const {{ ctype }} inp_ip1jm1 = inp[index + {{ strides[0] }} - {{ strides[1] }}];
+                  const {{ ctype }} inp_ip1jp1 = inp[index + {{ strides[0] }} + {{ strides[1] }}];
+                  const {{ ctype }} inp_ijm2 = inp[index - 2 * {{ strides[1] }}];
+                  const {{ ctype }} inp_ijp2 = inp[index + 2 * {{ strides[1] }}];
+
+                  const {{ ctype }} lap_ij = 4 * inp_ij - inp_im1j - inp_ip1j -
+                  inp_ijm1 - inp_ijp1;
+                  const {{ ctype }} lap_imj = 4 * inp_im1j - inp_im2j -
+                      inp_ij - inp_im1jm1 -
+                      inp_im1jp1;
+                  const {{ ctype }} lap_ipj = 4 * inp_ip1j - inp_ij -
+                      inp_ip2j - inp_ip1jm1 -
+                      inp_ip1jp1;
+                  const {{ ctype }} lap_ijm = 4 * inp_ijm1 - inp_im1jm1 -
+                      inp_ip1jm1 - inp_ijm2 -
+                      inp_ij;
+                  const {{ ctype }} lap_ijp = 4 * inp_ijp1 - inp_im1jp1 -
+                      inp_ip1jp1 - inp_ij -
+                      inp_ijp2;
+
+                  {{ ctype }} flx_ij = lap_ipj - lap_ij;
+                  flx_ij = flx_ij * (inp_ip1j - inp_ij) > 0 ? 0 : flx_ij;
+
+                  {{ ctype }} flx_imj = lap_ij - lap_imj;
+                  flx_imj = flx_imj * (inp_ij - inp_im1j) > 0 ? 0 : flx_imj;
+
+                  {{ ctype }} fly_ij = lap_ijp - lap_ij;
+                  fly_ij = fly_ij * (inp_ijp1 - inp_ij) > 0 ? 0 : fly_ij;
+
+                  {{ ctype }} fly_ijm = lap_ij - lap_ijm;
+                  fly_ijm = fly_ijm * (inp_ij - inp_ijm1) > 0 ? 0 : fly_ijm;
+
+                  out[index] = inp_ij - coeff[index] * (flx_ij - flx_imj +
+                                          fly_ij - fly_ijm);
+                }
+              }
+            }
+        }
+      }
+    }
+  }
+{% endblock kernel_invoke %}

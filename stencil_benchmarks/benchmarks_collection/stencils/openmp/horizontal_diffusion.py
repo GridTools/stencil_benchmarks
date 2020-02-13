@@ -52,6 +52,13 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
                 '''
 
 
+class OnTheFlyVec(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+
+    def template_args(self):
+        return dict(**super().template_args(), vector_size=self.vector_size)
+
+
 class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
     pass
 
