@@ -9,14 +9,14 @@
     using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
     {%- if ctype == 'double' %}
     using ivec_t = std::int64_t __attribute__((vector_size({{ vector_size * 8}})));
-      {%- if alignment == 8 * vector_size %}
+      {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
         using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
       {%- else %}
         using vec_t = unaligned_vec_t;
       {%- endif %}
     {%- else %}
     using ivec_t = std::int32_t __attribute__((vector_size({{ vector_size * 4}})));
-      {%- if alignment == 4 * vector_size %}
+      {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
         using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
       {%- else %}
         using vec_t = unaligned_vec_t;

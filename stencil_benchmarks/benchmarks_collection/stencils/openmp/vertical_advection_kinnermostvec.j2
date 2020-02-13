@@ -5,13 +5,13 @@
 
 using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
 {%- if ctype == 'double' %}
-    {%- if alignment == 8 * vector_size %}
+    {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
     using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
     {%- else %}
     using vec_t = unaligned_vec_t;
     {%- endif %}
 {%- else %}
-    {%- if alignment == 4 * vector_size %}
+    {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
     using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
     {%- else %}
     using vec_t = unaligned_vec_t;
