@@ -6,12 +6,22 @@
     index_t thread = omp_get_thread_num();
     index_t total_threads = omp_get_num_threads();
 
-    using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-    {% if ctype == 'double' %}
+    using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+    {%- if ctype == 'double' %}
     using ivec_t = std::int64_t __attribute__((vector_size({{ vector_size * 8}})));
-    {% else %}
+      {%- if alignment == 8 * vector_size %}
+        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+      {%- else %}
+        using vec_t = unaligned_vec_t;
+      {%- endif %}
+    {%- else %}
     using ivec_t = std::int32_t __attribute__((vector_size({{ vector_size * 4}})));
-    {% endif %}
+      {%- if alignment == 4 * vector_size %}
+        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+      {%- else %}
+        using vec_t = unaligned_vec_t;
+      {%- endif %}
+    {%- endif %}
 
     vec_t inpb[5][4];
     vec_t lapb[5][4];
@@ -25,7 +35,10 @@
     index_t end = (thread + 1) * global_end / total_threads;
 
     start = start / {{ vector_size }} * {{ vector_size }};
-    end = end / {{ vector_size }} * {{ vector_size }};
+    if (thread == total_threads - 1)
+      end = (end + {{ vector_size - 1 }}) / {{ vector_size }} * {{ vector_size }};
+    else
+      end = end / {{ vector_size }} * {{ vector_size }};
 
     constexpr ivec_t iminus = { {% for m in range(vector_size, 2 * vector_size) %}{{ m - 1 }}{{ ', ' if not loop.last }}{% endfor %} };
     constexpr ivec_t iplus = { {% for m in range(vector_size) %}{{ m + 1 }}{{ ', ' if not loop.last }}{% endfor %} };
