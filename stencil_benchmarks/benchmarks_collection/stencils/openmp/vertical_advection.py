@@ -18,5 +18,13 @@ class KInnermostVec(KInnermost):
         return dict(**super().template_args(), vector_size=self.vector_size)
 
 
+class KInnermostBlockVec(KInnermostVec):
+    def setup(self):
+        super().setup()
+        if self.block_size[0] % self.vector_size != 0:
+            raise benchmark.ParameterError(
+                'block size must be divisible by vector size')
+
+
 class KMiddle(VerticalAdvectionMixin, VerticalAdvectionStencil):
     pass

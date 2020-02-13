@@ -1,0 +1,239 @@
+{% extends "vertical_advection_kinnermostvec.j2" %}
+
+{% block pre_kernel %}
+{{ super() }}
+
+{% set block_vectors = block_size[0] // vector_size%}
+
+__attribute__((always_inline)) inline void forward_sweep_block(index_t ib,
+    const index_t j,
+    const index_t ishift,
+    const index_t jshift,
+    vec_t *__restrict__ ccol,
+    vec_t *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ wcon,
+    const {{ ctype }} *__restrict__ ustage,
+    const {{ ctype }} *__restrict__ upos,
+    const {{ ctype }} *__restrict__ utens,
+    const {{ ctype }} *__restrict__ utensstage) {
+
+    vec_t ccol0[{{ block_vectors }}], ccol1[{{ block_vectors }}];
+    vec_t dcol0[{{ block_vectors }}], dcol1[{{ block_vectors }}];
+    vec_t ustage0[{{ block_vectors }}], ustage1[{{ block_vectors }}], ustage2[{{ block_vectors }}];
+    vec_t wcon0[{{ block_vectors }}], wcon1[{{ block_vectors }}];
+    vec_t wcon_shift0[{{ block_vectors }}], wcon_shift1[{{ block_vectors }}];
+
+    
+    // k minimum
+    {
+        for (index_t v = 0; v < {{ block_vectors }}; ++v) {
+            index_t index = (ib + v * {{ vector_size }}) * {{ strides[0] }} + j * {{ strides[1] }};
+
+            wcon_shift0[v] = *(unaligned_vec_t*)&wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+            wcon0[v] = *(vec_t*)&wcon[index + {{ strides[2] }}];
+            vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0[v] + wcon0[v]);
+            vec_t cs = gcv * bet_m;
+
+            ccol0[v] = gcv * bet_p;
+            vec_t bcol = dtr_stage - ccol0[v];
+
+            ustage0[v] = *(vec_t*)&ustage[index + {{ strides[2] }}];
+            ustage1[v] = *(vec_t*)&ustage[index];
+            vec_t correction_term = -cs * (ustage0[v] - ustage1[v]);
+            dcol0[v] = dtr_stage * *(vec_t*)&upos[index] + *(vec_t*)&utens[index] + *(vec_t*)&utensstage[index] + correction_term;
+
+            vec_t divided = {{ ctype }}(1.0) / bcol;
+            ccol0[v] = ccol0[v] * divided;
+            dcol0[v] = dcol0[v] * divided;
+
+            ccol[v] = ccol0[v];
+            dcol[v] = dcol0[v];
+        }
+    }
+
+    // k body
+    for (index_t k = 1; k < {{ domain[2] }} - 1; ++k) {
+        {% if prefetch_distance > 0 %}
+        index_t index = ib * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+#ifdef __SSE__
+        constexpr index_t prefdist = {{ prefetch_distance }};
+        if (k < {{ domain[2] }} - prefdist) {
+            const index_t prefindex = index + prefdist * {{ strides[2] }};
+            _mm_prefetch(reinterpret_cast<const char *>(&upos[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&ustage[prefindex + {{ strides[2] }}]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&utens[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + {{ strides[2] }}]), _MM_HINT_T1);
+            _mm_prefetch(reinterpret_cast<const char *>(
+                                &wcon[prefindex + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}]),
+                _MM_HINT_T1);
+        }
+#else
+        constexpr index_t prefdist = {{ prefetch_distance }};
+        if (k < {{ domain[2] }} - prefdist) {
+            const index_t prefindex = index + prefdist * {{ strides[2] }};
+            __builtin_prefetch(reinterpret_cast<const char *>(&upos[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&ustage[prefindex + {{ strides[2] }}]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&utens[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&utensstage[prefindex]));
+            __builtin_prefetch(reinterpret_cast<const char *>(&wcon[prefindex + {{ strides[2] }}]));
+            __builtin_prefetch(reinterpret_cast<const char *>(
+                                &wcon[prefindex + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}]));
+        }
+#endif
+        {% endif %}
+
+        for (index_t v = 0; v < {{ block_vectors }}; ++v) {
+            index_t index = (ib + v * {{ vector_size }}) * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
+
+            ccol1[v] = ccol0[v];
+            dcol1[v] = dcol0[v];
+            ustage2[v] = ustage1[v];
+            ustage1[v] = ustage0[v];
+            wcon1[v] = wcon0[v];
+            wcon_shift1[v] = wcon_shift0[v];
+
+            vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1[v] + wcon1[v]);
+            wcon_shift0[v] = *(unaligned_vec_t*)&wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
+            wcon0[v] = *(vec_t*)&wcon[index + {{ strides[2] }}];
+            vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0[v] + wcon0[v]);
+
+            vec_t as = gav * bet_m;
+            vec_t cs = gcv * bet_m;
+
+            vec_t acol = gav * bet_p;
+            ccol0[v] = gcv * bet_p;
+            vec_t bcol = dtr_stage - acol - ccol0[v];
+
+            ustage0[v] = *(vec_t*)&ustage[index + {{ strides[2] }}];
+            vec_t correction_term = -as * (ustage2[v] - ustage1[v]) - cs * (ustage0[v] - ustage1[v]);
+            dcol0[v] = dtr_stage * *(vec_t*)&upos[index] + *(vec_t*)&utens[index] + *(vec_t*)&utensstage[index] + correction_term;
+
+            vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1[v] * acol);
+            ccol0[v] = ccol0[v] * divided;
+            dcol0[v] = (dcol0[v] - dcol1[v] * acol) * divided;
+
+            ccol[k * {{ block_vectors }} + v] = ccol0[v];
+            dcol[k * {{ block_vectors }} + v] = dcol0[v];
+        }
+    }
+
+    // k maximum
+    {
+        for (index_t v = 0; v < {{ block_vectors }}; ++v) {
+            index_t index = (ib + v * {{ vector_size }}) * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
+
+            ccol1[v] = ccol0[v];
+            dcol1[v] = dcol0[v];
+            ustage2[v] = ustage1[v];
+            ustage1[v] = ustage0[v];
+            wcon1[v] = wcon0[v];
+            wcon_shift1[v] = wcon_shift0[v];
+
+            vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1[v] + wcon1[v]);
+
+            vec_t as = gav * bet_m;
+
+            vec_t acol = gav * bet_p;
+            vec_t bcol = dtr_stage - acol;
+
+            vec_t correction_term = -as * (ustage2[v] - ustage1[v]);
+            dcol0[v] = dtr_stage * *(vec_t*)&upos[index] + *(vec_t*)&utens[index] + *(vec_t*)&utensstage[index] + correction_term;
+
+            vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1[v] * acol);
+            dcol0[v] = (dcol0[v] - dcol1[v] * acol) * divided;
+
+            ccol[{{ domain[2] - 1 }} * {{ block_vectors }} + v] = ccol0[v];
+            dcol[{{ domain[2] - 1 }} * {{ block_vectors }} + v] = dcol0[v];
+        }
+    }
+}
+
+
+__attribute__((always_inline)) inline void backward_sweep_block(index_t ib,
+    const index_t j,
+    const vec_t *__restrict__ ccol,
+    const vec_t *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ upos,
+    {{ ctype }} *__restrict__ utensstage) {
+    constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+
+    vec_t datacol[{{ block_vectors }}];
+
+    // k
+    {
+        for (index_t v = 0; v < {{ block_vectors }}; ++v) {
+            index_t index = (ib + v * {{ vector_size }}) * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
+
+            datacol[v] = dcol[{{ domain[2] - 1 }} * {{ block_vectors }} + v];
+            *(vec_t*)&utensstage[index] = dtr_stage * (datacol[v] - *(vec_t*)&upos[index]);
+        }
+    }
+
+    // k body
+    for (index_t k = {{ domain[2] }} - 2; k >= 0; --k) {
+        for (index_t v = 0; v < {{ block_vectors }}; ++v) {
+            index_t index = (ib + v * {{ vector_size }}) * {{ strides[0] }} + j * {{ strides[1] }}  + k * {{ strides[2] }};
+
+            datacol[v] = dcol[k * {{ block_vectors }} + v] - ccol[k * {{ block_vectors }} + v] * datacol[v];
+            *(vec_t*)&utensstage[index] = dtr_stage * (datacol[v] - *(vec_t*)&upos[index]);
+        }
+    }
+}
+{% endblock pre_kernel %}
+
+{% block kernel_invoke %}
+#pragma omp parallel 
+    {   
+        alignas({{ alignment }}) {{ ctype }} ccolb[{{ domain[2] * block_size[0] }}];
+        alignas({{ alignment }}) {{ ctype }} dcolb[{{ domain[2] * block_size[0] }}];
+
+#pragma omp for collapse(2)
+        for (index_t jb = 0; jb < {{ domain[1] }}; jb += {{ block_size[1] }}) {
+            for (index_t ib = 0; ib < {{ domain[0] }}; ib += {{ block_size[0] }}) {
+                {%- if block_size[1] > 1 %}
+                    const index_t jmax = std::min((index_t){{ domain[1] }}, jb + {{ block_size[1] }});
+                    for (index_t j = jb; j < jmax; ++j) {
+                {%- else %}
+                    const index_t j = jb;
+                    {
+                {%- endif %}
+                        if (ib + {{ block_size[0] }} <= {{ domain[0] }}) {
+                            forward_sweep_block(ib, j, 1, 0, (vec_t*)ccolb, (vec_t*)dcolb, wcon, ustage, upos, utens, utensstage);
+                            backward_sweep_block(ib, j, (vec_t*)ccolb, (vec_t*)dcolb, upos, utensstage);
+
+                            forward_sweep_block(ib, j, 0, 1, (vec_t*)ccolb, (vec_t*)dcolb, wcon, vstage, vpos, vtens, vtensstage);
+                            backward_sweep_block(ib, j, (vec_t*)ccolb, (vec_t*)dcolb, vpos, vtensstage);
+
+                            forward_sweep_block(ib, j, 0, 0, (vec_t*)ccolb, (vec_t*)dcolb, wcon, wstage, wpos, wtens, wtensstage);
+                            backward_sweep_block(ib, j, (vec_t*)ccolb, (vec_t*)dcolb, wpos, wtensstage);
+                        } else {
+                            constexpr index_t imax = {{ domain[0] }};
+
+                            index_t i;
+                            for (i = ib; i < imax - {{ vector_size - 1}}; i += {{ vector_size }}) {
+                                forward_sweep_vec(i, j, 1, 0, (vec_t*)ccolb, (vec_t*)dcolb, wcon, ustage, upos, utens, utensstage);
+                                backward_sweep_vec(i, j, (vec_t*)ccolb, (vec_t*)dcolb, upos, utensstage);
+
+                                forward_sweep_vec(i, j, 0, 1, (vec_t*)ccolb, (vec_t*)dcolb, wcon, vstage, vpos, vtens, vtensstage);
+                                backward_sweep_vec(i, j, (vec_t*)ccolb, (vec_t*)dcolb, vpos, vtensstage);
+
+                                forward_sweep_vec(i, j, 0, 0, (vec_t*)ccolb, (vec_t*)dcolb, wcon, wstage, wpos, wtens, wtensstage);
+                                backward_sweep_vec(i, j, (vec_t*)ccolb, (vec_t*)dcolb, wpos, wtensstage);
+                            }
+                            for (; i < imax; ++i) {
+                                forward_sweep(i, j, 1, 0, ccolb, dcolb, wcon, ustage, upos, utens, utensstage);
+                                backward_sweep(i, j, ccolb, dcolb, upos, utensstage);
+
+                                forward_sweep(i, j, 0, 1, ccolb, dcolb, wcon, vstage, vpos, vtens, vtensstage);
+                                backward_sweep(i, j, ccolb, dcolb, vpos, vtensstage);
+
+                                forward_sweep(i, j, 0, 0, ccolb, dcolb, wcon, wstage, wpos, wtens, wtensstage);
+                                backward_sweep(i, j, ccolb, dcolb, wpos, wtensstage);
+                            }
+                        }
+                    }
+            }
+        }
+    }
+{% endblock kernel_invoke %}
