@@ -1,4 +1,5 @@
 import copy
+import gc
 import re
 import sys
 import types
@@ -50,6 +51,12 @@ def _cli_func(bmark):
                         result.update(
                             cli_tools.pretty_parameters(bmark_instance))
                         results.append(result)
+
+                    try:
+                        del bmark_instance
+                        gc.collect()
+                    except NameError:
+                        pass
         except KeyboardInterrupt:
             pass
         if not results:
