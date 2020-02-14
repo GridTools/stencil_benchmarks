@@ -39,6 +39,12 @@ def common_kwargs(options=None, **overrides):
     return kwargs
 
 
+def scale_domain(**kwargs):
+    i, j, k = kwargs['domain']
+    kwargs['domain'] = (i // 2, j // 2, k)
+    return truncate_block_size_to_domain(**kwargs)
+
+
 @main.command()
 @click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
@@ -79,10 +85,9 @@ def basic_bandwidth(output, executions, dtype, option):
                       along_z=False,
                       **kwargs)
     ]
-    table = run_scaling_benchmark(
-        configurations,
-        executions,
-        preprocess_args=truncate_block_size_to_domain)
+    table = run_scaling_benchmark(configurations,
+                                  executions,
+                                  preprocess_args=scale_domain)
     table.to_csv(output)
 
 
@@ -104,10 +109,9 @@ def horizontal_diffusion_bandwidth(output, executions, dtype, option):
         Configuration(hdiff.MinimumMem, **kwargs, block_size=(1024, 64, 1))
     ]
 
-    table = run_scaling_benchmark(
-        configurations,
-        executions,
-        preprocess_args=truncate_block_size_to_domain)
+    table = run_scaling_benchmark(configurations,
+                                  executions,
+                                  preprocess_args=scale_domain)
     table.to_csv(output)
 
 
@@ -135,10 +139,9 @@ def vertical_advection_bandwidth(output, executions, dtype, option):
                       prefetch_distance=2)
     ]
 
-    table = run_scaling_benchmark(
-        configurations,
-        executions,
-        preprocess_args=truncate_block_size_to_domain)
+    table = run_scaling_benchmark(configurations,
+                                  executions,
+                                  preprocess_args=scale_domain)
     table.to_csv(output)
 
 
