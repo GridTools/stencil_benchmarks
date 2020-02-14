@@ -1,3 +1,4 @@
+import gc
 import re
 
 import pandas as pd
@@ -51,6 +52,8 @@ def run_scaling_benchmark(configurations,
             for config in progress.report(configurations):
                 run = config(preprocess_args=preprocess_args, domain=domain)
                 results += [run() for _ in progress.report(range(executions))]
+                del run
+                gc.collect()
     return pd.DataFrame(results)
 
 
