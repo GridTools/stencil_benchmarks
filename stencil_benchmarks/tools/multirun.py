@@ -33,12 +33,9 @@ class Configuration:
 
 
 def domains(min_exp=5, max_exp=11, k=80):
-    def domain_range():
-        for exponent in range(min_exp, max_exp):
-            d = 2**exponent
-            yield d, d, k
-
-    return domain_range
+    for exponent in range(min_exp, max_exp):
+        d = 2**exponent
+        yield d, d, k
 
 
 def run_scaling_benchmark(configurations,
@@ -46,7 +43,7 @@ def run_scaling_benchmark(configurations,
                           preprocess_args=None,
                           domain_range=None):
     if domain_range is None:
-        domain_range = domains()()
+        domain_range = domains()
 
     results = []
     with cli.ProgressBar() as progress:
