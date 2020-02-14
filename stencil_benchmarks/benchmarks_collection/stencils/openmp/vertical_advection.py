@@ -28,3 +28,10 @@ class KInnermostBlockVec(KInnermostVec):
 
 class KMiddle(VerticalAdvectionMixin, VerticalAdvectionStencil):
     pass
+
+
+class KMiddleVec(KMiddle):
+    vector_size = benchmark.Parameter('vector size', 16)
+
+    def template_args(self):
+        return dict(**super().template_args(), vector_size=self.vector_size)
