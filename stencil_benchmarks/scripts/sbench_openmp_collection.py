@@ -19,7 +19,8 @@ def main():
 def common_kwargs(options=None, **overrides):
     kwargs = dict(platform_preset='none',
                   alignment=alloc.l1_dcache_linesize(),
-                  verify=False)
+                  verify=False,
+                  huge_pages=True)
     kwargs.update(overrides)
     for o in options:
         name, value = o.split('=', 1)
