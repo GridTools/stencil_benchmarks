@@ -81,20 +81,21 @@ class Original(Benchmark):
         if match:
             raise ExecutionError(match.group())
 
+        ticks = int(re.search(r'= ([0-9]+) clock ticks', output).group(1))
+
         regex = re.compile(r'(Copy|Scale|Add|Triad): +'
                            r'([0-9.]+) +([0-9.]+) +'
                            r'([0-9.]+) +([0-9.]+)')
         results = []
-        for line in output.splitlines():
-            match = regex.match(line)
-            if match:
-                results.append({
-                    'name': match.group(1).lower(),
-                    'bandwidth': float(match.group(2)),
-                    'avg-time': float(match.group(3)),
-                    'time': float(match.group(4)),
-                    'max-time': float(match.group(5))
-                })
+        for match in regex.finditer(output):
+            results.append({
+                'name': match.group(1).lower(),
+                'bandwidth': float(match.group(2)),
+                'avg-time': float(match.group(3)),
+                'time': float(match.group(4)),
+                'max-time': float(match.group(5)),
+                'ticks': ticks
+            })
 
         return results
 
