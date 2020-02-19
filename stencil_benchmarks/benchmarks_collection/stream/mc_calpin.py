@@ -6,7 +6,7 @@ import weakref
 import numpy as np
 
 from ...benchmark import Benchmark, Parameter, ParameterError, ExecutionError
-from ...tools import compilation, template
+from ...tools import compilation, cpphelpers, template
 
 
 class Original(Benchmark):
@@ -18,7 +18,7 @@ class Original(Benchmark):
     compiler = Parameter('compiler path', 'gcc')
     compiler_flags = Parameter('compiler flags', '')
     platform_preset = Parameter('preset flags for specific hardware platform',
-                                'basic',
+                                'native',
                                 choices=['none', 'basic', 'native'])
     print_kernels = Parameter('print kernel code', False)
 
@@ -33,8 +33,9 @@ class Original(Benchmark):
         code = template.render(template_file, **self.template_args())
         if self.print_kernels:
             print(
-                re.search(r'^void tuned_STREAM_Copy().*', code,
-                          re.MULTILINE | re.DOTALL).group())
+                re.search(r'/\* Tuned kernels. \*/(.*)',
+                          cpphelpers.format_code(code),
+                          re.MULTILINE | re.DOTALL).group(1))
 
         self.executable = compilation.gnu_executable(self.compile_command(),
                                                      code,
@@ -98,69 +99,106 @@ class Original(Benchmark):
         return results
 
 
+class _GccVecOps:
+    def __init__(self, vector_size, dtype):
+        itemsize = np.dtype(dtype).itemsize
+        self.preamble = (
+            f'typedef {compilation.dtype_cname(dtype)} vec_t '
+            f'__attribute__((vector_size({vector_size * itemsize})));')
+        self.vector_size = vector_size
+        self.vector_type = 'vec_t'
+        self.includes = []
+
+    def load(self, ptr):
+        return f'*({self.vector_type}*){ptr}'
+
+    def store(self, ptr, value):
+        return f'*({self.vector_type}*){ptr} = {value}'
+
+    def broadcast(self, value):
+        return f'({self.vector_type}){{' + ', '.join(
+            str(value) for _ in range(self.vector_size)) + '}'
+
+    def mul(self, a, b):
+        return f'({a} * {b})'
+
+    def add(self, a, b):
+        return f'({a} + {b})'
+
+    def fma(self, a, b, c):
+        return f'({a} * {b} + {c})'
+
+
+class _x86Ops:
+    def __init__(self, ext, dtype):
+        itemsize = np.dtype(dtype).itemsize
+        if ext == 'sse':
+            self.vector_size = 16 // itemsize
+            self.prefix = '_mm'
+            self.vector_type = '__m128'
+            self.includes = ['xmmintrin.h', 'emmintrin.h']
+        elif ext == 'avx':
+            self.vector_size = 32 // itemsize
+            self.prefix = '_mm256'
+            self.vector_type = '__m256'
+            self.includes = ['immintrin.h']
+        elif ext == 'avx512':
+            self.vector_size = 64 // itemsize
+            self.prefix = '_mm512'
+            self.vector_type = '__m512'
+            self.includes = ['immintrin.h']
+        else:
+            raise ValueError('unsupported extension')
+        if dtype == 'float32':
+            self.suffix = 's'
+        elif dtype == 'float64':
+            self.suffix = 'd'
+            self.vector_type += 'd'
+        else:
+            raise ValueError('unsupported dtype')
+
+    def load(self, ptr):
+        return f'{self.prefix}_load_p{self.suffix}({ptr})'
+
+    def store(self, ptr, value):
+        return f'{self.prefix}_stream_p{self.suffix}({ptr}, {value})'
+
+    def broadcast(self, value):
+        return f'{self.prefix}_set1_p{self.suffix}({value})'
+
+    def mul(self, a, b):
+        return f'{self.prefix}_mul_p{self.suffix}({a}, {b})'
+
+    def add(self, a, b):
+        return f'{self.prefix}_add_p{self.suffix}({a}, {b})'
+
+    def fma(self, a, b, c):
+        return f'{self.prefix}_fmadd_p{self.suffix}({a}, {b}, {c})'
+
+
 class Native(Original):
-    architecture = Parameter('hardware architecture',
-                             'x86-avx',
-                             choices=['x86-sse', 'x86-avx', 'x86-avx512'])
+    architecture = Parameter(
+        'hardware architecture',
+        'gcc-vec',
+        choices=['gcc-vec', 'x86-sse', 'x86-avx', 'x86-avx512'])
     unroll_factor = Parameter('loop unroll factor', 1)
     fma = Parameter('use fused multiply-add instructions', True)
+    vector_size = Parameter('vector size (only where applicable)', 0)
+
+    def setup(self):
+        super().setup()
 
     def template_file(self):
         return 'native.j2'
 
     def template_args(self):
-        itemsize = np.dtype(self.dtype).itemsize
-        if self.architecture.startswith('x86'):
-            includes = ['immintrin.h']
-            ops = dict(vector_load='load_p',
-                       vector_store='stream_p',
-                       vector_broadcast='set1_p',
-                       vector_mul='mul_p',
-                       vector_add='add_p',
-                       vector_fmadd='fmadd_p')
-            if self.architecture.endswith('sse'):
-                vector_size = 16 // itemsize
-                if self.dtype == 'float32':
-                    vector_type = '__m128'
-                    for op in ops:
-                        ops[op] = f'_mm_{ops[op]}s'
-                elif self.dtype == 'float64':
-                    vector_type = '__m128d'
-                    for op in ops:
-                        ops[op] = f'_mm_{ops[op]}d'
-                else:
-                    raise ParameterError(f'dtype {self.dtype} not supported')
-            elif self.architecture.endswith('avx'):
-                vector_size = 32 // itemsize
-                if self.dtype == 'float32':
-                    vector_type = '__m256'
-                    for op in ops:
-                        ops[op] = f'_mm256_{ops[op]}s'
-                elif self.dtype == 'float64':
-                    vector_type = '__m256d'
-                    for op in ops:
-                        ops[op] = f'_mm256_{ops[op]}d'
-                else:
-                    raise ParameterError(f'dtype {self.dtype} not supported')
-            elif self.architecture.endswith('avx512'):
-                vector_size = 64 // itemsize
-                if self.dtype == 'float32':
-                    vector_type = '__m512'
-                    for op in ops:
-                        ops[op] = f'_mm512_{ops[op]}s'
-                elif self.dtype == 'float64':
-                    vector_type = '__m512d'
-                    for op in ops:
-                        ops[op] = f'_mm512_{ops[op]}d'
-                else:
-                    raise ParameterError(f'dtype {self.dtype} not supported')
+        if self.architecture == 'gcc-vec':
+            ops = _GccVecOps(max(self.vector_size, 1), self.dtype)
+        elif self.architecture.startswith('x86'):
+            ops = _x86Ops(self.architecture.split('-')[1], self.dtype)
         else:
             raise ParameterError(
                 f'unsupported architecture {self.architecture}')
         return dict(**super().template_args(),
                     unroll_factor=self.unroll_factor,
-                    fma=self.fma,
-                    includes=includes,
-                    vector_size=vector_size,
-                    vector_type=vector_type,
-                    **ops)
+                    ops=ops)

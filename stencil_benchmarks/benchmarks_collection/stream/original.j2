@@ -48,11 +48,8 @@
 # include <limits.h>
 # include <sys/time.h>
 
-{% block includes_block %}
-{%- for include in includes %}
-#include <{{ include }}>
-{%- endfor %}
-{% endblock includes_block %}
+{% block includes %}
+{% endblock %}
 
 /*-----------------------------------------------------------------------
  * INSTRUCTIONS:

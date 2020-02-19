@@ -1,7 +1,18 @@
 {% extends "original.j2" %}
+
+{% block includes %}
+{%- for include in ops.includes %}
+#include <{{ include }}>
+{%- endfor %}
+{% endblock %}
+
 {% block kernels %}
 
-{%- set step = vector_size * unroll_factor %}
+{%- set step = ops.vector_size * unroll_factor %}
+
+/* Tuned kernels. */
+
+{{ ops.preamble }}
 
 void tuned_STREAM_Copy()
 {
@@ -9,9 +20,8 @@ void tuned_STREAM_Copy()
 #pragma omp parallel for
     for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
 {%- for u in range(unroll_factor) %}
-        {{ vector_store }}(
-            &c[j + {{ u * vector_size }}],
-            {{ vector_load }}(&a[j + {{ u * vector_size }}]));
+        {%- set offset = (u * ops.vector_size) | string %}
+        {{ ops.store('&c[j + ' + offset + ']', ops.load('&a[j + ' + offset + ']')) }};
 {%- endfor %}
     }
     for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
@@ -23,16 +33,13 @@ void tuned_STREAM_Copy()
 void tuned_STREAM_Scale(STREAM_TYPE scalar)
 {
     ssize_t j;
-    {{ vector_type }} scalarv;
-    scalarv = {{ vector_broadcast }}(scalar);
+    {{ ops.vector_type }} scalarv;
+    scalarv = {{ ops.broadcast('scalar') }};
 #pragma omp parallel for
     for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
 {%- for u in range(unroll_factor) %}
-        {{ vector_store }}(
-            &b[j + {{ u * vector_size }}],
-            {{ vector_mul }}(
-                scalarv,
-                {{ vector_load }}(&c[j + {{ u * vector_size }}])));
+        {%- set offset = (u * ops.vector_size) | string %}
+        {{ ops.store('&b[j + ' + offset + ']', ops.mul('scalarv', ops.load('&c[j + ' + offset + ']'))) }};
 {%- endfor %}
     }
     for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
@@ -47,11 +54,8 @@ void tuned_STREAM_Add()
 #pragma omp parallel for
     for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
 {%- for u in range(unroll_factor) %}
-        {{ vector_store }}(
-            &c[j + {{ u * vector_size }}],
-            {{ vector_add }}(
-                {{ vector_load }}(&a[j + {{ u * vector_size }}]),
-                {{ vector_load }}(&b[j + {{ u * vector_size }}])));
+        {%- set offset = (u * ops.vector_size) | string %}
+        {{ ops.store('&c[j + ' + offset + ']', ops.add(ops.load('&a[j + ' + offset + ']'), ops.load('&b[j + ' + offset + ']'))) }};
 {%- endfor %}
     }
     for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
@@ -63,24 +67,13 @@ void tuned_STREAM_Add()
 void tuned_STREAM_Triad(STREAM_TYPE scalar)
 {
     ssize_t j;
-    {{ vector_type }} scalarv;
-    scalarv = {{ vector_broadcast }}(scalar);
+    {{ ops.vector_type }} scalarv;
+    scalarv = {{ ops.broadcast('scalar') }};
 #pragma omp parallel for
     for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
 {%- for u in range(unroll_factor) %}
-        {{ vector_store }}(
-            &a[j + {{ u * vector_size }}],
-{%- if fma %}
-            {{ vector_fmadd }}(
-                scalarv,
-                {{ vector_load }}(&c[j + {{ u * vector_size }}]),
-{%- else %}
-            {{ vector_add }}(
-                {{ vector_mul }}(
-                    scalarv,
-                    {{ vector_load }}(&c[j + {{ u * vector_size }}])),
-{%- endif %}
-                {{ vector_load }}(&b[j + {{ u * vector_size }}])));
+        {%- set offset = (u * ops.vector_size) | string %}
+        {{ ops.store('&a[j + ' + offset + ']', ops.fma('scalarv', ops.load('&c[j + ' + offset + ']'), ops.load('&b[j + ' + offset + ']'))) }};
 {%- endfor %}
     }
     for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
