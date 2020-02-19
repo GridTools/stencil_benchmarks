@@ -37,9 +37,16 @@ def _cli_func(bmark):
 
                     for _ in progress.report(range(ctx.obj.executions)):
                         try:
-                            result = bmark_instance.run()
-                            if result_keys is None:
-                                result_keys = set(result.keys())
+                            res = bmark_instance.run()
+                            if isinstance(res, dict):
+                                res = [res]
+                            for result in res:
+                                if result_keys is None:
+                                    result_keys = set(result.keys())
+                                result.update(
+                                    cli_tools.pretty_parameters(
+                                        bmark_instance))
+                                results.append(result)
                         except benchmark.ExecutionError as error:
                             if ctx.obj.skip_execution_failures:
                                 continue
@@ -48,9 +55,6 @@ def _cli_func(bmark):
                         except validation.ValidationError:
                             click.echo('error: validation failed')
                             sys.exit(2)
-                        result.update(
-                            cli_tools.pretty_parameters(bmark_instance))
-                        results.append(result)
 
                     try:
                         del bmark_instance

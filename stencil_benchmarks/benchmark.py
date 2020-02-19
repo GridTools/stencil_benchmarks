@@ -1,5 +1,6 @@
 import abc
 import inspect
+from typing import Any, Dict, Iterable, List, Optional, Type, Union
 
 # pylint: disable=arguments-differ,access-member-before-definition
 
@@ -16,11 +17,11 @@ class ExecutionError(RuntimeError):
 
 class Parameter:
     def __init__(self,
-                 description,
-                 default=None,
-                 dtype=None,
-                 nargs=None,
-                 choices=None):
+                 description: str,
+                 default: Any = None,
+                 dtype: Optional[Type] = None,
+                 nargs: Optional[int] = None,
+                 choices: Optional[Iterable] = None):
         if default is None:
             if dtype is None or nargs is None:
                 raise ValueError(
@@ -52,7 +53,7 @@ class Parameter:
         self.default = default
         self.dtype = dtype
         self.nargs = nargs
-        self.choices = choices
+        self.choices = tuple(choices) if choices is not None else None
 
     def validate(self, value):
         if value is None:
@@ -141,31 +142,31 @@ class Benchmark(metaclass=BenchmarkMeta):
 
         self.setup()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value):
         if name in self.parameters:
             param = type(self).parameters[name]
             self.parameters[name] = param.validate(value)
         else:
             super().__setattr__(name, value)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         if name in self.parameters:
             return self.parameters[name]
         return super().__getattribute__(name)
 
-    def setup(self):
+    def setup(self) -> None:
         """Set up the benchmark before running."""
         pass
 
     @abc.abstractmethod
-    def run(self):
+    def run(self) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Run the benchmark and return time."""
         pass
 
-    def __call__(self):
+    def __call__(self) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         return self.run()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'{type(self).__name__}(' + ', '.join(
             f'{param}={value!r}'
             for param, value in self.parameters.items()) + ')'
