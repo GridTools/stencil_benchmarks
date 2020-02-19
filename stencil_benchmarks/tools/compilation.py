@@ -10,6 +10,29 @@ class CompilationError(RuntimeError):
     pass
 
 
+def gnu_executable(compile_command: List[str],
+                   code: str,
+                   extension: Optional[str] = None,
+                   libraries: Optional[List[str]] = None):
+    if extension is None:
+        extension = '.cpp'
+    if libraries is None:
+        libraries = []
+    with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
+        srcfile.write(code.encode())
+        srcfile.flush()
+
+        with tempfile.NamedTemporaryFile(delete=False) as executable:
+            try:
+                subprocess.run(compile_command +
+                               ['-o', executable.name, srcfile.name] +
+                               libraries,
+                               check=True)
+            except subprocess.CalledProcessError as error:
+                raise CompilationError(*error.args) from None
+            return executable.name
+
+
 def gnu_library(compile_command: List[str],
                 code: str,
                 extension: Optional[str] = None,
@@ -127,9 +150,9 @@ def dtype_cname(dtype: np.dtype) -> str:
     raise NotImplementedError(f'Conversion of type {dtype} is not supported')
 
 
-def data_ptr(array: np.ndarray,
-             offset: Union[int, Tuple[int, ...], None] = None
-             ) -> ctypes.c_void_p:
+def data_ptr(
+        array: np.ndarray,
+        offset: Union[int, Tuple[int, ...], None] = None) -> ctypes.c_void_p:
     if offset is None:
         offset = 0
     elif isinstance(offset, int):
