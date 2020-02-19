@@ -130,50 +130,53 @@ class _GccVecOps:
 
 
 class _x86Ops:
-    def __init__(self, ext, dtype):
+    def __init__(self, ext, dtype, streaming_stores):
         itemsize = np.dtype(dtype).itemsize
         if ext == 'sse':
             self.vector_size = 16 // itemsize
-            self.prefix = '_mm'
+            self._prefix = '_mm'
             self.vector_type = '__m128'
             self.includes = ['xmmintrin.h', 'emmintrin.h']
         elif ext == 'avx':
             self.vector_size = 32 // itemsize
-            self.prefix = '_mm256'
+            self._prefix = '_mm256'
             self.vector_type = '__m256'
             self.includes = ['immintrin.h']
         elif ext == 'avx512':
             self.vector_size = 64 // itemsize
-            self.prefix = '_mm512'
+            self._prefix = '_mm512'
             self.vector_type = '__m512'
             self.includes = ['immintrin.h']
         else:
             raise ValueError('unsupported extension')
         if dtype == 'float32':
-            self.suffix = 's'
+            self._suffix = 's'
         elif dtype == 'float64':
-            self.suffix = 'd'
+            self._suffix = 'd'
             self.vector_type += 'd'
         else:
             raise ValueError('unsupported dtype')
+        self._streaming_stores = streaming_stores
 
     def load(self, ptr):
-        return f'{self.prefix}_load_p{self.suffix}({ptr})'
+        return f'{self._prefix}_load_p{self._suffix}({ptr})'
 
     def store(self, ptr, value):
-        return f'{self.prefix}_stream_p{self.suffix}({ptr}, {value})'
+        if self._streaming_stores:
+            return f'{self._prefix}_stream_p{self._suffix}({ptr}, {value})'
+        return f'{self._prefix}_store_p{self._suffix}({ptr}, {value})'
 
     def broadcast(self, value):
-        return f'{self.prefix}_set1_p{self.suffix}({value})'
+        return f'{self._prefix}_set1_p{self._suffix}({value})'
 
     def mul(self, a, b):
-        return f'{self.prefix}_mul_p{self.suffix}({a}, {b})'
+        return f'{self._prefix}_mul_p{self._suffix}({a}, {b})'
 
     def add(self, a, b):
-        return f'{self.prefix}_add_p{self.suffix}({a}, {b})'
+        return f'{self._prefix}_add_p{self._suffix}({a}, {b})'
 
     def fma(self, a, b, c):
-        return f'{self.prefix}_fmadd_p{self.suffix}({a}, {b}, {c})'
+        return f'{self._prefix}_fmadd_p{self._suffix}({a}, {b}, {c})'
 
 
 class Native(Original):
@@ -184,6 +187,7 @@ class Native(Original):
     unroll_factor = Parameter('loop unroll factor', 1)
     fma = Parameter('use fused multiply-add instructions', True)
     vector_size = Parameter('vector size (only where applicable)', 0)
+    streaming_stores = Parameter('bypass load of destination array', True)
 
     def setup(self):
         super().setup()
@@ -195,7 +199,9 @@ class Native(Original):
         if self.architecture == 'gcc-vec':
             ops = _GccVecOps(max(self.vector_size, 1), self.dtype)
         elif self.architecture.startswith('x86'):
-            ops = _x86Ops(self.architecture.split('-')[1], self.dtype)
+            ops = _x86Ops(
+                self.architecture.split('-')[1], self.dtype,
+                self.streaming_stores)
         else:
             raise ParameterError(
                 f'unsupported architecture {self.architecture}')
