@@ -61,7 +61,7 @@ class Original(Benchmark):
         return command
 
     def template_file(self):
-        return 'mc_calpin.j2'
+        return 'original.j2'
 
     def template_args(self):
         return dict(array_size=self.array_size,
