@@ -1,3 +1,3 @@
-from . import stencils
+from . import stencils, stream
 
-__all__ = ['stencils']
+__all__ = ['stencils', 'stream']

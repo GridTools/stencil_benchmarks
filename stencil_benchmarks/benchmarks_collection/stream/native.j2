@@ -1,0 +1,91 @@
+{% extends "original.j2" %}
+{% block kernels %}
+
+{%- set step = vector_size * unroll_factor %}
+
+void tuned_STREAM_Copy()
+{
+    ssize_t j;
+#pragma omp parallel for
+    for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
+{%- for u in range(unroll_factor) %}
+        {{ vector_store }}(
+            &c[j + {{ u * vector_size }}],
+            {{ vector_load }}(&a[j + {{ u * vector_size }}]));
+{%- endfor %}
+    }
+    for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
+         j < STREAM_ARRAY_SIZE; ++j) {
+        c[j] = a[j];
+    }
+}
+
+void tuned_STREAM_Scale(STREAM_TYPE scalar)
+{
+    ssize_t j;
+    {{ vector_type }} scalarv;
+    scalarv = {{ vector_broadcast }}(scalar);
+#pragma omp parallel for
+    for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
+{%- for u in range(unroll_factor) %}
+        {{ vector_store }}(
+            &b[j + {{ u * vector_size }}],
+            {{ vector_mul }}(
+                scalarv,
+                {{ vector_load }}(&c[j + {{ u * vector_size }}])));
+{%- endfor %}
+    }
+    for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
+         j < STREAM_ARRAY_SIZE; ++j) {
+        b[j] = scalar * c[j];
+    }
+}
+
+void tuned_STREAM_Add()
+{
+    ssize_t j;
+#pragma omp parallel for
+    for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
+{%- for u in range(unroll_factor) %}
+        {{ vector_store }}(
+            &c[j + {{ u * vector_size }}],
+            {{ vector_add }}(
+                {{ vector_load }}(&a[j + {{ u * vector_size }}]),
+                {{ vector_load }}(&b[j + {{ u * vector_size }}])));
+{%- endfor %}
+    }
+    for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
+         j < STREAM_ARRAY_SIZE; ++j) {
+        c[j] = a[j] + b[j];
+    }
+}
+
+void tuned_STREAM_Triad(STREAM_TYPE scalar)
+{
+    ssize_t j;
+    {{ vector_type }} scalarv;
+    scalarv = {{ vector_broadcast }}(scalar);
+#pragma omp parallel for
+    for (j = 0; j < STREAM_ARRAY_SIZE - {{ step - 1 }}; j += {{ step }}) {
+{%- for u in range(unroll_factor) %}
+        {{ vector_store }}(
+            &a[j + {{ u * vector_size }}],
+{%- if fma %}
+            {{ vector_fmadd }}(
+                scalarv,
+                {{ vector_load }}(&c[j + {{ u * vector_size }}]),
+{%- else %}
+            {{ vector_add }}(
+                {{ vector_mul }}(
+                    scalarv,
+                    {{ vector_load }}(&c[j + {{ u * vector_size }}])),
+{%- endif %}
+                {{ vector_load }}(&b[j + {{ u * vector_size }}])));
+{%- endfor %}
+    }
+    for (j = STREAM_ARRAY_SIZE / {{ step }} * {{ step }};
+         j < STREAM_ARRAY_SIZE; ++j) {
+        a[j] = b[j] + scalar * c[j];
+    }
+}
+{% endblock kernels %}
