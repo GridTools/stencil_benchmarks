@@ -90,10 +90,10 @@ class Original(Benchmark):
             if match:
                 results.append({
                     'name': match.group(1).lower(),
-                    'bandwidth': match.group(2),
-                    'avg-time': match.group(3),
-                    'time': match.group(4),
-                    'max-time': match.group(5)
+                    'bandwidth': float(match.group(2)),
+                    'avg-time': float(match.group(3)),
+                    'time': float(match.group(4)),
+                    'max-time': float(match.group(5))
                 })
 
         return results
