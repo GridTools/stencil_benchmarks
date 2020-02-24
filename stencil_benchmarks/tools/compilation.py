@@ -3,7 +3,6 @@ import ctypes
 import io
 import os
 import subprocess
-import sys
 import tempfile
 from typing import (Any, Callable, ContextManager, List, Optional, TextIO,
                     Tuple, Union)
@@ -37,9 +36,22 @@ def _redirect_output(fileno: int, target: TextIO) -> ContextManager[None]:
 
 
 @contextlib.contextmanager
-def capture_output(stdout: TextIO, stderr: TextIO) -> ContextManager[None]:
-    with _redirect_output(sys.stderr.fileno(), stderr):
-        with _redirect_output(sys.stdout.fileno(), stdout):
+def _capture_output(stdout: TextIO, stderr: TextIO) -> ContextManager[None]:
+    """Context manager to capture the output written to stdout and stderr.
+
+    Works by temporarily redefining the stdout and stderr file descriptors.
+    Thus, in contrast to contextlib.redirect_stdout() and
+    contextlib.redirect_stderr(), this also works for (C/C++) library calls.
+
+    Parameters
+    ----------
+    stdout : TextIO
+        TextIO to capture stdout.
+    stderr : TextIO
+        TextIO to capture stderr.
+    """
+    with _redirect_output(1, stdout):
+        with _redirect_output(2, stderr):
             yield
 
 
@@ -48,6 +60,30 @@ class GnuLibrary:
                  code: str,
                  compile_command: Optional[List[str]] = None,
                  extension: Optional[str] = None):
+        """Compile and load a C/C++-library.
+
+        Parameters
+        ----------
+        code : str
+            Code to compile.
+        compile_command : list of str
+            Command to use for compilation.
+        extension : str
+            File extension to use for code file.
+        Examples
+        --------
+        >>> lib = GnuLibrary('''
+        ...                  #include <stdio.h>
+        ...                  int useless_function() {
+        ...                      printf("Hello world!");
+        ...                      fflush(stdout);
+        ...                      return 0;
+        ...                  }
+        ...                  ''',
+        ...                  extension='.c')
+        >>> lib.useless_function()
+        'Hello world!'
+        """
         if extension is None:
             extension = '.cpp'
         if compile_command is None:
@@ -77,6 +113,24 @@ class GnuLibrary:
                 self._library = ctypes.cdll.LoadLibrary(library.name)
 
     def __getattr__(self, attr: str) -> Callable[[Any], str]:
+        """Access library function by name.
+
+        The returned callable is a wrapper around the C/C++ library function.
+        The wrapped C/C++ function must return zero on success and a non-zero
+        int in case of failure. Arbitrary arguments can be passed when wrapped
+        into corresponding `ctypes` objects, optionally the callable takes a
+        keyword argument `argtypes` to define the input parameter types.
+
+        Parameter
+        ---------
+        attr : str
+            Name of the C/C++ library function.
+
+        Returns
+        -------
+        Callable
+            Wrapper around the C/C++ library function.
+        """
         func = getattr(self._library, attr)
 
         def wrapper(*args, argtypes=None):
@@ -84,7 +138,7 @@ class GnuLibrary:
                 func.argtypes = argtypes
             stdout = io.StringIO()
             stderr = io.StringIO()
-            with capture_output(stdout, stderr):
+            with _capture_output(stdout, stderr):
                 result = func(*args)
             stdout.seek(0)
             stderr.seek(0)
@@ -94,6 +148,7 @@ class GnuLibrary:
 
             return stdout.read()
 
+        wrapper.__name__ = attr
         return wrapper
 
 
