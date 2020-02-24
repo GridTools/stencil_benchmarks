@@ -19,10 +19,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pybind11 # workaround until PyBind11 is released with https://github.com/pybind/pybind11/pull/1995
-          pip install numba # required to pass all tests
           pip install .
-      - name: Test
+      - name: Install Test Dependencies
         run: |
           pip install pytest pytest-flake8 pytest-subtests pytest-mypy
+          pip install numba # required to pass all tests
           pip install -e . # required to make pytest finding the compiled modules
+      - name: Test
+        run: |
           pytest
