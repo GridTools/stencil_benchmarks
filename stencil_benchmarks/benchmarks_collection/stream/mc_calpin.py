@@ -187,9 +187,6 @@ class Native(Original):
     vector_size = Parameter('vector size (only where applicable)', 0)
     streaming_stores = Parameter('bypass load of destination array', True)
 
-    def setup(self):
-        super().setup()
-
     def template_file(self):
         return 'native.j2'
 

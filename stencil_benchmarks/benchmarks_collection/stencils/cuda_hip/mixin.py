@@ -194,7 +194,7 @@ class VerticalAdvectionMixin(StencilMixin):
         ' > 0: unrolling factor)', -1)
 
     def template_file(self):
-        return ('vertical_advection_' + type(self).__name__.lower() + '.j2')
+        return 'vertical_advection_' + type(self).__name__.lower() + '.j2'
 
     def template_args(self):
         return dict(args=self.args,
@@ -211,7 +211,7 @@ class HorizontalDiffusionMixin(StencilMixin):
     block_size = benchmark.Parameter('block size', (32, 8, 1))
 
     def template_file(self):
-        return ('horizontal_diffusion_' + type(self).__name__.lower() + '.j2')
+        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
 
     def template_args(self):
         return dict(args=self.args,
