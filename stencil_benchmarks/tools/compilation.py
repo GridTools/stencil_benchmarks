@@ -4,8 +4,8 @@ import io
 import os
 import subprocess
 import tempfile
-from typing import (Any, Callable, ContextManager, List, Optional, TextIO,
-                    Tuple, Union)
+from typing import (Any, Callable, Iterator, List, Optional, TextIO, Tuple,
+                    Union)
 import warnings
 
 import numpy as np
@@ -20,7 +20,7 @@ class ExecutionError(RuntimeError):
 
 
 @contextlib.contextmanager
-def _redirect_output(fileno: int, target: TextIO) -> ContextManager[None]:
+def _redirect_output(fileno: int, target: TextIO) -> Iterator[None]:
     backup = os.dup(fileno)
 
     with tempfile.TemporaryFile() as tmpfile:
@@ -36,7 +36,7 @@ def _redirect_output(fileno: int, target: TextIO) -> ContextManager[None]:
 
 
 @contextlib.contextmanager
-def _capture_output(stdout: TextIO, stderr: TextIO) -> ContextManager[None]:
+def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
     """Context manager to capture the output written to stdout and stderr.
 
     Works by temporarily redefining the stdout and stderr file descriptors.
