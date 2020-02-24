@@ -70,4 +70,5 @@ setuptools.setup(
     install_requires=[
         'click', 'numpy', 'pandas', 'jinja2', 'matplotlib', 'pybind11'
     ],
-    setup_requires=['pybind11'])
+    setup_requires=['pybind11'],
+    zip_safe=False)
