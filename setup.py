@@ -55,7 +55,7 @@ setuptools.setup(
     long_description=long_description(),
     long_description_content_type='text/markdown',
     packages=setuptools.find_packages(),
-    package_data={'': ['*.j2']},
+    package_data={'': ['*.j2', '*.pyi']},
     ext_modules=ext_modules,
     entry_points={
         'console_scripts': [
