@@ -16,79 +16,70 @@ def _cli_command(bmark):
     return command_path + [command_name]
 
 
-def _cli_func(bmark):
-    @click.pass_context
-    def run_bmark(ctx, **kwargs):
-        import pandas as pd
+def _instantiate(bmark, skip_invalid_parameters, **kwargs):
+    try:
+        return bmark(**kwargs)
+    except benchmark.ParameterError as error:
+        if skip_invalid_parameters:
+            return
+        click.echo(*error.args)
+        sys.exit(1)
 
-        unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
-        result_keys = None
-        results = []
-        try:
-            with cli_tools.ProgressBar() as progress:
-                for kws in progress.report(unpacked_kwargs):
-                    try:
-                        bmark_instance = bmark(**kws)
-                    except benchmark.ParameterError as error:
-                        if ctx.obj.skip_invalid_parameters:
-                            continue
-                        click.echo(*error.args)
-                        sys.exit(1)
 
-                    for _ in progress.report(range(ctx.obj.executions)):
-                        try:
-                            res = bmark_instance.run()
-                            if isinstance(res, dict):
-                                res = [res]
-                            for result in res:
-                                if result_keys is None:
-                                    result_keys = set(result.keys())
-                                result.update(
-                                    cli_tools.pretty_parameters(
-                                        bmark_instance))
-                                results.append(result)
-                        except benchmark.ExecutionError as error:
-                            if ctx.obj.skip_execution_failures:
-                                continue
-                            click.echo(*error.args)
-                            sys.exit(1)
-                        except validation.ValidationError:
-                            click.echo('error: validation failed')
-                            sys.exit(2)
+def _run_instance(bmark_instance, skip_execution_failures):
+    try:
+        results = bmark_instance.run()
+    except benchmark.ExecutionError as error:
+        if skip_execution_failures:
+            return []
+        click.echo(*error.args)
+        sys.exit(1)
+    except validation.ValidationError:
+        click.echo('error: validation failed')
+        sys.exit(2)
+    assert results
 
-                    try:
-                        del bmark_instance
-                        gc.collect()
-                    except NameError:
-                        pass
-        except KeyboardInterrupt:
-            pass
-        if not results:
-            click.echo('no data collected')
-            sys.exit(1)
-        table = pd.DataFrame(results)
-        if ctx.obj.output:
-            table.to_csv(ctx.obj.output)
+    if isinstance(results, dict):
+        results = [results]
 
-        nunique = table.apply(pd.Series.nunique)
-        if len(table.index) > 1:
-            table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
+    result_keys = set(results[0].keys())
+    pretty_params = cli_tools.pretty_parameters(bmark_instance)
+    results = [dict(r, **pretty_params) for r in results]
 
-        if ctx.obj.report == 'full':
-            click.echo(table.to_string())
-        else:
-            group_keys = list(set(table.columns) - result_keys)
-            if group_keys:
-                medians = table.groupby(group_keys).median()
-                if ctx.obj.report == 'best-median':
-                    best = medians['time'].idxmin()
-                    click.echo(medians.loc[[best]])
-                else:
-                    click.echo(medians.sort_values(by='time').to_string())
+    return results, result_keys
+
+
+def _process_results(results, result_keys, output, report):
+    if not results:
+        click.echo('no data collected')
+        sys.exit(1)
+
+    import pandas as pd
+
+    table = pd.DataFrame(results)
+    if output:
+        table.to_csv(output)
+
+    nunique = table.apply(pd.Series.nunique)
+    if any(nunique > 1):
+        table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
+
+    if report == 'full':
+        click.echo(table.to_string())
+    else:
+        group_keys = list(set(table.columns) - result_keys)
+        if group_keys:
+            medians = table.groupby(group_keys).median()
+            if report == 'best-median':
+                best = medians['time'].idxmin()
+                click.echo(medians.loc[[best]])
             else:
-                click.echo(table.median().to_string())
+                click.echo(medians.sort_values(by='time').to_string())
+        else:
+            click.echo(table.median().to_string())
 
-    func = run_bmark
+
+def _bmark_options(bmark):
     for name, param in bmark.parameters.items():
         name = '--' + name.replace('_', '-')
         description = (param.description[0].upper() + param.description[1:] +
@@ -106,6 +97,40 @@ def _cli_func(bmark):
                                   required=param.default is None,
                                   default=param.default,
                                   show_default=param.default is not None)
+        yield option
+
+
+def _cli_func(bmark):
+    @click.pass_context
+    def func(ctx, **kwargs):
+        unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
+
+        results = []
+        try:
+            with cli_tools.ProgressBar() as progress:
+                for kws in progress.report(unpacked_kwargs):
+                    bmark_instance = _instantiate(
+                        bmark, ctx.obj.skip_invalid_parameters, **kws)
+
+                    for _ in progress.report(range(ctx.obj.executions)):
+                        instance_results, result_keys = _run_instance(
+                            bmark_instance, ctx.obj.skip_execution_failures)
+                        results += instance_results
+
+                    try:
+                        del bmark_instance
+                        gc.collect()
+                    except NameError:
+                        pass
+        except KeyboardInterrupt:
+            pass
+
+        _process_results(results,
+                         result_keys,
+                         output=ctx.obj.output,
+                         report=ctx.obj.report)
+
+    for option in _bmark_options(bmark):
         func = option(func)
     return func
 
@@ -156,12 +181,9 @@ def _build(commands):
     return main_group
 
 
-def main():
+def main(*args, **kwargs):
     commands = [(_cli_command(bmark), _cli_func(bmark))
                 for bmark in benchmark.REGISTRY]
     main_group = _build(commands)
 
-    def func(*args, **kwargs):
-        return main_group(*args, **kwargs, obj=types.SimpleNamespace())
-
-    return func
+    return main_group(*args, **kwargs, obj=types.SimpleNamespace())
