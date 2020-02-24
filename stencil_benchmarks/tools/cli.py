@@ -5,8 +5,8 @@ import operator
 import re
 import sys
 import types
-from typing import (Any, Dict, Iterable, Iterator, List, Literal, NamedTuple,
-                    Optional, Tuple)
+from typing import (Any, Dict, Iterable, Iterator, List, NamedTuple, Optional,
+                    Tuple)
 
 import click
 
@@ -133,7 +133,7 @@ class ProgressBar:
         """Context manager entry point."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> Literal[False]:
+    def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit point.
 
         Clears progress bar in case of succes,
