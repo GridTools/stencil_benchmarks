@@ -1,5 +1,5 @@
+import subprocess
 import unittest
-import warnings
 
 from stencil_benchmarks.tools import cpphelpers
 
@@ -15,7 +15,17 @@ class TestFormatCode(unittest.TestCase):
                      '   3   std::cout << "Hello World!" << std::endl;\n'
                      '   4   return 0;\n'
                      '   5 }\n')
+
         try:
-            self.assertEqual(cpphelpers.format_code(code), formatted)
+            subprocess.run(['clang-format', '--version'], check=True)
+            clang_format_available = True
         except FileNotFoundError:
-            warnings.warn(f'clang-format was not found')
+            clang_format_available = False
+
+        if clang_format_available:
+            self.assertEqual(cpphelpers.format_code(code), formatted)
+        else:
+            with self.assertWarnsRegex(
+                    Warning,
+                    'code not formatted: could not find clang-format'):
+                cpphelpers.format_code(code)
