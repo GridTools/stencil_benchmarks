@@ -1,4 +1,5 @@
 import abc
+import ctypes
 import os
 import warnings
 
@@ -33,14 +34,7 @@ class StencilMixin(benchmark.Benchmark):
         if self.compiler.endswith('icpc'):
             os.environ['KMP_INIT_AT_FORK'] = '0'
 
-        libaries = []
-        if self.numa:
-            libaries += ['-lnuma']
-        self.compiled = compilation.gnu_func(self.compile_command(),
-                                             code,
-                                             'kernel',
-                                             float,
-                                             libraries=libaries)
+        self.compiled = compilation.GnuLibrary(code, self.compile_command())
 
     def compile_command(self):
         command = [self.compiler]
@@ -70,6 +64,8 @@ class StencilMixin(benchmark.Benchmark):
                     ]
         if self.compiler_flags:
             command += self.compiler_flags.split()
+        if self.numa:
+            command += ['-lnuma']
         return command
 
     @property
@@ -103,8 +99,14 @@ class StencilMixin(benchmark.Benchmark):
 
     def run_stencil(self, data):
         offset = (self.halo, ) * 3
-        return self.compiled(*(compilation.data_ptr(array, offset)
-                               for array in data))
+        time = ctypes.c_double()
+        try:
+            self.compiled.kernel(
+                ctypes.byref(time),
+                *(compilation.data_ptr(array, offset) for array in data))
+        except compilation.ExecutionError as error:
+            raise benchmark.ExecutionError() from error
+        return time.value
 
 
 class BasicStencilMixin(StencilMixin):

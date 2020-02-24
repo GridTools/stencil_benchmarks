@@ -15,7 +15,7 @@ using hipDeviceProp = hipDeviceProp_t;
                         if (error != {{ backend }}Success) { \
                             std::cerr << #x << " failed: " << {{ backend }}GetErrorString(error) << std::endl; \
                             while ({{ backend }}GetLastError() != {{ backend }}Success) ; \
-                            return 0.0; \
+                            return 1; \
                         } \
                  }
 
@@ -31,7 +31,8 @@ __global__ void gpu_kernel(
 {% endblock gpu_kernel %}
 
 {% block kernel %}
-extern "C" double kernel(
+extern "C" int kernel(
+    double* time,
     {%- for arg in args %}
         {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
     {%- endfor %}
@@ -59,7 +60,7 @@ extern "C" double kernel(
                   << "B (max: "
                   << device_properties.sharedMemPerBlock
                   << "B)" << std::endl;
-        return 0.0;
+        return 1;
     }
     if ((std::size_t)(block_size.x * block_size.y * block_size.z) > (std::size_t)device_properties.maxThreadsPerBlock) {
         std::cerr << "too many threads per block: "
@@ -67,7 +68,7 @@ extern "C" double kernel(
                   << " (max: "
                   << device_properties.maxThreadsPerBlock
                   << ")" << std::endl;
-        return 0.0;
+        return 1;
     }
     if ((std::size_t)block_size.x > (std::size_t)device_properties.maxThreadsDim[0] ||
         (std::size_t)block_size.y > (std::size_t)device_properties.maxThreadsDim[1] ||
@@ -81,7 +82,7 @@ extern "C" double kernel(
                   << device_properties.maxThreadsDim[1] << " "
                   << device_properties.maxThreadsDim[2] << ")"
                   << std::endl;
-        return 0.0;
+        return 1;
     }
     if ((std::size_t)grid_size.x > (std::size_t)device_properties.maxGridSize[0] ||
         (std::size_t)grid_size.y > (std::size_t)device_properties.maxGridSize[1] ||
@@ -95,9 +96,8 @@ extern "C" double kernel(
                   << device_properties.maxGridSize[1] << " "
                   << device_properties.maxGridSize[2] << ")"
                   << std::endl;
-        return 0.0;
+        return 1;
     }
-
 
     {%- if gpu_timers %}
     {{ backend }}Event_t start, stop;
@@ -125,12 +125,13 @@ extern "C" double kernel(
 
     float time;
     CHECK(EventElapsedTime(&time, start, stop));
-    return double(time) / 1000.0;
+    *time = double(time) / 1000.0;
     {%- else %}
     CHECK(DeviceSynchronize());
 
     auto stop = clock::now();
-    return std::chrono::duration<double>(stop - start).count();
+    *time = std::chrono::duration<double>(stop - start).count();
     {%- endif %}
+    return 0;
 }
 {% endblock kernel %}

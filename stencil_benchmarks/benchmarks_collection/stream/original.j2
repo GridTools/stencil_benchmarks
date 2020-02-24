@@ -196,7 +196,7 @@ extern void tuned_STREAM_Triad(STREAM_TYPE scalar);
 extern int omp_get_num_threads();
 #endif
 int
-main()
+run()
     {
     int			quantum, checktick();
     int			BytesPerWord;
@@ -342,6 +342,7 @@ main()
     checkSTREAMresults();
     printf(HLINE);
 
+    fflush(stdout);
     return 0;
 }
 

@@ -1,7 +1,13 @@
+import contextlib
 import ctypes
+import io
+import os
 import subprocess
+import sys
 import tempfile
-from typing import Any, List, Optional, Tuple, Union
+from typing import (Any, Callable, ContextManager, List, Optional, TextIO,
+                    Tuple, Union)
+import warnings
 
 import numpy as np
 
@@ -10,70 +16,85 @@ class CompilationError(RuntimeError):
     pass
 
 
-def gnu_executable(compile_command: List[str],
-                   code: str,
-                   extension: Optional[str] = None,
-                   libraries: Optional[List[str]] = None):
-    if extension is None:
-        extension = '.cpp'
-    if libraries is None:
-        libraries = []
-    with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
-        srcfile.write(code.encode())
-        srcfile.flush()
-
-        with tempfile.NamedTemporaryFile(delete=False) as executable:
-            try:
-                subprocess.run(compile_command +
-                               ['-o', executable.name, srcfile.name] +
-                               libraries,
-                               check=True)
-            except subprocess.CalledProcessError as error:
-                raise CompilationError(*error.args) from None
-            return executable.name
+class ExecutionError(RuntimeError):
+    pass
 
 
-def gnu_library(compile_command: List[str],
-                code: str,
-                extension: Optional[str] = None,
-                libraries: Optional[List[str]] = None):
-    if compile_command[0].endswith('nvcc'):
-        lib_flags = ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
-    else:
-        lib_flags = ['-shared', '-fPIC']
-    if extension is None:
-        extension = '.cpp'
-    if libraries is None:
-        libraries = []
-    with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
-        srcfile.write(code.encode())
-        srcfile.flush()
+@contextlib.contextmanager
+def _redirect_output(fileno: int, target: TextIO) -> ContextManager[None]:
+    backup = os.dup(fileno)
 
-        with tempfile.NamedTemporaryFile(suffix='.so') as library:
-            try:
-                subprocess.run(compile_command + lib_flags +
-                               ['-o', library.name, srcfile.name] + libraries,
-                               check=True)
-            except subprocess.CalledProcessError as error:
-                raise CompilationError(*error.args) from None
-            return ctypes.cdll.LoadLibrary(library.name)
+    with tempfile.TemporaryFile() as tmpfile:
+        os.dup2(tmpfile.fileno(), fileno)
+
+        yield
+
+        tmpfile.seek(0)
+        target.write(tmpfile.read().decode())
+
+    os.dup2(backup, fileno)
+    os.close(backup)
 
 
-def gnu_func(compile_command: List[str],
-             code: str,
-             funcname: str,
-             restype: List[Any] = None,
-             argtypes: List[Any] = None,
-             source_extension: Optional[str] = None,
-             libraries: Optional[List[str]] = None):
-    func = getattr(
-        gnu_library(compile_command, code, source_extension, libraries),
-        funcname)
-    if restype is not None:
-        func.restype = dtype_as_ctype(restype)
-    if argtypes is not None:
-        func.argtypes = [dtype_as_ctype(t) for t in argtypes]
-    return func
+@contextlib.contextmanager
+def capture_output(stdout: TextIO, stderr: TextIO) -> ContextManager[None]:
+    with _redirect_output(sys.stderr.fileno(), stderr):
+        with _redirect_output(sys.stdout.fileno(), stdout):
+            yield
+
+
+class GnuLibrary:
+    def __init__(self,
+                 code: str,
+                 compile_command: Optional[List[str]] = None,
+                 extension: Optional[str] = None):
+        if extension is None:
+            extension = '.cpp'
+        if compile_command is None:
+            compile_command = ['gcc'] if extension.lower() == '.c' else ['g++']
+
+        if compile_command[0].endswith('nvcc'):
+            compile_command += ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
+        else:
+            compile_command += ['-shared', '-fPIC']
+
+        with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
+            srcfile.write(code.encode())
+            srcfile.flush()
+
+            with tempfile.NamedTemporaryFile(suffix='.so') as library:
+                result = subprocess.run(
+                    [compile_command[0], '-o', library.name, srcfile.name] +
+                    compile_command[1:],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+                if result.returncode != 0:
+                    raise CompilationError(result.stderr.decode())
+                if result.stdout or result.stderr:
+                    warnings.warn('unexpected compilation output: ' +
+                                  result.stdout.decode() +
+                                  result.stderr.decode())
+                self._library = ctypes.cdll.LoadLibrary(library.name)
+
+    def __getattr__(self, attr: str) -> Callable[[Any], str]:
+        func = getattr(self._library, attr)
+
+        def wrapper(*args, argtypes=None):
+            if argtypes is not None:
+                func.argtypes = argtypes
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with capture_output(stdout, stderr):
+                result = func(*args)
+            stdout.seek(0)
+            stderr.seek(0)
+
+            if result != 0:
+                raise ExecutionError(stderr.read())
+
+            return stdout.read()
+
+        return wrapper
 
 
 def dtype_as_ctype(dtype: np.dtype):
@@ -150,9 +171,9 @@ def dtype_cname(dtype: np.dtype) -> str:
     raise NotImplementedError(f'Conversion of type {dtype} is not supported')
 
 
-def data_ptr(
-        array: np.ndarray,
-        offset: Union[int, Tuple[int, ...], None] = None) -> ctypes.c_void_p:
+def data_ptr(array: np.ndarray,
+             offset: Union[int, Tuple[int, ...], None] = None
+             ) -> ctypes.c_void_p:
     if offset is None:
         offset = 0
     elif isinstance(offset, int):

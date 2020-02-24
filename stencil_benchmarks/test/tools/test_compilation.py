@@ -9,41 +9,78 @@ from stencil_benchmarks.tools import compilation
 class TestGnuLibrary(unittest.TestCase):
     def test_c(self):
         code = '''
-            int func(int i) {
-                return 2 * i;
+            int func(int *i) {
+                *i *= 2;
+                return 0;
             }'''
 
-        library = compilation.gnu_library(['gcc', '-xc'], code)
-        self.assertEqual(library.func(42), 84)
+        library = compilation.GnuLibrary(code, extension='.c')
+        ival = ctypes.c_int(42)
+        library.func(ctypes.byref(ival))
+        self.assertEqual(ival.value, 84)
 
     def test_cpp(self):
         code = '''
-            extern "C" int func(int i) {
-                return 2 * i;
-            }'''
+            extern "C" int func(float *f) {
+                *f *= 2;
+                return 0;
+            }
+            '''
 
-        library = compilation.gnu_library(['g++', '-xc++'], code)
-        self.assertEqual(library.func(42), 84)
+        library = compilation.GnuLibrary(code)
+        fval = ctypes.c_float(42)
+        library.func(ctypes.byref(fval))
+        self.assertEqual(fval.value, 84.0)
 
-
-class TestGnuFunc(unittest.TestCase):
-    def test_c(self):
+    def test_output_capture(self):
         code = '''
-            int func(int i) {
-                return 2 * i;
-            }'''
+            #include <iostream>
 
-        func = compilation.gnu_func(['gcc', '-xc'], code, 'func')
-        self.assertEqual(func(42), 84)
+            extern "C" int foo(float f, int i) {
+                std::cout << (f * i) << std::endl;
+                return 0;
+            }
+            '''
 
-    def test_cpp(self):
+        library = compilation.GnuLibrary(code)
+        self.assertEqual(
+            library.foo(0.5, 42, argtypes=[ctypes.c_float, ctypes.c_int]),
+            '21\n')
+        self.assertEqual(
+            library.foo(2.0, 42, argtypes=[ctypes.c_float, ctypes.c_int]),
+            '84\n')
+
+    def test_compilation_error(self):
         code = '''
-            extern "C" int func(int i) {
-                return 2 * i;
-            }'''
+            extern "C" int foo(float *f, int i) {
+                return 0 // missing semicolon
+            }
+            '''
+        with self.assertRaises(compilation.CompilationError):
+            compilation.GnuLibrary(code)
 
-        func = compilation.gnu_func(['g++', '-xc++'], code, 'func')
-        self.assertEqual(func(42), 84)
+    def test_execution_error(self):
+        code = '''
+            #include <iostream>
+
+            extern "C" int foo(float *f, int i) {
+                if (!f) {
+                    std::cerr << "nullpointer!" << std::endl;
+                    return 1;
+                }
+                *f *= i;
+                return 0;
+            }
+            '''
+
+        library = compilation.GnuLibrary(code)
+        fval = ctypes.c_float(0.5)
+        self.assertEqual(library.foo(ctypes.byref(fval), 42), '')
+        self.assertEqual(fval.value, 21.0)
+
+        with self.assertRaisesRegex(compilation.ExecutionError,
+                                    'nullpointer!\n'):
+            library.foo(ctypes.c_void_p(), 42)
 
 
 class TestDtypeAsCtype(unittest.TestCase):

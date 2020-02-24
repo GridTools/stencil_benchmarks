@@ -1,4 +1,5 @@
 import abc
+import ctypes
 import os
 import warnings
 
@@ -38,9 +39,8 @@ class StencilMixin(benchmark.Benchmark):
                                self.compiler_flags).strip()
 
         try:
-            self.compiled = compilation.gnu_func(
-                [self.compiler] + self.compiler_flags.split(), code, 'kernel',
-                float)
+            self.compiled = compilation.GnuLibrary(code, [self.compiler] +
+                                                   self.compiler_flags.split())
         except compilation.CompilationError:
             raise benchmark.ParameterError('compilation failed')
 
@@ -114,12 +114,14 @@ class StencilMixin(benchmark.Benchmark):
             for device_array in device_data
         ]
 
-        time = self.compiled(*data_ptrs)
-        if time == 0:
-            raise benchmark.ExecutionError()
+        time = ctypes.c_double()
+        try:
+            self.compiled.kernel(ctypes.byref(time), *data_ptrs)
 
-        if self.run_twice:
-            time = self.compiled(*data_ptrs)
+            if self.run_twice:
+                self.compiled.kernel(ctypes.byref(time), *data_ptrs)
+        except compilation.ExecutionError as error:
+            raise benchmark.ExecutionError() from error
 
         for host_array, device_array in zip(data, device_data):
             self.runtime.memcpy(host_array.ctypes.data,

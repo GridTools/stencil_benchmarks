@@ -45,10 +45,11 @@ void move_to_local_numa_domain(void* begin, void* end) {
 {% endif %}
 
 {% block kernel %}
-extern "C" double kernel(
-    {% for arg in args %}
+extern "C" int kernel(
+    double* time,
+    {%- for arg in args %}
         {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
-    {% endfor %}
+    {%- endfor %}
 ) {
     {% block kernel_prepare %}
     {% endblock kernel_prepare %}
@@ -60,6 +61,7 @@ extern "C" double kernel(
     {% endblock kernel_invoke %}
 
     auto stop = clock::now();
-    return std::chrono::duration<double>(stop - start).count();
+    *time = std::chrono::duration<double>(stop - start).count();
+    return 0;
 }
 {% endblock kernel %}

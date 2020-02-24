@@ -1,7 +1,5 @@
 import os
-import subprocess
 import re
-import weakref
 
 import numpy as np
 
@@ -37,10 +35,9 @@ class Original(Benchmark):
                           cpphelpers.format_code(code),
                           re.MULTILINE | re.DOTALL).group(1))
 
-        self.executable = compilation.gnu_executable(self.compile_command(),
-                                                     code,
-                                                     extension='.c')
-        weakref.finalize(self, os.remove, self.executable)
+        self.compiled = compilation.GnuLibrary(code,
+                                               self.compile_command(),
+                                               extension='.c')
 
     def compile_command(self):
         command = [self.compiler]
@@ -71,10 +68,10 @@ class Original(Benchmark):
                     ctype=compilation.dtype_cname(self.dtype))
 
     def run(self):
-        run = subprocess.run([self.executable],
-                             check=True,
-                             stdout=subprocess.PIPE)
-        output = run.stdout.decode()
+        try:
+            output = self.compiled.run()
+        except compilation.ExecutionError as error:
+            raise ExecutionError() from error
 
         match = re.search(r'Failed Validation.*', output,
                           re.MULTILINE | re.DOTALL)

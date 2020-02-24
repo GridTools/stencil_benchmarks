@@ -149,7 +149,7 @@
     if ({{ block_size[0] + 4 }} != device_properties.warpSize) {
         std::cerr << "only supported block size along first dimension is "
                   << (device_properties.warpSize - 4) << std::endl;
-        return 0.0;
+        return 1;
     }
     block_size = dim3({{ block_size[0] + 4 }},
                       1,
