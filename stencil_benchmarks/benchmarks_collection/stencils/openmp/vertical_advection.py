@@ -12,7 +12,7 @@ class KInnermost(VerticalAdvectionMixin, VerticalAdvectionStencil):
 
 
 class KInnermostVec(KInnermost):
-    vector_size = benchmark.Parameter('vector size', 16)
+    vector_size = benchmark.Parameter('vector size', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
@@ -31,7 +31,7 @@ class KMiddle(VerticalAdvectionMixin, VerticalAdvectionStencil):
 
 
 class KMiddleVec(KMiddle):
-    vector_size = benchmark.Parameter('vector size', 16)
+    vector_size = benchmark.Parameter('vector size', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)

@@ -53,7 +53,7 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
 
 
 class OnTheFlyVec(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+    vector_size = benchmark.Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
@@ -64,7 +64,7 @@ class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
 
 
 class ClassicVec(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+    vector_size = benchmark.Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
@@ -75,14 +75,14 @@ class ReducedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
 
 
 class MinimumMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+    vector_size = benchmark.Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
 
 
 class Rolling(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 16)
+    vector_size = benchmark.Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)

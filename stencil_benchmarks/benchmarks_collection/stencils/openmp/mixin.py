@@ -136,7 +136,7 @@ class BasicStencilMixin(StencilMixin):
 
 
 class VerticalAdvectionMixin(StencilMixin):
-    block_size = benchmark.Parameter('block size', (1, 1))
+    block_size = benchmark.Parameter('block size', (8, 1))
 
     def template_file(self):
         return ('vertical_advection_' + type(self).__name__.lower() + '.j2')
@@ -146,7 +146,7 @@ class VerticalAdvectionMixin(StencilMixin):
 
 
 class HorizontalDiffusionMixin(StencilMixin):
-    block_size = benchmark.Parameter('block size', (1, 1, 1))
+    block_size = benchmark.Parameter('block size', (8, 8, 1))
 
     def template_file(self):
         return ('horizontal_diffusion_' + type(self).__name__.lower() + '.j2')
