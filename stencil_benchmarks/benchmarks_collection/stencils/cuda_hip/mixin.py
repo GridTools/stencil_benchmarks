@@ -41,8 +41,8 @@ class StencilMixin(benchmark.Benchmark):
         try:
             self.compiled = compilation.GnuLibrary(code, [self.compiler] +
                                                    self.compiler_flags.split())
-        except compilation.CompilationError:
-            raise benchmark.ParameterError('compilation failed')
+        except compilation.CompilationError as error:
+            raise benchmark.ParameterError(*error.args) from error
 
         if self.verify and self.run_twice:
             warnings.warn(
@@ -129,7 +129,7 @@ class StencilMixin(benchmark.Benchmark):
                                 array.nbytes(host_array), 'DeviceToHost')
         self.runtime.device_synchronize()
 
-        return time
+        return time.value
 
     @property
     def runtime(self):
