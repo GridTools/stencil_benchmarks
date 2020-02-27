@@ -20,6 +20,9 @@ class StencilMixin(benchmark.Benchmark):
         choices=['none', 'native', 'knl'])
     print_code = benchmark.Parameter('print generated code', False)
     numa = benchmark.Parameter('enable NUMA-awareness', False)
+    streaming_stores = benchmark.Parameter(
+        'enable streaming/non-temporal store instructions '
+        '(only supported by some implementations)', False)
 
     def setup(self):
         super().setup()
@@ -95,7 +98,8 @@ class StencilMixin(benchmark.Benchmark):
                     sorted_domain=self.sorted_domain,
                     numa=self.numa,
                     halo=self.halo,
-                    alignment=self.alignment)
+                    alignment=self.alignment,
+                    streaming_stores=self.streaming_stores)
 
     def run_stencil(self, data):
         offset = (self.halo, ) * 3
