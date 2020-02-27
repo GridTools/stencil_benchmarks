@@ -103,7 +103,7 @@ extern "C" int kernel(
     {{ backend }}Event_t start, stop;
     CHECK(EventCreate(&start));
     CHECK(EventCreate(&stop));
-    
+
     CHECK(EventRecord(start));
     {%- else %}
     using clock = std::chrono::high_resolution_clock;
@@ -123,9 +123,9 @@ extern "C" int kernel(
 
     CHECK(EventSynchronize(stop));
 
-    float time;
-    CHECK(EventElapsedTime(&time, start, stop));
-    *time = double(time) / 1000.0;
+    float ftime;
+    CHECK(EventElapsedTime(&ftime, start, stop));
+    *time = double(ftime) / 1000.0;
     {%- else %}
     CHECK(DeviceSynchronize());
 
