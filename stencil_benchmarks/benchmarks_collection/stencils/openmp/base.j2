@@ -42,6 +42,55 @@ using index_t = std::int32_t;
 using index_t = std::int64_t;
 {%- endif %}
 
+{%- if vector_size is defined %}
+  using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+  using ivec_t = index_t __attribute__((vector_size({{ vector_size }} * sizeof(index_t))));
+  {%- if ctype == 'float' %}
+    {%- if alignment is defined and alignment > 0 and alignment % (4 * vector_size) == 0 %}
+      using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+
+      {%- if streaming_stores %}
+      #if defined(__SSE__) && {{ vector_size }} == 4
+      #define NTSTORE(ptr, val) __builtin_ia32_movntps((ptr), (val))
+      #elif defined(__AVX__) && {{ vector_size }} == 8
+      #define NTSTORE(ptr, val) __builtin_ia32_movntps256((ptr), (val))
+      #elif defined(__AVX512F__) && {{ vector_size }} == 16
+      #define NTSTORE(ptr, val) __builtin_ia32_movntps512((ptr), (val))
+      #else
+      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
+      #endif
+      {%- else %}
+      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
+      {% endif %}
+    {%- else %}
+      using vec_t = unaligned_vec_t;
+      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
+    {%- endif %}
+  {%- elif ctype == 'double' %}
+    {%- if alignment is defined and alignment > 0 and alignment % (8 * vector_size) == 0 %}
+      using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+
+      {%- if streaming_stores %}
+      #if defined(__SSE__) && {{ vector_size }} == 2
+      #define NTSTORE(ptr, val) __builtin_ia32_movntpd((ptr), (val))
+      #elif defined(__AVX__) && {{ vector_size }} == 4
+      #define NTSTORE(ptr, val) __builtin_ia32_movntpd256((ptr), (val))
+      #elif defined(__AVX512F__) && {{ vector_size }} == 8
+      #define NTSTORE(ptr, val) __builtin_ia32_movntpd512((ptr), (val))
+      #else
+      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
+      #endif
+      {%- else %}
+      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
+      {% endif %}
+    {%- else %}
+      using vec_t = unaligned_vec_t;
+      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
+    {%- endif %}
+  {%- endif %}
+
+{%- endif %}
+
 {% block pre_kernel %}
 {% endblock pre_kernel %}
 

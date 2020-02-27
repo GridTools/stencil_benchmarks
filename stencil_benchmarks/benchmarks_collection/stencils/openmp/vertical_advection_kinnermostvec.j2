@@ -3,21 +3,6 @@
 {% block pre_kernel %}
 {{ super() }}
 
-using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
-{%- if ctype == 'double' %}
-    {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
-    using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-    {%- else %}
-    using vec_t = unaligned_vec_t;
-    {%- endif %}
-{%- else %}
-    {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
-    using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-    {%- else %}
-    using vec_t = unaligned_vec_t;
-    {%- endif %}
-{%- endif %}
-
 __attribute__((always_inline)) inline void forward_sweep_vec(index_t i,
     const index_t j,
     const index_t ishift,
@@ -184,8 +169,8 @@ __attribute__((always_inline)) inline void backward_sweep_vec(index_t i,
 {% endblock pre_kernel %}
 
 {% block kernel_invoke %}
-#pragma omp parallel 
-    {   
+#pragma omp parallel
+    {
         alignas({{ alignment }}) {{ ctype }} ccolb[{{ domain[2] * vector_size }}];
         alignas({{ alignment }}) {{ ctype }} dcolb[{{ domain[2] * vector_size }}];
 

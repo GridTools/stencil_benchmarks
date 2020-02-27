@@ -6,23 +6,6 @@
     index_t thread = omp_get_thread_num();
     index_t total_threads = omp_get_num_threads();
 
-    using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
-    {%- if ctype == 'double' %}
-    using ivec_t = std::int64_t __attribute__((vector_size({{ vector_size * 8}})));
-      {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
-        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-      {%- else %}
-        using vec_t = unaligned_vec_t;
-      {%- endif %}
-    {%- else %}
-    using ivec_t = std::int32_t __attribute__((vector_size({{ vector_size * 4}})));
-      {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
-        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-      {%- else %}
-        using vec_t = unaligned_vec_t;
-      {%- endif %}
-    {%- endif %}
-
     vec_t inpb[5][4];
     vec_t lapb[5][4];
     vec_t flxb[5][4];
@@ -89,8 +72,9 @@
       flyb[2][1] = lapb[3][1] - lapb[2][1];
       flyb[2][1] = flyb[2][1] * (inpb[3][1] - inpb[2][1]) > 0 ? 0 : flyb[2][1];
 
-      *(vec_t*)&out[i] = inpb[2][1] - *(vec_t*)&coeff[i] * (flxb[2][1] - __builtin_shuffle(flxb[2][0], flxb[2][1], iminus) +
-                                                            flyb[2][1] - flyb[1][1]);
+      vec_t out_ij = inpb[2][1] - *(vec_t*)&coeff[i] * (flxb[2][1] - __builtin_shuffle(flxb[2][0], flxb[2][1], iminus) +
+                                                        flyb[2][1] - flyb[1][1]);
+      NTSTORE(&out[i], out_ij);
 
       inpb[1][0] = inpb[1][1];
       inpb[1][1] = inpb[1][2];

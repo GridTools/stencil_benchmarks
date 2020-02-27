@@ -3,23 +3,6 @@
 {% block kernel_invoke %}
 #pragma omp parallel
   {
-    using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
-    {%- if ctype == 'double' %}
-    using ivec_t = std::int64_t __attribute__((vector_size({{ vector_size * 8}})));
-      {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
-        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-      {%- else %}
-        using vec_t = unaligned_vec_t;
-      {%- endif %}
-    {%- else %}
-    using ivec_t = std::int32_t __attribute__((vector_size({{ vector_size * 4}})));
-      {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
-        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-      {%- else %}
-        using vec_t = unaligned_vec_t;
-      {%- endif %}
-    {%- endif %}
-
     alignas({{ alignment }}) {{ctype }} lap[{{ block_size[0] + vector_size + 2 }}];
     alignas({{ alignment }}) {{ctype }} fly[{{ block_size[0] + vector_size + 2 }}];
 #pragma omp for collapse(3)
@@ -76,8 +59,9 @@
                     vec_t flx_im1j = __builtin_shuffle(flx_imvj, flx_ij, iminus_mask);
 
                     if (j >= 0) {
-                      *(vec_t*)&out[index] = *(vec_t*)&inp[index] - *(vec_t*)&coeff[index] * (flx_ij - flx_im1j +
-                                                                                              fly_ij - *(vec_t*)&fly[i + {{ vector_size }}]);
+                      vec_t out_ij = *(vec_t*)&inp[index] - *(vec_t*)&coeff[index] * (flx_ij - flx_im1j +
+                                                                                      fly_ij - *(vec_t*)&fly[i + {{ vector_size }}]);
+                      NTSTORE(&out[index], out_ij);
                     }
                     *(vec_t*)&fly[i + {{ vector_size }}] = fly_ij;
                     flx_imvj = flx_ij;

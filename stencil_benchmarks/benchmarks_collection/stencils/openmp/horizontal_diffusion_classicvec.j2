@@ -3,21 +3,6 @@
 {% block kernel_invoke %}
 #pragma omp parallel
   {
-    using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
-    {%- if ctype == 'double' %}
-      {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
-        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-      {%- else %}
-        using vec_t = unaligned_vec_t;
-      {%- endif %}
-    {%- else %}
-      {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
-        using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-      {%- else %}
-        using vec_t = unaligned_vec_t;
-      {%- endif %}
-    {%- endif %}
-
     alignas({{ alignment }}) {{ ctype }} lap[{{ block_size[1] + 4 }}][{{ (block_size[0] + 4 + 2 * vector_size - 1) // vector_size * vector_size }}];
     alignas({{ alignment }}) {{ ctype }} flx[{{ block_size[1] + 4 }}][{{ (block_size[0] + 4 + 2 * vector_size - 1) // vector_size * vector_size }}];
     alignas({{ alignment }}) {{ ctype }} fly[{{ block_size[1] + 4 }}][{{ (block_size[0] + 4 + 2 * vector_size - 1) // vector_size * vector_size }}];
@@ -104,15 +89,14 @@
                 index_t i = 0;
                 index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
                 for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
-#pragma omp simd
-                  for (index_t v = 0; v < {{ vector_size }}; ++v) {
-                    out[index + v * {{ strides[0] }}] = inp[index + v * {{ strides[0] }}]
-                                                      - coeff[index + v * {{ strides[0] }}]
-                                                      * (flx[j + 2][i + {{ vector_size}} + v]
-                                                       - flx[j + 2][i + {{ vector_size - 1 }} + v]
-                                                       + fly[j + 2][i + {{ vector_size}} + v]
-                                                       - fly[j + 1][i + {{ vector_size}} + v]);
-                  }
+
+                  vec_t out_ij = *(vec_t*)&inp[index]
+                                   - *(vec_t*)&coeff[index]
+                                   * (*(vec_t*)&flx[j + 2][i + {{ vector_size }}]
+                                    - *(unaligned_vec_t*)&flx[j + 2][i + {{ vector_size - 1 }}]
+                                    + *(vec_t*)&fly[j + 2][i + {{ vector_size }}]
+                                    - *(vec_t*)&fly[j + 1][i + {{ vector_size }}]);
+                  NTSTORE(&out[index], out_ij);
 
                   index += {{ strides[0] * vector_size }};
                 }

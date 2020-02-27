@@ -37,7 +37,7 @@
                 index_t i;
                 for (i = 0; i < imax - {{ vector_size - 1 }}; i += {{ vector_size }}) {
                   const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
-                  
+
                   const vec_t inp_ij = *(vec_t*)&inp[index];
                   const vec_t inp_im1j = *(unaligned_vec_t*)&inp[index - {{ strides[0] }}];
                   const vec_t inp_ip1j = *(unaligned_vec_t*)&inp[index + {{ strides[0] }}];
@@ -79,8 +79,9 @@
                   vec_t fly_ijm = lap_ij - lap_ijm;
                   fly_ijm = fly_ijm * (inp_ij - inp_ijm1) > 0 ? 0 : fly_ijm;
 
-                   *(vec_t*)&out[index] = inp_ij -  *(vec_t*)&coeff[index] * (flx_ij - flx_imj +
-                                          fly_ij - fly_ijm);
+                  vec_t out_ij = inp_ij -  *(vec_t*)&coeff[index] * (flx_ij - flx_imj +
+                                                                     fly_ij - fly_ijm);
+                  NTSTORE(&out[index], out_ij);
                 }
 
                 for (; i < imax; ++i) {

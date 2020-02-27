@@ -3,21 +3,6 @@
 {% block pre_kernel %}
 {{ super() }}
 
-using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
-{%- if ctype == 'double' %}
-    {%- if alignment > 0 and alignment % (8 * vector_size) == 0 %}
-    using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-    {%- else %}
-    using vec_t = unaligned_vec_t;
-    {%- endif %}
-{%- else %}
-    {%- if alignment > 0 and alignment % (4 * vector_size) == 0 %}
-    using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
-    {%- else %}
-    using vec_t = unaligned_vec_t;
-    {%- endif %}
-{%- endif %}
-
 __attribute__((always_inline)) inline void forward_sweep_kmin_vec(index_t i,
     const index_t j,
     const index_t ishift,
@@ -176,7 +161,7 @@ __attribute__((always_inline)) inline void backward_sweep_kmax_vec(index_t i,
     const index_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
     const index_t datacol_index = i * {{ strides[0] }} + j * {{ strides[1] }};
     *(vec_t*)&datacol[datacol_index] = *(vec_t*)&dcol[index];
-    *(vec_t*)&utensstage[index] = dtr_stage * (*(vec_t*)&datacol[datacol_index] - *(vec_t*)&upos[index]);
+    NTSTORE(&utensstage[index], dtr_stage * (*(vec_t*)&datacol[datacol_index] - *(vec_t*)&upos[index]));
 }
 
 __attribute__((always_inline)) inline void backward_sweep_kbody_vec(index_t i,
@@ -191,7 +176,7 @@ __attribute__((always_inline)) inline void backward_sweep_kbody_vec(index_t i,
     const index_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + k * {{ strides[2] }};
     const index_t datacol_index = i * {{ strides[0] }} + j * {{ strides[1] }};
     *(vec_t*)&datacol[datacol_index] = *(vec_t*)&dcol[index] - *(vec_t*)&ccol[index] * *(vec_t*)&datacol[datacol_index];
-    *(vec_t*)&utensstage[index] = dtr_stage * (*(vec_t*)&datacol[datacol_index] - *(vec_t*)&upos[index]);
+    NTSTORE(&utensstage[index], dtr_stage * (*(vec_t*)&datacol[datacol_index] - *(vec_t*)&upos[index]));
 }
 
 __attribute__((always_inline)) inline void backward_sweep_k_vec(index_t i,
