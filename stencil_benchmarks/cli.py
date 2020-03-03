@@ -60,6 +60,9 @@ def _process_results(results, result_keys, output, report):
     if output:
         table.to_csv(output)
 
+    is_num = pd.api.types.is_numeric_dtype
+    result_keys = {k for k in result_keys if is_num(table.dtypes[k])}
+
     nunique = table.apply(pd.Series.nunique)
     if any(nunique > 1):
         table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
