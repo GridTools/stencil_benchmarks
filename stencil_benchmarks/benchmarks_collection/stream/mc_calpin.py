@@ -71,7 +71,7 @@ class Original(Benchmark):
         try:
             output = self.compiled.run()
         except compilation.ExecutionError as error:
-            raise ExecutionError() from error
+            raise ExecutionError(*error.args) from error
 
         match = re.search(r'Failed Validation.*', output,
                           re.MULTILINE | re.DOTALL)
