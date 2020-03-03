@@ -1,0 +1,235 @@
+#include <cstdio>
+#include <iostream>
+#include <limits>
+#include <vector>
+
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#define GPU(x) hip##x
+#else
+#define GPU(x) cuda##x
+#endif
+
+#define CHECK(x) { \
+                    GPU(Error_t) error = GPU(x); \
+                        if (error != GPU(Success)) { \
+                            std::cerr << #x << " failed: " << GPU(GetErrorString)(error) << std::endl; \
+                            while (GPU(GetLastError)() != GPU(Success)) ; \
+                            return 1; \
+                        } \
+                 }
+
+{%- if vector_size > 1 %}
+{%- set ctype_vec = ctype + (vector_size | string) %}
+{%- else %}
+{%- set ctype_vec = ctype %}
+{%- endif %}
+
+__global__ void init({{ ctype_vec }} *__restrict__ a,
+                     {{ ctype_vec }} *__restrict__ b,
+                     {{ ctype_vec }} *__restrict__ c) {
+    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+
+    if (i < {{ array_size // vector_size }}) {
+        a[i] = {{ ctype_vec }}(2);
+        b[i] = {{ ctype_vec }}(2);
+        c[i] = {{ ctype_vec }}(0);
+    }
+}
+
+__global__ void copy({{ ctype_vec }} *__restrict__ c,
+                     const {{ ctype_vec }} * __restrict__ a) {
+    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+
+    if (i < {{ array_size // vector_size }})
+        c[i] = a[i];
+}
+
+__global__ void scale({{ ctype_vec }} *__restrict__ b,
+                      const {{ ctype }} scalar,
+                      const {{ ctype_vec }} * __restrict__ c) {
+    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+
+    if (i < {{ array_size // vector_size }})
+        b[i] = scalar * c[i];
+}
+
+__global__ void add({{ ctype_vec }} *__restrict__ c,
+                      const {{ ctype_vec }} * __restrict__ a,
+                      const {{ ctype_vec }} * __restrict__ b) {
+    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+
+    if (i < {{ array_size // vector_size }})
+        c[i] = a[i] + b[i];
+}
+
+__global__ void triad({{ ctype_vec }} *__restrict__ a,
+                      const {{ ctype_vec }} * __restrict__ b,
+                      const {{ ctype }} scalar,
+                      const {{ ctype_vec }} * __restrict__ c) {
+    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+
+    if (i < {{ array_size // vector_size }})
+        a[i] = b[i] + scalar * c[i];
+}
+
+bool check_results({{ ctype }}* a,
+                   {{ ctype }}* b,
+                   {{ ctype }}* c);
+
+extern "C" int run() {
+    {{ ctype }} *a, *b, *c;
+    CHECK(Malloc(&a, sizeof({{ ctype }}) * {{ array_size }}));
+    CHECK(Malloc(&b, sizeof({{ ctype }}) * {{ array_size }}));
+    CHECK(Malloc(&c, sizeof({{ ctype }}) * {{ array_size }}));
+
+    {%- set grid_size = (array_size // vector_size + block_size - 1) // block_size %}
+
+    dim3 grid_size({{ grid_size if axis == 'x' else 1 }},
+                   {{ grid_size if axis == 'y' else 1 }},
+                   {{ grid_size if axis == 'z' else 1 }});
+    dim3 block_size({{ block_size if axis == 'x' else 1 }},
+                    {{ block_size if axis == 'y' else 1 }},
+                    {{ block_size if axis == 'z' else 1 }});
+    std::cerr << {{ grid_size }} << " " << {{ block_size }} << std::endl;
+
+    init<<<grid_size, block_size>>>(({{ ctype_vec }}*)a,
+                                    ({{ ctype_vec }}*)b,
+                                    ({{ ctype_vec }}*)c);
+    CHECK(GetLastError());
+    CHECK(DeviceSynchronize());
+
+    {{ ctype }} scalar = 3;
+    GPU(Event_t) start, stop;
+    CHECK(EventCreate(&start));
+    CHECK(EventCreate(&stop));
+
+    double times[4][{{ ntimes }}];
+
+    for (int k = 0; k < {{ ntimes }}; ++k) {
+        float ftime;
+
+        CHECK(EventRecord(start));
+        copy<<<grid_size, block_size>>>(({{ ctype_vec }}*)c, ({{ ctype_vec }}*)a);
+        CHECK(GetLastError());
+        CHECK(EventRecord(stop));
+        CHECK(EventSynchronize(stop));
+        CHECK(EventElapsedTime(&ftime, start, stop));
+        times[0][k] = double(ftime) / 1000.0;
+
+        CHECK(EventRecord(start));
+        scale<<<grid_size, block_size>>>(({{ ctype_vec }}*)b, scalar, ({{ ctype_vec }}*)c);
+        CHECK(GetLastError());
+        CHECK(EventRecord(stop));
+        CHECK(EventSynchronize(stop));
+        CHECK(EventElapsedTime(&ftime, start, stop));
+        times[1][k] = double(ftime) / 1000.0;
+
+        CHECK(EventRecord(start));
+        add<<<grid_size, block_size>>>(({{ ctype_vec }}*)c, ({{ ctype_vec }}*)a, ({{ ctype_vec }}*)b);
+        CHECK(GetLastError());
+        CHECK(EventRecord(stop));
+        CHECK(EventSynchronize(stop));
+        CHECK(EventElapsedTime(&ftime, start, stop));
+        times[2][k] = double(ftime) / 1000.0;
+
+        CHECK(EventRecord(start));
+        triad<<<grid_size, block_size>>>(({{ ctype_vec }}*)a, ({{ ctype_vec }}*)b, scalar, ({{ ctype_vec }}*)c);
+        CHECK(GetLastError());
+        CHECK(EventRecord(stop));
+        CHECK(EventSynchronize(stop));
+        CHECK(EventElapsedTime(&ftime, start, stop));
+        times[3][k] = double(ftime) / 1000.0;
+    }
+
+    double avgtime[4] = {0};
+    double mintime[4] = {std::numeric_limits<double>::max(),
+                         std::numeric_limits<double>::max(),
+                         std::numeric_limits<double>::max(),
+                         std::numeric_limits<double>::max()};
+    double maxtime[4] = {0};
+    for (int k = 1; k < {{ ntimes }}; ++k) {
+        for (int j = 0; j < 4; ++j) {
+            avgtime[j] += times[j][k];
+            mintime[j] = std::min(mintime[j], times[j][k]);
+            maxtime[j] = std::max(maxtime[j], times[j][k]);
+        }
+    }
+
+    const char* label[4] = {"Copy:      ",
+                            "Scale:     ",
+                            "Add:       ",
+                            "Triad:     "};
+    std::size_t bytes[4] = {sizeof({{ ctype }}) * {{ array_size * 2 }}ull,
+                            sizeof({{ ctype }}) * {{ array_size * 2 }}ull,
+                            sizeof({{ ctype }}) * {{ array_size * 3 }}ull,
+                            sizeof({{ ctype }}) * {{ array_size * 3 }}ull};
+    std::printf("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
+    for (int j = 0; j < 4; ++j) {
+        avgtime[j] = avgtime[j] / {{ ntimes - 1 }};
+
+        std::printf("%s%12.1f  %11.6f  %11.6f  %11.6f\n",
+                    label[j],
+                    1.0E-06 * bytes[j] / mintime[j],
+                    avgtime[j],
+                    mintime[j],
+                    maxtime[j]);
+    }
+    std::cout << std::flush;
+
+    bool result = check_results(a, b, c);
+    CHECK(Free(a));
+    CHECK(Free(b));
+    CHECK(Free(c));
+    return !result;
+}
+
+bool check_array(std::string const& name, {{ ctype }}* a, {{ ctype }} expected) {
+    std::vector<{{ ctype }}> ah({{ array_size }});
+    CHECK(Memcpy(ah.data(), a, {{ array_size }} * sizeof({{ ctype }}), GPU(MemcpyDeviceToHost)));
+
+    {{ ctype }} sum_err = 0;
+#pragma omp parallel for reduction(+: sum_err)
+    for (std::size_t j = 0 ; j < {{ array_size }}; ++j)
+        sum_err += std::abs(ah[j] - expected);
+    {{ ctype }} avg_err = sum_err / {{ array_size }};
+
+    const double epsilon = sizeof({{ ctype }}) == 4 ? 1e-6 : 1e-13;
+
+    std::size_t ierr = 0;
+    if (std::abs(avg_err / expected) > epsilon) {
+        std::cerr << "failed validation on array " << name << "[]"
+                  << std::endl
+                  << "expected value: " << expected
+                  << " avg. abs. error: " << avg_err
+                  << " avg. rel. error: " << std::abs(avg_err / expected)
+                  << std::endl;
+
+        for (std::size_t j = 0; j < {{ array_size }}; ++j) {
+            if (std::abs(a[j] / expected - 1) > epsilon)
+                ++ierr;
+        }
+        std::cerr << "for array " << name << "[], " << ierr
+                  << " errors were found" << std::endl;
+    }
+
+    return ierr == 0;
+}
+
+bool check_results({{ ctype }}* a,
+                   {{ ctype }}* b,
+                   {{ ctype }}* c) {
+    {{ ctype }} scalar = 3;
+    {{ ctype }} aj = 2, bj = 2, cj = 0;
+
+    for (int k = 0; k < {{ ntimes }}; ++k) {
+        cj = aj;
+        bj = scalar * cj;
+        cj = aj + bj;
+        aj = bj + scalar * cj;
+    }
+
+    return check_array("a", a, aj) &&
+           check_array("b", b, bj) &&
+           check_array("c", c, cj);
+}

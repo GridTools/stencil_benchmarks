@@ -1,3 +1,3 @@
-from .mc_calpin import Original
+from . import mc_calpin, cuda_hip
 
-__all__ = ['Original']
+__all__ = ['mc_calpin', 'cuda_hip']
