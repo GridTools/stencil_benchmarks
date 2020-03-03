@@ -20,13 +20,11 @@
 {% endblock kernel_prepare %}
 
 {% block kernel_invoke %}
-    #pragma omp parallel for simd
-{%- if streaming_stores %}
-    #ifdef __INTEL_COMPILER
-    #pragma vector nontemporal
-    #endif
-{%- endif %}
-    for (index_t index = 0; index <= last; ++index) {
+    #pragma omp parallel for
+    for (index_t index = 0; index <= last - {{ vector_size - 1 }}; index += {{ vector_size }}) {
+        {{ body_vec }}
+    }
+    for (index_t index = last / {{ vector_size }} * {{ vector_size }}; index <= last; ++index) {
         {{ body }}
     }
 {% endblock kernel_invoke %}

@@ -54,9 +54,11 @@
                 {%- if sorted_block_size[2] > 1 %}
                   const index_t kmax = std::min((index_t){{ sorted_domain[2] }}, kb + {{ sorted_block_size[2] }});
 #pragma omp simd
+{%- if streaming_stores %}
 #ifdef __INTEL_COMPILER
 #pragma vector nontemporal
 #endif
+{%- endif %}
                   for (index_t k = kb; k < kmax; ++k) {
                 {%- else %}
                   const index_t k = kb;

@@ -21,9 +21,11 @@
 
 {% block kernel_invoke %}
 #pragma omp parallel for simd collapse(3)
+{%- if streaming_stores %}
 #ifdef __INTEL_COMPILER
 #pragma vector nontemporal
 #endif
+{%- endif %}
     for (index_t i = 0; i < {{ sorted_domain[0] }}; ++i) {
         for (index_t j = 0; j < {{ sorted_domain[1] }}; ++j) {
             for (index_t k = 0; k < {{ sorted_domain[2] }}; ++k) {

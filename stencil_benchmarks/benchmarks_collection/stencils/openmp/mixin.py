@@ -1,6 +1,7 @@
 import abc
 import ctypes
 import os
+import re
 import warnings
 
 import numpy as np
@@ -114,14 +115,30 @@ class StencilMixin(benchmark.Benchmark):
 
 
 class BasicStencilMixin(StencilMixin):
-    loop = benchmark.Parameter('loop kind',
-                               '1D',
-                               choices=['1D', '3D', '3D-blocked'])
+    loop = benchmark.Parameter(
+        'loop kind',
+        '1D',
+        choices=['1D', '1D-vec', '3D', '3D-blocked', '3D-blocked-vec'])
     block_size = benchmark.Parameter('block_size', (1, 1, 1))
+    vector_size = benchmark.Parameter('vector size', 1)
+
+    def setup(self):
+        super().setup()
+        if self.vector_size > 1 and not self.loop.endswith('-vec'):
+            raise benchmark.ParameterError(
+                'vector size can only be != 1 for *-vec loops')
 
     @abc.abstractmethod
     def stencil_body(self):
         pass
+
+    def stencil_body_vec(self):
+        body = self.stencil_body()
+        body = re.sub(r'(inp\[index\])', r'*(vec_t*)&\1', body)
+        body = re.sub(r'(inp\[index[^\]]+\])', r'*(unaligned_vec_t*)&\1', body)
+        body = re.sub(r'out\[index\] = ([^;]*)', r'NTSTORE(&out[index], \1)',
+                      body, re.MULTILINE | re.DOTALL)
+        return body
 
     def template_file(self):
         return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
@@ -136,7 +153,9 @@ class BasicStencilMixin(StencilMixin):
         return dict(**super().template_args(),
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
-                    body=self.stencil_body())
+                    vector_size=self.vector_size,
+                    body=self.stencil_body(),
+                    body_vec=self.stencil_body_vec())
 
 
 class VerticalAdvectionMixin(StencilMixin):
