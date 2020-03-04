@@ -126,6 +126,7 @@ extern "C" int run() {
     CHECK(DeviceSynchronize());
 
     {{ ctype }} scalar = 3;
+
     GPU(Event_t) start, stop;
     CHECK(EventCreate(&start));
     CHECK(EventCreate(&stop));
@@ -203,11 +204,15 @@ extern "C" int run() {
     }
     std::cout << std::flush;
 
-    bool result = check_results(a, b, c);
+{%- if verify %}
+    bool verifies = check_results(a, b, c);
+{%- else %}
+    bool verifies = true;
+{%- endif %}
     CHECK(Free(a));
     CHECK(Free(b));
     CHECK(Free(c));
-    return !result;
+    return !verifies;
 }
 
 bool check_array(std::string const& name, {{ ctype }}* a, {{ ctype }} expected) {

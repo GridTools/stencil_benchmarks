@@ -18,6 +18,7 @@ class Native(Benchmark):
                      choices=['x', 'y', 'z'])
     vector_size = Parameter('vector size', 1)
     print_code = Parameter('print code', False)
+    verify = Parameter('verify results', True)
 
     def setup(self):
         super().setup()
@@ -43,7 +44,8 @@ class Native(Benchmark):
                     block_size=self.block_size,
                     ctype=compilation.dtype_cname(self.dtype),
                     ntimes=self.ntimes,
-                    vector_size=self.vector_size)
+                    vector_size=self.vector_size,
+                    verify=self.verify)
 
     def run(self):
         try:
