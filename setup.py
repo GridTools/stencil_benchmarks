@@ -64,7 +64,9 @@ setuptools.setup(
             'sbench-v100mi50-collection=stencil_benchmarks.scripts'
             '.sbench_v100mi50_collection:main',
             'sbench-openmp-collection=stencil_benchmarks.scripts'
-            '.sbench_openmp_collection:main'
+            '.sbench_openmp_collection:main',
+            'sbench-rome-collection=stencil_benchmarks.scripts'
+            '.sbench_rome_collection:main'
         ]
     },
     install_requires=[
