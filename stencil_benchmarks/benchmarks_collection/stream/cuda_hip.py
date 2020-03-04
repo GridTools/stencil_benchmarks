@@ -11,7 +11,7 @@ class Native(Benchmark):
     block_size = Parameter('threads per block', 1024)
     dtype = Parameter('data type in NumPy format, e.g. float32 or float64',
                       'float64')
-    compiler = Parameter('compiler path', 'nvcc')
+    compiler = Parameter('compiler path', dtype=str, nargs=1)
     compiler_flags = Parameter('compiler flags', '')
     axis = Parameter('compute grid dimension to use',
                      'x',
