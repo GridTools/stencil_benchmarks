@@ -8,6 +8,26 @@
 #define GPU(x) hip##x
 #else
 #define GPU(x) cuda##x
+
+__device__ inline {{ ctype }}2 operator+ ({{ ctype }}2 a, {{ ctype }}2 b) {
+    return make_{{ ctype }}2(a.x + b.x, a.y + b.y);
+}
+__device__ inline {{ ctype }}2 operator* (float a, {{ ctype }}2 b) {
+    return make_{{ ctype }}2(a * b.x, a * b.y);
+}
+__device__ inline {{ ctype }}3 operator+ ({{ ctype }}3 a, {{ ctype }}3 b) {
+    return make_{{ ctype }}3(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+__device__ inline {{ ctype }}3 operator* (float a, {{ ctype }}3 b) {
+    return make_{{ ctype }}3(a * b.x, a * b.y, a * b.z);
+}
+__device__ inline {{ ctype }}4 operator+ ({{ ctype }}4 a, {{ ctype }}4 b) {
+    return make_{{ ctype }}4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+}
+__device__ inline {{ ctype }}4 operator* (float a, {{ ctype }}4 b) {
+    return make_{{ ctype }}4(a * b.x, a * b.y, a * b.z, a * b.w);
+}
+
 #endif
 
 #define CHECK(x) { \
@@ -31,9 +51,15 @@ __global__ void init({{ ctype_vec }} *__restrict__ a,
     std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
 
     if (i < {{ array_size // vector_size }}) {
-        a[i] = {{ ctype_vec }}(2);
-        b[i] = {{ ctype_vec }}(2);
-        c[i] = {{ ctype_vec }}(0);
+        {%- if vector_size > 1 %}
+            a[i] = make_{{ ctype_vec }}({% for m in range(vector_size) %}{{ '2' }}{{ ', ' if not loop.last }}{% endfor %});
+            b[i] = make_{{ ctype_vec }}({% for m in range(vector_size) %}{{ '2' }}{{ ', ' if not loop.last }}{% endfor %});
+            c[i] = make_{{ ctype_vec }}({% for m in range(vector_size) %}{{ '0' }}{{ ', ' if not loop.last }}{% endfor %});
+        {%- else %}
+            a[i] = 2;
+            b[i] = 2;
+            c[i] = 0;
+        {%- endif %}
     }
 }
 
