@@ -309,6 +309,8 @@ def range_type(dtype: type) -> _MaybeRange:
     >>> foo(args=['[x=1-3]', '--option', '[3,4]'], standalone_mode=False)
     (ArgRange(name='x', values=(1, 2, 3)), ArgRange(name='...', values=(3, 4)))
     """
+    if isinstance(dtype, click.ParamType):
+        return _MaybeRange(dtype)
     return _RANGE_TYPES[dtype]
 
 
