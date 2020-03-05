@@ -134,7 +134,7 @@ class _x86Ops:
             self.vector_size = 16 // itemsize
             self._prefix = '_mm'
             self.vector_type = '__m128'
-            self.includes = ['xmmintrin.h', 'emmintrin.h']
+            self.includes = ['xmmintrin.h', 'emmintrin.h', 'immintrin.h']
         elif ext == 'avx':
             self.vector_size = 32 // itemsize
             self._prefix = '_mm256'
