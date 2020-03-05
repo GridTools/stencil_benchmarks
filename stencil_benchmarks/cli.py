@@ -93,8 +93,12 @@ def _bmark_options(bmark):
                                   help=description,
                                   show_default=True)
         else:
+            if param.dtype is str and param.choices:
+                dtype = click.Choice(param.choices)
+            else:
+                dtype = param.dtype
             option = click.option(name,
-                                  type=cli_tools.range_type(param.dtype),
+                                  type=cli_tools.range_type(dtype),
                                   nargs=param.nargs,
                                   help=description,
                                   required=param.default is None,
