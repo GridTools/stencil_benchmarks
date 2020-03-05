@@ -198,6 +198,9 @@ class ArgRange(NamedTuple):
 
 class _MaybeRange(click.ParamType):
     """Click ParamType for parameters that accept ranges."""
+
+    name = 'maybe range'
+
     def __init__(self, base_type):
         self.base_type = base_type
         self._anonymous_range_count = 0
@@ -259,9 +262,8 @@ class _MaybeRange(click.ParamType):
 
         return self.base_type.convert(value, param, ctx)
 
-    @property
-    def name(self):
-        return self.base_type.name
+    def get_metavar(self, param):
+        return self.base_type.get_metavar(param)
 
 
 _RANGE_TYPES = {
