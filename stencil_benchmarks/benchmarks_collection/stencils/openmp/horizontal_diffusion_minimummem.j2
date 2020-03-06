@@ -21,7 +21,6 @@
 
               for (index_t j = -2; j < jmax; ++j) {
                 vec_t flx_imvj = {0};
-                constexpr ivec_t iminus_mask = { {% for m in range(vector_size, 2 * vector_size) %}{{ m - 1 }}{{ ', ' if not loop.last }}{% endfor %} };
 
                 {
                   index_t i = -1;
@@ -40,33 +39,34 @@
                   lap[i + {{ vector_size }}] = lap_ijp1;
                 }
 
+                constexpr vec_t zero_vec = { {% for m in range(vector_size) %}0{{ ', ' if not loop.last }}{% endfor %} };
                 index_t i;
                 for (i = 0; i < imax - {{ vector_size - 1 }}; i += {{ vector_size }}) {
                   const index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
 
-                  const vec_t lap_ijp1 = 4 * *(vec_t*)&inp[index + {{ strides[1] }}] - *(unaligned_vec_t*)&inp[index - {{ strides[0] }} + {{ strides[1] }}]
-                                                                                     - *(unaligned_vec_t*)&inp[index + {{ strides[0] }} + {{ strides[1] }}]
-                                                                                     - *(vec_t*)&inp[index]
-                                                                                     - *(vec_t*)&inp[index + 2 * {{ strides[1] }}];
+                  const vec_t lap_ijp1 = 4 * load(&inp[index + {{ strides[1] }}]) - loadu(&inp[index - {{ strides[0] }} + {{ strides[1] }}])
+                                                                                  - loadu(&inp[index + {{ strides[0] }} + {{ strides[1] }}])
+                                                                                  - load(&inp[index])
+                                                                                  - load(&inp[index + 2 * {{ strides[1] }}]);
 
                   if (j >= -1) {
-                    vec_t flx_ij = *(unaligned_vec_t*)&lap[i + {{ vector_size + 1 }}] - *(vec_t*)&lap[i + {{ vector_size }}];
-                    flx_ij = flx_ij * (*(unaligned_vec_t*)&inp[index + {{ strides[0] }}] - *(vec_t*)&inp[index]) > 0 ? 0 : flx_ij;
+                    vec_t flx_ij = loadu(&lap[i + {{ vector_size + 1 }}]) - load(&lap[i + {{ vector_size }}]);
+                    flx_ij = select(flx_ij * (loadu(&inp[index + {{ strides[0] }}]) - load(&inp[index])) > 0, zero_vec, flx_ij);
 
-                    vec_t fly_ij = lap_ijp1 - *(vec_t*)&lap[i + {{ vector_size }}];
-                    fly_ij = fly_ij * (*(vec_t*)&inp[index + {{ strides[1] }}] - *(vec_t*)&inp[index]) > 0 ? 0 : fly_ij;
+                    vec_t fly_ij = lap_ijp1 - load(&lap[i + {{ vector_size }}]);
+                    fly_ij = select(fly_ij * (load(&inp[index + {{ strides[1] }}]) - load(&inp[index])) > 0, zero_vec, fly_ij);
 
-                    vec_t flx_im1j = __builtin_shuffle(flx_imvj, flx_ij, iminus_mask);
+                    vec_t flx_im1j = shuffle(flx_imvj, flx_ij, {% for m in range(vector_size, 2 * vector_size) %}{{ m - 1 }}{{ ', ' if not loop.last }}{% endfor %});
 
                     if (j >= 0) {
-                      vec_t out_ij = *(vec_t*)&inp[index] - *(vec_t*)&coeff[index] * (flx_ij - flx_im1j +
-                                                                                      fly_ij - *(vec_t*)&fly[i + {{ vector_size }}]);
-                      NTSTORE(&out[index], out_ij);
+                      vec_t out_ij = load(&inp[index]) - load(&coeff[index]) * (flx_ij - flx_im1j +
+                                                                                fly_ij - load(&fly[i + {{ vector_size }}]));
+                      storent(&out[index], out_ij);
                     }
-                    *(vec_t*)&fly[i + {{ vector_size }}] = fly_ij;
+                    store(&fly[i + {{ vector_size }}], fly_ij);
                     flx_imvj = flx_ij;
                   }
-                  *(vec_t*)&lap[i + {{ vector_size }}] = lap_ijp1;
+                  store(&lap[i + {{ vector_size }}], lap_ijp1);
                 }
 
                 {{ ctype }} flx_im1j = flx_imvj[{{ vector_size - 1 }}];

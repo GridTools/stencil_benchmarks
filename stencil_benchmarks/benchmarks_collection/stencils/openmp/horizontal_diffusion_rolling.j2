@@ -23,58 +23,60 @@
     else
       end = end / {{ vector_size }} * {{ vector_size }};
 
-    constexpr ivec_t iminus = { {% for m in range(vector_size, 2 * vector_size) %}{{ m - 1 }}{{ ', ' if not loop.last }}{% endfor %} };
-    constexpr ivec_t iplus = { {% for m in range(vector_size) %}{{ m + 1 }}{{ ', ' if not loop.last }}{% endfor %} };
+#define IMINUS_MASK {% for m in range(vector_size, 2 * vector_size) %}{{ m - 1 }}{{ ', ' if not loop.last }}{% endfor %}
+#define IPLUS_MASK {% for m in range(vector_size) %}{{ m + 1 }}{{ ', ' if not loop.last }}{% endfor %}
 
-    inpb[1][0] = *(vec_t*)&inp[start - {{ vector_size * strides[0] }} - {{ strides[1] }}];
-    inpb[1][1] = *(vec_t*)&inp[start - {{ strides[1] }}];
-    inpb[2][0] = *(vec_t*)&inp[start - {{ vector_size * strides[0] }}];
-    inpb[2][1] = *(vec_t*)&inp[start];
-    inpb[2][2] = *(vec_t*)&inp[start + {{ vector_size * strides[0] }}];
-    inpb[3][0] = *(vec_t*)&inp[start - {{ vector_size * strides[0] }} + {{ strides[1] }}];
-    inpb[3][1] = *(vec_t*)&inp[start + {{ strides[1] }}];
+    constexpr vec_t zero_vec = { {% for m in range(vector_size) %}0{{ ', ' if not loop.last }}{% endfor %} };
 
-    lapb[2][0] = 4 * inpb[2][0] - __builtin_shuffle(inpb[2][0], inpb[2][1], iplus)
-                                - __builtin_shuffle(inpb[2][0], inpb[2][0], iminus)
+    inpb[1][0] = loadu(&inp[start - {{ vector_size * strides[0] }} - {{ strides[1] }}]);
+    inpb[1][1] = loadu(&inp[start - {{ strides[1] }}]);
+    inpb[2][0] = loadu(&inp[start - {{ vector_size * strides[0] }}]);
+    inpb[2][1] = loadu(&inp[start]);
+    inpb[2][2] = loadu(&inp[start + {{ vector_size * strides[0] }}]);
+    inpb[3][0] = loadu(&inp[start - {{ vector_size * strides[0] }} + {{ strides[1] }}]);
+    inpb[3][1] = loadu(&inp[start + {{ strides[1] }}]);
+
+    lapb[2][0] = 4 * inpb[2][0] - shuffle(inpb[2][0], inpb[2][1], IPLUS_MASK)
+                                - shuffle(inpb[2][0], inpb[2][0], IMINUS_MASK)
                                 - inpb[1][0] - inpb[3][0];
-    lapb[2][1] = 4 * inpb[2][1] - __builtin_shuffle(inpb[2][1], inpb[2][2], iplus)
-                                - __builtin_shuffle(inpb[2][0], inpb[2][1], iminus)
+    lapb[2][1] = 4 * inpb[2][1] - shuffle(inpb[2][1], inpb[2][2], IPLUS_MASK)
+                                - shuffle(inpb[2][0], inpb[2][1], IMINUS_MASK)
                                 - inpb[1][1] - inpb[3][1];
 
-    flxb[2][0] = __builtin_shuffle(lapb[2][0], lapb[2][1], iplus) - lapb[2][0];
-    flxb[2][0] = flxb[2][0] * (__builtin_shuffle(inpb[2][0], inpb[2][1], iplus) - inpb[2][0]) > 0 ? 0 : flxb[2][0];
+    flxb[2][0] = shuffle(lapb[2][0], lapb[2][1], IPLUS_MASK) - lapb[2][0];
+    flxb[2][0] = select(flxb[2][0] * (shuffle(inpb[2][0], inpb[2][1], IPLUS_MASK) - inpb[2][0]) > 0, zero_vec, flxb[2][0]);
 
     for (index_t i = start; i < end; i += {{ vector_size }}) {
-      inpb[0][1] = *(vec_t*)&inp[i - {{ 2 * strides[1] }}];
-      inpb[1][2] = *(vec_t*)&inp[i + {{ vector_size * strides[0] }} - {{ strides[1] }}];
-      inpb[2][3] = *(vec_t*)&inp[i + {{ 2 * vector_size * strides[0] }} ];
-      inpb[3][2] = *(vec_t*)&inp[i + {{ vector_size * strides[0] }} + {{ strides[1] }}];
-      inpb[4][1] = *(vec_t*)&inp[i + {{ 2 * strides[1] }}];
+      inpb[0][1] = loadu(&inp[i - {{ 2 * strides[1] }}]);
+      inpb[1][2] = loadu(&inp[i + {{ vector_size * strides[0] }} - {{ strides[1] }}]);
+      inpb[2][3] = loadu(&inp[i + {{ 2 * vector_size * strides[0] }} ]);
+      inpb[3][2] = loadu(&inp[i + {{ vector_size * strides[0] }} + {{ strides[1] }}]);
+      inpb[4][1] = loadu(&inp[i + {{ 2 * strides[1] }}]);
 
-      lapb[1][1] = 4 * inpb[1][1] - __builtin_shuffle(inpb[1][1], inpb[1][2], iplus)
-                                  - __builtin_shuffle(inpb[1][0], inpb[1][1], iminus)
+      lapb[1][1] = 4 * inpb[1][1] - shuffle(inpb[1][1], inpb[1][2], IPLUS_MASK)
+                                  - shuffle(inpb[1][0], inpb[1][1], IMINUS_MASK)
                                   - inpb[0][1] - inpb[2][1];
 
-      lapb[2][2] = 4 * inpb[2][2] - __builtin_shuffle(inpb[2][2], inpb[2][3], iplus)
-                                  - __builtin_shuffle(inpb[2][1], inpb[2][2], iminus)
+      lapb[2][2] = 4 * inpb[2][2] - shuffle(inpb[2][2], inpb[2][3], IPLUS_MASK)
+                                  - shuffle(inpb[2][1], inpb[2][2], IMINUS_MASK)
                                   - inpb[1][2] - inpb[3][2];
 
-      lapb[3][1] = 4 * inpb[3][1] - __builtin_shuffle(inpb[3][1], inpb[3][2], iplus)
-                                  - __builtin_shuffle(inpb[3][0], inpb[3][1], iminus)
+      lapb[3][1] = 4 * inpb[3][1] - shuffle(inpb[3][1], inpb[3][2], IPLUS_MASK)
+                                  - shuffle(inpb[3][0], inpb[3][1], IMINUS_MASK)
                                   - inpb[2][1] - inpb[4][1];
 
-      flxb[2][1] = __builtin_shuffle(lapb[2][1], lapb[2][2], iplus) - lapb[2][1];
-      flxb[2][1] = flxb[2][1] * (__builtin_shuffle(inpb[2][1], inpb[2][2], iplus) - inpb[2][1]) > 0 ? 0 : flxb[2][1];
+      flxb[2][1] = shuffle(lapb[2][1], lapb[2][2], IPLUS_MASK) - lapb[2][1];
+      flxb[2][1] = select(flxb[2][1] * (shuffle(inpb[2][1], inpb[2][2], IPLUS_MASK) - inpb[2][1]) > 0, zero_vec, flxb[2][1]);
 
       flyb[1][1] = lapb[2][1] - lapb[1][1];
-      flyb[1][1] = flyb[1][1] * (inpb[2][1] - inpb[1][1]) > 0 ? 0 : flyb[1][1];
+      flyb[1][1] = select(flyb[1][1] * (inpb[2][1] - inpb[1][1]) > 0, zero_vec, flyb[1][1]);
 
       flyb[2][1] = lapb[3][1] - lapb[2][1];
-      flyb[2][1] = flyb[2][1] * (inpb[3][1] - inpb[2][1]) > 0 ? 0 : flyb[2][1];
+      flyb[2][1] = select(flyb[2][1] * (inpb[3][1] - inpb[2][1]) > 0, zero_vec, flyb[2][1]);
 
-      vec_t out_ij = inpb[2][1] - *(vec_t*)&coeff[i] * (flxb[2][1] - __builtin_shuffle(flxb[2][0], flxb[2][1], iminus) +
-                                                        flyb[2][1] - flyb[1][1]);
-      NTSTORE(&out[i], out_ij);
+      vec_t out_ij = inpb[2][1] - load(&coeff[i]) * (flxb[2][1] - shuffle(flxb[2][0], flxb[2][1], IMINUS_MASK) +
+                                                     flyb[2][1] - flyb[1][1]);
+      storent(&out[i], out_ij);
 
       inpb[1][0] = inpb[1][1];
       inpb[1][1] = inpb[1][2];

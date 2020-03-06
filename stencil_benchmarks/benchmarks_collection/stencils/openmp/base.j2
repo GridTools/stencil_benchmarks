@@ -43,52 +43,91 @@ using index_t = std::int64_t;
 {%- endif %}
 
 {%- if vector_size is defined %}
-  using unaligned_vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+  using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
   using ivec_t = index_t __attribute__((vector_size({{ vector_size }} * sizeof(index_t))));
-  {%- if ctype == 'float' %}
-    {%- if alignment is defined and alignment > 0 and alignment % (4 * vector_size) == 0 %}
-      using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
 
-      {%- if streaming_stores %}
-      #if defined(__SSE__) && {{ vector_size }} == 4
-      #define NTSTORE(ptr, val) __builtin_ia32_movntps((ptr), (val))
-      #elif defined(__AVX__) && {{ vector_size }} == 8
-      #define NTSTORE(ptr, val) __builtin_ia32_movntps256((ptr), (val))
-      #elif defined(__AVX512F__) && {{ vector_size }} == 16
-      #define NTSTORE(ptr, val) __builtin_ia32_movntps512((ptr), (val))
-      #else
-      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
-      #endif
-      {%- else %}
-      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
-      {% endif %}
-    {%- else %}
-      using vec_t = unaligned_vec_t;
-      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
-    {%- endif %}
-  {%- elif ctype == 'double' %}
-    {%- if alignment is defined and alignment > 0 and alignment % (8 * vector_size) == 0 %}
-      using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+  inline vec_t loadu(const {{ ctype }}* ptr) {
+    ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
+    vec_t v;
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      v[i] = ptr[i];
+    return v;
+  }
 
-      {%- if streaming_stores %}
-      #if defined(__SSE__) && {{ vector_size }} == 2
-      #define NTSTORE(ptr, val) __builtin_ia32_movntpd((ptr), (val))
-      #elif defined(__AVX__) && {{ vector_size }} == 4
-      #define NTSTORE(ptr, val) __builtin_ia32_movntpd256((ptr), (val))
-      #elif defined(__AVX512F__) && {{ vector_size }} == 8
-      #define NTSTORE(ptr, val) __builtin_ia32_movntpd512((ptr), (val))
-      #else
-      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
-      #endif
+  inline void storeu({{ ctype }}* ptr, vec_t v) {
+    ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      ptr[i] = v[i];
+  }
+
+  {%- if alignment is defined and alignment > 0 and
+         ((ctype == 'float' and alignment % (4 * vector_size) == 0) or
+          (ctype == 'double' and alignment % (8 * vector_size) == 0)) %}
+    inline vec_t load(const {{ ctype }}* ptr) {
+      return *(vec_t*)ptr;
+    }
+
+    inline void store({{ ctype }}* ptr, vec_t v) {
+      *(vec_t*)ptr = v;
+    }
+
+    inline void storent({{ ctype }}* ptr, vec_t v) {
+      {%- if streaming_stores  and (ctype == 'float' or ctype == 'double') %}
+        {%- if ctype == 'float' %}
+          #if defined(__SSE__) && {{ vector_size }} == 4
+            _mm_stream_ps(ptr, v);
+          #elif defined(__AVX__) && {{ vector_size }} == 8
+            _mm256_stream_ps(ptr, v);
+          #elif defined(__AVX512F__) && {{ vector_size }} == 16
+            _mm512_stream_ps(ptr, v);
+          #elif defined(__clang__)
+            __builtin_nontemporal_store(v, (vec_t*)ptr);
+          #else
+            store(ptr, v);
+          #endif
+        {%- else %}
+          #if defined(__SSE__) && {{ vector_size }} == 2
+            _mm_stream_pd(ptr, v);
+          #elif defined(__AVX__) && {{ vector_size }} == 4
+            _mm256_stream_pd(ptr, v);
+          #elif defined(__AVX512F__) && {{ vector_size }} == 8
+            _mm512_stream_pd(ptr, v);
+          #elif defined(__clang__)
+            __builtin_nontemporal_store(v, (vec_t*)ptr);
+          #else
+            store(ptr, v);
+          #endif
+        {%- endif %}
       {%- else %}
-      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
-      {% endif %}
-    {%- else %}
-      using vec_t = unaligned_vec_t;
-      #define NTSTORE(ptr, val) *(vec_t*)(ptr) = val
-    {%- endif %}
+        #ifdef __clang__
+          __builtin_nontemporal_store(v, (vec_t*)ptr);
+        #else
+          store(ptr, v);
+        #endif
+      {%- endif %}
+    }
+  {%- else %}
+    inline vec_t load(const {{ ctype }}* ptr) { return loadu(ptr); }
+    inline void store({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+    inline void storent({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
   {%- endif %}
 
+  inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
+#ifdef __clang__
+    vec_t v;
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      v[i] = condition[i] ? v1[i] : v2[i];
+    return v;
+#else
+    return condition ? v1 : v2;
+#endif
+  }
+
+#ifdef __clang__
+  #define shuffle(v1, v2, ...) __builtin_shufflevector(v1, v2, __VA_ARGS__)
+#else
+  #define shuffle(v1, v2, ...) __builtin_shuffle(v1, v2, (ivec_t){__VA_ARGS__})
+#endif
 {%- endif %}
 
 {% block pre_kernel %}

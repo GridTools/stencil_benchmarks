@@ -134,9 +134,9 @@ class BasicStencilMixin(StencilMixin):
 
     def stencil_body_vec(self):
         body = self.stencil_body()
-        body = re.sub(r'(inp\[index\])', r'*(vec_t*)&\1', body)
-        body = re.sub(r'(inp\[index[^\]]+\])', r'*(unaligned_vec_t*)&\1', body)
-        body = re.sub(r'out\[index\] = ([^;]*)', r'NTSTORE(&out[index], \1)',
+        body = re.sub(r'(inp\[index\])', r'load(&\1)', body)
+        body = re.sub(r'(inp\[index[^\]]+\])', r'loadu(&\1)', body)
+        body = re.sub(r'out\[index\] = ([^;]*)', r'storent(&out[index], \1)',
                       body, re.MULTILINE | re.DOTALL)
         return body
 

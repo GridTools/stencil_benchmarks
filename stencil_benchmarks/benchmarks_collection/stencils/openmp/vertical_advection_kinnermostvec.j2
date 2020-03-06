@@ -7,8 +7,8 @@ __attribute__((always_inline)) inline void forward_sweep_vec(index_t i,
     const index_t j,
     const index_t ishift,
     const index_t jshift,
-    vec_t *__restrict__ ccol,
-    vec_t *__restrict__ dcol,
+    {{ ctype }} *__restrict__ ccol,
+    {{ ctype }} *__restrict__ dcol,
     const {{ ctype }} *__restrict__ wcon,
     const {{ ctype }} *__restrict__ ustage,
     const {{ ctype }} *__restrict__ upos,
@@ -24,25 +24,25 @@ __attribute__((always_inline)) inline void forward_sweep_vec(index_t i,
     index_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
     // k minimum
     {
-        wcon_shift0 = *(unaligned_vec_t*)&wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
-        wcon0 = *(vec_t*)&wcon[index + {{ strides[2] }}];
+        wcon_shift0 = loadu(&wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}]);
+        wcon0 = load(&wcon[index + {{ strides[2] }}]);
         vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
         vec_t cs = gcv * bet_m;
 
         ccol0 = gcv * bet_p;
         vec_t bcol = dtr_stage - ccol0;
 
-        ustage0 = *(vec_t*)&ustage[index + {{ strides[2] }}];
-        ustage1 = *(vec_t*)&ustage[index];
+        ustage0 = load(&ustage[index + {{ strides[2] }}]);
+        ustage1 = load(&ustage[index]);
         vec_t correction_term = -cs * (ustage0 - ustage1);
-        dcol0 = dtr_stage * *(vec_t*)&upos[index] + *(vec_t*)&utens[index] + *(vec_t*)&utensstage[index] + correction_term;
+        dcol0 = dtr_stage * load(&upos[index]) + load(&utens[index]) + load(&utensstage[index]) + correction_term;
 
         vec_t divided = {{ ctype }}(1.0) / bcol;
         ccol0 = ccol0 * divided;
         dcol0 = dcol0 * divided;
 
-        ccol[0] = ccol0;
-        dcol[0] = dcol0;
+        store(&ccol[0], ccol0);
+        store(&dcol[0], dcol0);
 
         index += {{ strides[2] }};
     }
@@ -86,8 +86,8 @@ __attribute__((always_inline)) inline void forward_sweep_vec(index_t i,
         wcon_shift1 = wcon_shift0;
 
         vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
-        wcon_shift0 = *(unaligned_vec_t*)&wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}];
-        wcon0 = *(vec_t*)&wcon[index + {{ strides[2] }}];
+        wcon_shift0 = loadu(&wcon[index + ishift * {{ strides[0] }} + jshift * {{ strides[1] }} + {{ strides[2] }}]);
+        wcon0 = load(&wcon[index + {{ strides[2] }}]);
         vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
 
         vec_t as = gav * bet_m;
@@ -97,16 +97,16 @@ __attribute__((always_inline)) inline void forward_sweep_vec(index_t i,
         ccol0 = gcv * bet_p;
         vec_t bcol = dtr_stage - acol - ccol0;
 
-        ustage0 = *(vec_t*)&ustage[index + {{ strides[2] }}];
+        ustage0 = load(&ustage[index + {{ strides[2] }}]);
         vec_t correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
-        dcol0 = dtr_stage * *(vec_t*)&upos[index] + *(vec_t*)&utens[index] + *(vec_t*)&utensstage[index] + correction_term;
+        dcol0 = dtr_stage * load(&upos[index]) + load(&utens[index]) + load(&utensstage[index]) + correction_term;
 
         vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
         ccol0 = ccol0 * divided;
         dcol0 = (dcol0 - dcol1 * acol) * divided;
 
-        ccol[k] = ccol0;
-        dcol[k] = dcol0;
+        store(&ccol[k * {{ vector_size }}], ccol0);
+        store(&dcol[k * {{ vector_size }}], dcol0);
 
         index += {{ strides[2] }};
     }
@@ -128,21 +128,21 @@ __attribute__((always_inline)) inline void forward_sweep_vec(index_t i,
         vec_t bcol = dtr_stage - acol;
 
         vec_t correction_term = -as * (ustage2 - ustage1);
-        dcol0 = dtr_stage * *(vec_t*)&upos[index] + *(vec_t*)&utens[index] + *(vec_t*)&utensstage[index] + correction_term;
+        dcol0 = dtr_stage * load(&upos[index]) + load(&utens[index]) + load(&utensstage[index]) + correction_term;
 
         vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
         dcol0 = (dcol0 - dcol1 * acol) * divided;
 
-        ccol[{{ domain[2] - 1 }}] = ccol0;
-        dcol[{{ domain[2] - 1 }}] = dcol0;
+        store(&ccol[{{ domain[2] - 1 }} * {{ vector_size }}], ccol0);
+        store(&dcol[{{ domain[2] - 1 }} * {{ vector_size }}], dcol0);
     }
 }
 
 
 __attribute__((always_inline)) inline void backward_sweep_vec(index_t i,
     const index_t j,
-    const vec_t *__restrict__ ccol,
-    const vec_t *__restrict__ dcol,
+    const {{ ctype }} *__restrict__ ccol,
+    const {{ ctype }} *__restrict__ dcol,
     const {{ ctype }} *__restrict__ upos,
     {{ ctype }} *__restrict__ utensstage) {
     constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
@@ -152,16 +152,16 @@ __attribute__((always_inline)) inline void backward_sweep_vec(index_t i,
     index_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + ({{ domain[2] }} - 1) * {{ strides[2] }};
     // k
     {
-        datacol = dcol[{{ domain[2] - 1}}];
-        *(vec_t*)&utensstage[index] = dtr_stage * (datacol - *(vec_t*)&upos[index]);
+        datacol = load(&dcol[{{ domain[2] - 1}} * {{ vector_size }}]);
+        store(&utensstage[index], dtr_stage * (datacol - load(&upos[index])));
 
         index -= {{ strides[2] }};
     }
 
     // k body
     for (index_t k = {{ domain[2] }} - 2; k >= 0; --k) {
-        datacol = dcol[k] - ccol[k] * datacol;
-        *(vec_t*)&utensstage[index] = dtr_stage * (datacol - *(vec_t*)&upos[index]);
+        datacol = load(&dcol[k * {{ vector_size }}]) - load(&ccol[k * {{ vector_size }}]) * datacol;
+        store(&utensstage[index], dtr_stage * (datacol - load(&upos[index])));
 
         index -= {{ strides[2] }};
     }
@@ -188,14 +188,14 @@ __attribute__((always_inline)) inline void backward_sweep_vec(index_t i,
 
                         index_t i;
                         for (i = ib; i < imax - {{ vector_size - 1}}; i += {{ vector_size }}) {
-                            forward_sweep_vec(i, j, 1, 0, (vec_t*)ccolb, (vec_t*)dcolb, wcon, ustage, upos, utens, utensstage);
-                            backward_sweep_vec(i, j, (vec_t*)ccolb, (vec_t*)dcolb, upos, utensstage);
+                            forward_sweep_vec(i, j, 1, 0, ccolb, dcolb, wcon, ustage, upos, utens, utensstage);
+                            backward_sweep_vec(i, j, ccolb, dcolb, upos, utensstage);
 
-                            forward_sweep_vec(i, j, 0, 1, (vec_t*)ccolb, (vec_t*)dcolb, wcon, vstage, vpos, vtens, vtensstage);
-                            backward_sweep_vec(i, j, (vec_t*)ccolb, (vec_t*)dcolb, vpos, vtensstage);
+                            forward_sweep_vec(i, j, 0, 1, ccolb, dcolb, wcon, vstage, vpos, vtens, vtensstage);
+                            backward_sweep_vec(i, j, ccolb, dcolb, vpos, vtensstage);
 
-                            forward_sweep_vec(i, j, 0, 0, (vec_t*)ccolb, (vec_t*)dcolb, wcon, wstage, wpos, wtens, wtensstage);
-                            backward_sweep_vec(i, j, (vec_t*)ccolb, (vec_t*)dcolb, wpos, wtensstage);
+                            forward_sweep_vec(i, j, 0, 0, ccolb, dcolb, wcon, wstage, wpos, wtens, wtensstage);
+                            backward_sweep_vec(i, j, ccolb, dcolb, wpos, wtensstage);
                         }
                         for (; i < imax; ++i) {
                             forward_sweep(i, j, 1, 0, ccolb, dcolb, wcon, ustage, upos, utens, utensstage);

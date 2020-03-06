@@ -32,11 +32,11 @@
                 }
 
                 for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
-                  *(vec_t*)&lap[j + 2][i + {{ vector_size }}] = 4 * *(vec_t*)&inp[index]
-                                                              - *(unaligned_vec_t*)&inp[index - {{ strides[0] }}]
-                                                              - *(unaligned_vec_t*)&inp[index + {{ strides[0] }}]
-                                                              - *(vec_t*)&inp[index - {{ strides[1] }}]
-                                                              - *(vec_t*)&inp[index + {{ strides[1] }}];
+                  store(&lap[j + 2][i + {{ vector_size }}], 4 * load(&inp[index])
+                                                            - loadu(&inp[index - {{ strides[0] }}])
+                                                            - loadu(&inp[index + {{ strides[0] }}])
+                                                            - load(&inp[index - {{ strides[1] }}])
+                                                            - load(&inp[index + {{ strides[1] }}]));
                   index += {{ vector_size * strides[0] }};
                 }
 
@@ -64,12 +64,19 @@
                   index += {{ strides[0] }};
                 }
 
+                constexpr vec_t zero_vec = { {% for m in range(vector_size) %}0{{ ', ' if not loop.last }}{% endfor %} };
                 for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
-                  vec_t flx_ij = *(unaligned_vec_t*)&lap[j + 2][i + {{ vector_size + 1 }}] - *(vec_t*)&lap[j + 2][i + {{ vector_size }}];
-                  *(vec_t*)&flx[j + 2][i + {{ vector_size }}] = flx_ij * (*(unaligned_vec_t*)&inp[index + {{ strides[0] }}] - *(vec_t*)&inp[index]) > 0 ? 0 : flx_ij;
+                  vec_t flx_ij = loadu(&lap[j + 2][i + {{ vector_size + 1 }}]) - load(&lap[j + 2][i + {{ vector_size }}]);
+                  store(&flx[j + 2][i + {{ vector_size }}],
+                        select(flx_ij * (loadu(&inp[index + {{ strides[0] }}]) - load(&inp[index])) > 0,
+                               zero_vec,
+                               flx_ij));
 
-                  vec_t fly_ij = *(vec_t*)&lap[j + 3][i + {{ vector_size }}] - *(vec_t*)&lap[j + 2][i + {{ vector_size }}];
-                  *(vec_t*)&fly[j + 2][i + {{ vector_size }}] = fly_ij * (*(vec_t*)&inp[index + {{ strides[1] }}] - *(vec_t*)&inp[index]) > 0 ? 0 : fly_ij;
+                  vec_t fly_ij = load(&lap[j + 3][i + {{ vector_size }}]) - load(&lap[j + 2][i + {{ vector_size }}]);
+                  store(&fly[j + 2][i + {{ vector_size }}],
+                        select(fly_ij * (load(&inp[index + {{ strides[1] }}]) - load(&inp[index])) > 0,
+                               zero_vec,
+                               fly_ij));
 
                   index += {{ strides[0] * vector_size }};
                 }
@@ -90,13 +97,13 @@
                 index_t index = (ib + i) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
                 for (; i < {{ block_size[0] }}; i += {{ vector_size }}) {
 
-                  vec_t out_ij = *(vec_t*)&inp[index]
-                                   - *(vec_t*)&coeff[index]
-                                   * (*(vec_t*)&flx[j + 2][i + {{ vector_size }}]
-                                    - *(unaligned_vec_t*)&flx[j + 2][i + {{ vector_size - 1 }}]
-                                    + *(vec_t*)&fly[j + 2][i + {{ vector_size }}]
-                                    - *(vec_t*)&fly[j + 1][i + {{ vector_size }}]);
-                  NTSTORE(&out[index], out_ij);
+                  vec_t out_ij = load(&inp[index])
+                                   - load(&coeff[index])
+                                   * (load(&flx[j + 2][i + {{ vector_size }}])
+                                    - loadu(&flx[j + 2][i + {{ vector_size - 1 }}])
+                                    + load(&fly[j + 2][i + {{ vector_size }}])
+                                    - load(&fly[j + 1][i + {{ vector_size }}]));
+                  storent(&out[index], out_ij);
 
                   index += {{ strides[0] * vector_size }};
                 }
