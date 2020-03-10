@@ -25,9 +25,11 @@ def common_kwargs(options=None, **overrides):
     for o in options:
         name, value = o.split('=', 1)
         name = name.replace('-', '_')
-        try:
-            value = bool(value)
-        except ValueError:
+        if value.lower() == 'true':
+            value = True
+        elif value.lower() == 'false':
+            value = False
+        else:
             try:
                 value = int(value)
             except ValueError:
