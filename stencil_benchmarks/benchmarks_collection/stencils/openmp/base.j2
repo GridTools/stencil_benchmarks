@@ -122,16 +122,16 @@ using index_t = std::int64_t;
     __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
   {%- endif %}
 
-  __attribute__((always_inline)) inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
 #ifdef __clang__
+  __attribute__((always_inline)) inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
     vec_t v;
     for (int i = 0; i < {{ vector_size }}; ++i)
       v[i] = condition[i] ? v1[i] : v2[i];
     return v;
-#else
-    return condition ? v1 : v2;
-#endif
   }
+#else
+  #define select(condition, v1, v2) ((condition) ? (v1) : (v2));
+#endif
 
 #ifdef __clang__
   #define shuffle(v1, v2, ...) __builtin_shufflevector(v1, v2, __VA_ARGS__)
