@@ -46,32 +46,42 @@ using index_t = std::int64_t;
   using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
   using ivec_t = index_t __attribute__((vector_size({{ vector_size }} * sizeof(index_t))));
 
-  inline vec_t loadu(const {{ ctype }}* ptr) {
+  __attribute__((always_inline)) inline vec_t loadu(const {{ ctype }}* ptr) {
+#ifdef __clang__
     ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
     vec_t v;
     for (int i = 0; i < {{ vector_size }}; ++i)
       v[i] = ptr[i];
     return v;
+#else
+  using uvec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+  return *(uvec_t*)ptr;
+#endif
   }
 
-  inline void storeu({{ ctype }}* ptr, vec_t v) {
+  __attribute__((always_inline)) inline void storeu({{ ctype }}* ptr, vec_t v) {
+#ifdef __clang__
     ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
     for (int i = 0; i < {{ vector_size }}; ++i)
       ptr[i] = v[i];
+#else
+    using uvec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+    *(uvec_t*)ptr = v;
+#endif
   }
 
   {%- if alignment is defined and alignment > 0 and
          ((ctype == 'float' and alignment % (4 * vector_size) == 0) or
           (ctype == 'double' and alignment % (8 * vector_size) == 0)) %}
-    inline vec_t load(const {{ ctype }}* ptr) {
+    __attribute__((always_inline)) inline vec_t load(const {{ ctype }}* ptr) {
       return *(vec_t*)ptr;
     }
 
-    inline void store({{ ctype }}* ptr, vec_t v) {
+    __attribute__((always_inline)) inline void store({{ ctype }}* ptr, vec_t v) {
       *(vec_t*)ptr = v;
     }
 
-    inline void storent({{ ctype }}* ptr, vec_t v) {
+    __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) {
       {%- if streaming_stores  and (ctype == 'float' or ctype == 'double') %}
         {%- if ctype == 'float' %}
           #if defined(__SSE__) && {{ vector_size }} == 4
@@ -107,12 +117,12 @@ using index_t = std::int64_t;
       {%- endif %}
     }
   {%- else %}
-    inline vec_t load(const {{ ctype }}* ptr) { return loadu(ptr); }
-    inline void store({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
-    inline void storent({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+    __attribute__((always_inline)) inline vec_t load(const {{ ctype }}* ptr) { return loadu(ptr); }
+    __attribute__((always_inline)) inline void store({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+    __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
   {%- endif %}
 
-  inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
+  __attribute__((always_inline)) inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
 #ifdef __clang__
     vec_t v;
     for (int i = 0; i < {{ vector_size }}; ++i)
