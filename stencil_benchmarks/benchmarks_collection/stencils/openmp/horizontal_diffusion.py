@@ -32,20 +32,26 @@ class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
                 const auto inp_ijm2 = inp[index - 2 * {stride_y}];
                 const auto inp_ijp2 = inp[index + 2 * {stride_y}];
 
-                const auto lap_ij = 4 * inp_ij - inp_im1j - inp_ip1j -
-                inp_ijm1 - inp_ijp1;
-                const auto lap_imj = 4 * inp_im1j - inp_im2j -
-                    inp_ij - inp_im1jm1 -
-                    inp_im1jp1;
-                const auto lap_ipj = 4 * inp_ip1j - inp_ij -
-                    inp_ip2j - inp_ip1jm1 -
-                    inp_ip1jp1;
-                const auto lap_ijm = 4 * inp_ijm1 - inp_im1jm1 -
-                    inp_ip1jm1 - inp_ijm2 -
-                    inp_ij;
-                const auto lap_ijp = 4 * inp_ijp1 - inp_im1jp1 -
-                    inp_ip1jp1 - inp_ij -
-                    inp_ijp2;
+                const auto lap_ij = 4 * inp_ij - inp_im1j
+                                               - inp_ip1j
+                                               - inp_ijm1
+                                               - inp_ijp1;
+                const auto lap_imj = 4 * inp_im1j - inp_im2j
+                                                  - inp_ij
+                                                  - inp_im1jm1
+                                                  - inp_im1jp1;
+                const auto lap_ipj = 4 * inp_ip1j - inp_ij
+                                                  - inp_ip2j
+                                                  - inp_ip1jm1
+                                                  - inp_ip1jp1;
+                const auto lap_ijm = 4 * inp_ijm1 - inp_im1jm1
+                                                  - inp_ip1jm1
+                                                  - inp_ijm2
+                                                  - inp_ij;
+                const auto lap_ijp = 4 * inp_ijp1 - inp_im1jp1
+                                                  - inp_ip1jp1
+                                                  - inp_ij
+                                                  - inp_ijp2;
 
                 auto flx_ij = lap_ipj - lap_ij;
                 flx_ij = flx_ij * (inp_ip1j - inp_ij) > 0 ? 0 : flx_ij;
@@ -60,7 +66,7 @@ class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
                 fly_ijm = fly_ijm * (inp_ij - inp_ijm1) > 0 ? 0 : fly_ijm;
 
                 out[index] = inp_ij - coeff[index] * (flx_ij - flx_imj +
-                                        fly_ij - fly_ijm);
+                                                      fly_ij - fly_ijm);
                 '''
 
 
