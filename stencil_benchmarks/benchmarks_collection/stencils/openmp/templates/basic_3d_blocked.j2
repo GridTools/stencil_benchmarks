@@ -1,37 +1,5 @@
 {% extends "base.j2" %}
 
-{% block kernel_prepare %}
-{%- if numa %}
-  bool contiguous = true;
-#pragma omp parallel for collapse(3) reduction(&&: contiguous)
-  for (index_t ib = 0; ib < {{ sorted_domain[0] }}; ib += {{ sorted_block_size[0] }}) {
-    for (index_t jb = 0; jb < {{ sorted_domain[1] }}; jb += {{ sorted_block_size[1] }}) {
-      for (index_t kb = 0; kb < {{ sorted_domain[2] }}; kb += {{ sorted_block_size[2] }}) {
-        {%- if sorted_block_size[0] > 1 %}
-          const index_t imax = std::min((index_t){{ sorted_domain[0] }}, ib + {{ sorted_block_size[0] }});
-          for (index_t i = ib; i < imax; ++i) {
-        {%- else %}
-          const index_t i = ib;
-          {
-        {%- endif %}
-            const index_t jmax = std::min((index_t){{ sorted_domain[1] }}, jb + {{ sorted_block_size[1] }});
-            const index_t kmax = std::min((index_t){{ sorted_domain[2] }}, kb + {{ sorted_block_size[2] }});
-            const index_t begin = i * {{ sorted_strides[0] }} + jb * {{ sorted_strides[1] }} + kb * {{ sorted_strides[2] }};
-            const index_t end = i * {{ sorted_strides[0] }} + (jmax - 1) * {{ sorted_strides[1] }} + (kmax - 1) * {{ sorted_strides[2] }} + 1;
-            contiguous &= (end - begin == {{ sorted_block_size[1] * sorted_block_size[2] + 2 * halo }});
-            {%- for arg in args %}
-            move_to_local_numa_domain(&{{ arg }}[begin], &{{ arg }}[end]);
-            {% endfor %}
-          }
-      }
-    }
-  }
-  if (!contiguous) {
-    std::cerr << "warning: non-contiguous blocks in NUMA-aware loop" << std::endl;
-  }
-{% endif %}
-{% endblock kernel_prepare %}
-
 {% block kernel_invoke %}
 #pragma omp parallel for collapse(3)
   for (index_t ib = 0; ib < {{ sorted_domain[0] }}; ib += {{ sorted_block_size[0] }}) {

@@ -14,7 +14,6 @@ class StencilMixin(Benchmark):
                                 'native',
                                 choices=['none', 'native', 'knl'])
     print_code = Parameter('print generated code', False)
-    numa = Parameter('enable NUMA-awareness', False)
     streaming_stores = Parameter(
         'enable streaming/non-temporal store instructions '
         '(only supported by some implementations)', False)
@@ -63,8 +62,6 @@ class StencilMixin(Benchmark):
                     ]
         if self.compiler_flags:
             command += self.compiler_flags.split()
-        if self.numa:
-            command += ['-lnuma']
         return command
 
     @abc.abstractmethod
@@ -76,7 +73,6 @@ class StencilMixin(Benchmark):
                     ctype=compilation.dtype_cname(self.dtype),
                     strides=self.strides,
                     domain=self.domain,
-                    numa=self.numa,
                     halo=self.halo,
                     alignment=self.alignment,
                     streaming_stores=self.streaming_stores)
