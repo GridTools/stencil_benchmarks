@@ -40,14 +40,24 @@ class BasicStencilMixin(StencilMixin):
 
     @property
     def sorted_block_size(self):
-        # pylint: disable=invalid-unary-operand-type
         indices = np.argsort(-np.array(self.strides))
         return tuple(np.array(self.block_size)[indices])
+
+    @property
+    def sorted_domain(self):
+        indices = np.argsort(-np.array(self.strides))
+        return tuple(np.array(self.domain)[indices])
+
+    @property
+    def sorted_strides(self):
+        return tuple(sorted(self.strides, key=lambda x: -x))
 
     def template_args(self):
         return dict(**super().template_args(),
                     block_size=self.block_size,
                     sorted_block_size=self.sorted_block_size,
+                    sorted_domain=self.sorted_domain,
+                    sorted_strides=self.sorted_strides,
                     vector_size=self.vector_size,
                     body=self.stencil_body(),
                     body_vec=self.stencil_body_vec())

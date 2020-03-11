@@ -3,8 +3,6 @@ import ctypes
 import os
 import warnings
 
-import numpy as np
-
 from stencil_benchmarks.benchmark import Benchmark, ExecutionError, Parameter
 from stencil_benchmarks.tools import cpphelpers, compilation, template
 
@@ -69,31 +67,15 @@ class StencilMixin(Benchmark):
             command += ['-lnuma']
         return command
 
-    @property
-    def ctype_name(self):
-        return compilation.dtype_cname(self.dtype)
-
-    @property
-    def sorted_domain(self):
-        # pylint: disable=invalid-unary-operand-type
-        indices = np.argsort(-np.array(self.strides))
-        return tuple(np.array(self.domain)[indices])
-
-    @property
-    def sorted_strides(self):
-        return tuple(sorted(self.strides, key=lambda x: -x))
-
     @abc.abstractmethod
     def template_file(self):
         pass
 
     def template_args(self):
         return dict(args=self.args,
-                    ctype=self.ctype_name,
+                    ctype=compilation.dtype_cname(self.dtype),
                     strides=self.strides,
-                    sorted_strides=self.sorted_strides,
                     domain=self.domain,
-                    sorted_domain=self.sorted_domain,
                     numa=self.numa,
                     halo=self.halo,
                     alignment=self.alignment,
