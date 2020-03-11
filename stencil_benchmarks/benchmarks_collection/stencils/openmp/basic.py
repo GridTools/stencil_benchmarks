@@ -31,8 +31,10 @@ class BasicStencilMixin(StencilMixin):
         body = self.stencil_body()
         body = re.sub(r'(inp\[index\])', r'load(&\1)', body)
         body = re.sub(r'(inp\[index[^\]]+\])', r'loadu(&\1)', body)
-        body = re.sub(r'out\[index\] = ([^;]*)', r'storent(&out[index], \1)',
-                      body, re.MULTILINE | re.DOTALL)
+        body = re.sub(
+            r'out\[index\] = ([^;]*)', r'storent(&out[index], \1)'
+            if self.streaming_stores else r'store(&out[index], \1)', body,
+            re.MULTILINE | re.DOTALL)
         return body
 
     def template_file(self):
