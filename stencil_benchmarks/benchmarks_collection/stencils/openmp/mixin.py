@@ -1,27 +1,23 @@
 import abc
 import ctypes
 import os
-import re
 import warnings
 
 import numpy as np
 
-from .... import benchmark
-from ....tools import cpphelpers, compilation, template
-
-# pylint: disable=abstract-method,invalid-sequence-index,no-member
+from stencil_benchmarks.benchmark import Benchmark, ExecutionError, Parameter
+from stencil_benchmarks.tools import cpphelpers, compilation, template
 
 
-class StencilMixin(benchmark.Benchmark):
-    compiler = benchmark.Parameter('compiler path', 'g++')
-    compiler_flags = benchmark.Parameter('compiler flags', '')
-    platform_preset = benchmark.Parameter(
-        'preset flags for specific hardware platform',
-        'native',
-        choices=['none', 'native', 'knl'])
-    print_code = benchmark.Parameter('print generated code', False)
-    numa = benchmark.Parameter('enable NUMA-awareness', False)
-    streaming_stores = benchmark.Parameter(
+class StencilMixin(Benchmark):
+    compiler = Parameter('compiler path', 'g++')
+    compiler_flags = Parameter('compiler flags', '')
+    platform_preset = Parameter('preset flags for specific hardware platform',
+                                'native',
+                                choices=['none', 'native', 'knl'])
+    print_code = Parameter('print generated code', False)
+    numa = Parameter('enable NUMA-awareness', False)
+    streaming_stores = Parameter(
         'enable streaming/non-temporal store instructions '
         '(only supported by some implementations)', False)
 
@@ -111,69 +107,5 @@ class StencilMixin(benchmark.Benchmark):
                 ctypes.byref(time),
                 *(compilation.data_ptr(array, offset) for array in data))
         except compilation.ExecutionError as error:
-            raise benchmark.ExecutionError() from error
+            raise ExecutionError() from error
         return time.value
-
-
-class BasicStencilMixin(StencilMixin):
-    loop = benchmark.Parameter(
-        'loop kind',
-        '1D',
-        choices=['1D', '1D-vec', '3D', '3D-blocked', '3D-blocked-vec'])
-    block_size = benchmark.Parameter('block_size', (1, 1, 1))
-    vector_size = benchmark.Parameter('vector size', 1)
-
-    def setup(self):
-        super().setup()
-        if self.vector_size > 1 and not self.loop.endswith('-vec'):
-            raise benchmark.ParameterError(
-                'vector size can only be != 1 for *-vec loops')
-
-    @abc.abstractmethod
-    def stencil_body(self):
-        pass
-
-    def stencil_body_vec(self):
-        body = self.stencil_body()
-        body = re.sub(r'(inp\[index\])', r'load(&\1)', body)
-        body = re.sub(r'(inp\[index[^\]]+\])', r'loadu(&\1)', body)
-        body = re.sub(r'out\[index\] = ([^;]*)', r'storent(&out[index], \1)',
-                      body, re.MULTILINE | re.DOTALL)
-        return body
-
-    def template_file(self):
-        return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
-
-    @property
-    def sorted_block_size(self):
-        # pylint: disable=invalid-unary-operand-type
-        indices = np.argsort(-np.array(self.strides))
-        return tuple(np.array(self.block_size)[indices])
-
-    def template_args(self):
-        return dict(**super().template_args(),
-                    block_size=self.block_size,
-                    sorted_block_size=self.sorted_block_size,
-                    vector_size=self.vector_size,
-                    body=self.stencil_body(),
-                    body_vec=self.stencil_body_vec())
-
-
-class VerticalAdvectionMixin(StencilMixin):
-    block_size = benchmark.Parameter('block size', (8, 1))
-
-    def template_file(self):
-        return 'vertical_advection_' + type(self).__name__.lower() + '.j2'
-
-    def template_args(self):
-        return dict(**super().template_args(), block_size=self.block_size)
-
-
-class HorizontalDiffusionMixin(StencilMixin):
-    block_size = benchmark.Parameter('block size', (8, 8, 1))
-
-    def template_file(self):
-        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
-
-    def template_args(self):
-        return dict(**super().template_args(), block_size=self.block_size)

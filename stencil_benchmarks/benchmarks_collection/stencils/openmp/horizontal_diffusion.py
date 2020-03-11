@@ -1,9 +1,21 @@
-from .mixin import BasicStencilMixin, HorizontalDiffusionMixin
-from ..base import HorizontalDiffusionStencil
-from .... import benchmark
+from stencil_benchmarks.benchmark import Parameter
+from stencil_benchmarks.benchmarks_collection.stencils import base
+
+from .mixin import StencilMixin
+from .basic import BasicStencilMixin
 
 
-class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
+class HorizontalDiffusionMixin(StencilMixin):
+    block_size = Parameter('block size', (8, 8, 1))
+
+    def template_file(self):
+        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
+
+    def template_args(self):
+        return dict(**super().template_args(), block_size=self.block_size)
+
+
+class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
     def stencil_body(self):
         stride_x, stride_y, _ = self.strides
         return f'''const auto inp_ij = inp[index];
@@ -52,37 +64,37 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
                 '''
 
 
-class OnTheFlyVec(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 8)
+class OnTheFlyVec(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
+    vector_size = Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
 
 
-class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class Classic(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class ClassicVec(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 8)
+class ClassicVec(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
+    vector_size = Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
 
 
-class ReducedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class ReducedMem(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class MinimumMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 8)
+class MinimumMem(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
+    vector_size = Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
 
 
-class Rolling(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
-    vector_size = benchmark.Parameter('vector size in number of elements', 8)
+class Rolling(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
+    vector_size = Parameter('vector size in number of elements', 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
