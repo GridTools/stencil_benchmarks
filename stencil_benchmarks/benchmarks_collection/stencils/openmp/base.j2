@@ -130,7 +130,7 @@ using index_t = std::int64_t;
     return v;
   }
 #else
-  #define select(condition, v1, v2) ((condition) ? (v1) : (v2));
+  #define select(condition, v1, v2) ((condition) ? (v1) : (v2))
 #endif
 
 #ifdef __clang__
