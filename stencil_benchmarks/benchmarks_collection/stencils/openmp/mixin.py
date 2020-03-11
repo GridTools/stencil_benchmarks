@@ -12,7 +12,7 @@ class StencilMixin(Benchmark):
     compiler_flags = Parameter('compiler flags', '')
     platform_preset = Parameter('preset flags for specific hardware platform',
                                 'native',
-                                choices=['none', 'native', 'knl'])
+                                choices=['none', 'native'])
     print_code = Parameter('print generated code', False)
     streaming_stores = Parameter(
         'enable streaming/non-temporal store instructions '
@@ -45,21 +45,6 @@ class StencilMixin(Benchmark):
 
             if self.platform_preset == 'native':
                 command += ['-march=native', '-mtune=native', '-Ofast']
-            elif self.platform_preset == 'knl':
-                if not self.huge_pages:
-                    warnings.warn('enabling huge pages on KNL is recommended '
-                                  '(use --huge-pages to enable)')
-                if not self.offset_allocations:
-                    warnings.warn(
-                        'offsetting allocations on KNL is recommended '
-                        '(use --offset-allocations to enable)')
-                if self.compiler.endswith('icpc'):
-                    command += ['-xmic-avx512']
-                else:
-                    command += [
-                        '-march=knl', '-mtune=knl',
-                        '-fvect-cost-model=unlimited'
-                    ]
         if self.compiler_flags:
             command += self.compiler_flags.split()
         return command
