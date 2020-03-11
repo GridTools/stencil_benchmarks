@@ -1,7 +1,8 @@
 import abc
 
-from stencil_benchmarks.benchmark import Parameter, ParameterError
+import numpy as np
 
+from stencil_benchmarks.benchmark import Parameter, ParameterError
 from stencil_benchmarks.benchmarks_collection.stencils import base
 
 from .mixin import StencilMixin
@@ -13,9 +14,21 @@ class BasicStencilMixin(StencilMixin):
     threads_per_block = Parameter(
         'threads per block (0 means equal to block size)', (0, 0, 0))
 
+    def sort_by_strides(self, values):
+        indices = np.argsort(-np.array(self.strides))
+        return tuple(np.asarray(values)[indices])
+
     @property
     def sorted_block_size(self):
         return self.sort_by_strides(self.block_size)
+
+    @property
+    def sorted_domain(self):
+        return self.sort_by_strides(self.domain)
+
+    @property
+    def sorted_strides(self):
+        return tuple(sorted(self.strides, key=lambda x: -x))
 
     @property
     def sorted_threads_per_block(self):
@@ -42,19 +55,13 @@ class BasicStencilMixin(StencilMixin):
         return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
 
     def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    sorted_strides=self.sorted_strides,
-                    domain=self.domain,
-                    sorted_domain=self.sorted_domain,
+        return dict(**super.template_args(),
                     block_size=self.block_size,
-                    sorted_block_size=self.sorted_block_size,
-                    threads_per_block=self.threads_per_block,
-                    sorted_threads_per_block=self.sorted_threads_per_block,
                     body=self.stencil_body(),
-                    backend=self.backend,
-                    gpu_timers=self.gpu_timers)
+                    sorted_block_size=self.sorted_block_size,
+                    sorted_domain=self.sorted_domain,
+                    sorted_strides=self.sorted_strides,
+                    sorted_threads_per_block=self.sorted_threads_per_block)
 
 
 class Empty(BasicStencilMixin, base.EmptyStencil):

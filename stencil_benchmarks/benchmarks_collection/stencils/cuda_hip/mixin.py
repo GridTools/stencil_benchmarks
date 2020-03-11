@@ -3,8 +3,6 @@ import ctypes
 import os
 import warnings
 
-import numpy as np
-
 from stencil_benchmarks.benchmark import (Benchmark, ExecutionError, Parameter,
                                           ParameterError)
 from stencil_benchmarks.tools import array, cpphelpers, compilation, template
@@ -69,26 +67,17 @@ class StencilMixin(Benchmark):
     def ctype_name(self):
         return compilation.dtype_cname(self.dtype)
 
-    def sort_by_strides(self, values):
-        # pylint: disable=invalid-unary-operand-type
-        indices = np.argsort(-np.array(self.strides))
-        return tuple(np.asarray(values)[indices])
-
-    @property
-    def sorted_domain(self):
-        return self.sort_by_strides(self.domain)
-
-    @property
-    def sorted_strides(self):
-        return tuple(sorted(self.strides, key=lambda x: -x))
-
     @abc.abstractmethod
     def template_file(self):
         pass
 
-    @abc.abstractmethod
     def template_args(self):
-        pass
+        return dict(args=self.args,
+                    backend=self.backend,
+                    ctype=self.ctype_name,
+                    domain=self.domain,
+                    gpu_timers=self.gpu_timers,
+                    strides=self.strides)
 
     def run_stencil(self, data):
         offset = (self.halo, ) * 3

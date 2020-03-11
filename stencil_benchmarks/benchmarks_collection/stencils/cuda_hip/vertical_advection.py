@@ -15,13 +15,8 @@ class VerticalAdvectionMixin(StencilMixin):
         return 'vertical_advection_' + type(self).__name__.lower() + '.j2'
 
     def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    domain=self.domain,
+        return dict(**super().template_args(),
                     block_size=self.block_size,
-                    backend=self.backend,
-                    gpu_timers=self.gpu_timers,
                     unroll_factor=self.unroll_factor)
 
 
