@@ -55,13 +55,14 @@ class BasicStencilMixin(StencilMixin):
         return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
 
     def template_args(self):
-        return dict(**super.template_args(),
+        return dict(**super().template_args(),
                     block_size=self.block_size,
                     body=self.stencil_body(),
                     sorted_block_size=self.sorted_block_size,
                     sorted_domain=self.sorted_domain,
                     sorted_strides=self.sorted_strides,
-                    sorted_threads_per_block=self.sorted_threads_per_block)
+                    sorted_threads_per_block=self.sorted_threads_per_block,
+                    threads_per_block=self.threads_per_block)
 
 
 class Empty(BasicStencilMixin, base.EmptyStencil):
