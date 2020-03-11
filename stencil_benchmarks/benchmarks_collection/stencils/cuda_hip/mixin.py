@@ -29,7 +29,8 @@ class StencilMixin(benchmark.Benchmark):
         super().setup()
 
         template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), self.template_file())
+            os.path.dirname(os.path.abspath(__file__)), 'templates',
+            self.template_file())
         code = template.render(template_file, **self.template_args())
 
         if self.print_code:
