@@ -5,25 +5,23 @@ import warnings
 
 import numpy as np
 
-from .... import benchmark
-from ....tools import array, cpphelpers, compilation, template
+from stencil_benchmarks.benchmark import (Benchmark, ExecutionError, Parameter,
+                                          ParameterError)
+from stencil_benchmarks.tools import array, cpphelpers, compilation, template
 from . import api
 
 
-class StencilMixin(benchmark.Benchmark):
-    compiler = benchmark.Parameter('compiler path', 'nvcc')
-    compiler_flags = benchmark.Parameter('compiler flags', '')
-    backend = benchmark.Parameter('use NVIDIA CUDA or AMD HIP',
-                                  'cuda',
-                                  choices=['cuda', 'hip'])
-    gpu_architecture = benchmark.Parameter('GPU architecture',
-                                           dtype=str,
-                                           nargs=1)
-    print_code = benchmark.Parameter('print generated code', False)
-    run_twice = benchmark.Parameter('run kernels twice and measure second run',
-                                    False)
-    gpu_timers = benchmark.Parameter(
-        'use GPU timers instead of standard C++ timers', False)
+class StencilMixin(Benchmark):
+    compiler = Parameter('compiler path', 'nvcc')
+    compiler_flags = Parameter('compiler flags', '')
+    backend = Parameter('use NVIDIA CUDA or AMD HIP',
+                        'cuda',
+                        choices=['cuda', 'hip'])
+    gpu_architecture = Parameter('GPU architecture', dtype=str, nargs=1)
+    print_code = Parameter('print generated code', False)
+    run_twice = Parameter('run kernels twice and measure second run', False)
+    gpu_timers = Parameter('use GPU timers instead of standard C++ timers',
+                           False)
 
     def setup(self):
         super().setup()
@@ -43,7 +41,7 @@ class StencilMixin(benchmark.Benchmark):
             self.compiled = compilation.GnuLibrary(code, [self.compiler] +
                                                    self.compiler_flags.split())
         except compilation.CompilationError as error:
-            raise benchmark.ParameterError(*error.args) from error
+            raise ParameterError(*error.args) from error
 
         if self.verify and self.run_twice:
             warnings.warn(
@@ -122,7 +120,7 @@ class StencilMixin(benchmark.Benchmark):
             if self.run_twice:
                 self.compiled.kernel(ctypes.byref(time), *data_ptrs)
         except compilation.ExecutionError as error:
-            raise benchmark.ExecutionError() from error
+            raise ExecutionError() from error
 
         for host_array, device_array in zip(data, device_data):
             self.runtime.memcpy(host_array.ctypes.data,
@@ -135,90 +133,3 @@ class StencilMixin(benchmark.Benchmark):
     @property
     def runtime(self):
         return api.runtime(self.backend)
-
-
-class BasicStencilMixin(StencilMixin):
-    loop = benchmark.Parameter('loop kind', '1D', choices=['1D', '3D'])
-    block_size = benchmark.Parameter('block size', (1024, 1, 1))
-    threads_per_block = benchmark.Parameter(
-        'threads per block (0 means equal to block size)', (0, 0, 0))
-
-    @property
-    def sorted_block_size(self):
-        return self.sort_by_strides(self.block_size)
-
-    @property
-    def sorted_threads_per_block(self):
-        return self.sort_by_strides(self.threads_per_block)
-
-    def setup(self):
-        if self.loop == '1D' and sum(b != 1 for b in self.block_size) != 1:
-            raise benchmark.ParameterError('block size must be 1 along '
-                                           'all but one direction')
-        if any(t > b for t, b in zip(self.threads_per_block, self.block_size)):
-            raise benchmark.ParameterError(
-                'threads per block must be less than block size')
-        self.threads_per_block = tuple(
-            t if t > 0 else b
-            for t, b in zip(self.threads_per_block, self.block_size))
-
-        super().setup()
-
-    @abc.abstractmethod
-    def stencil_body(self):
-        pass
-
-    def template_file(self):
-        return 'basic_' + self.loop.lower().replace("-", "_") + '.j2'
-
-    def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    sorted_strides=self.sorted_strides,
-                    domain=self.domain,
-                    sorted_domain=self.sorted_domain,
-                    block_size=self.block_size,
-                    sorted_block_size=self.sorted_block_size,
-                    threads_per_block=self.threads_per_block,
-                    sorted_threads_per_block=self.sorted_threads_per_block,
-                    body=self.stencil_body(),
-                    backend=self.backend,
-                    gpu_timers=self.gpu_timers)
-
-
-class VerticalAdvectionMixin(StencilMixin):
-    block_size = benchmark.Parameter('block size', (32, 1))
-    unroll_factor = benchmark.Parameter(
-        'force unrolling of vertical loop '
-        '(-1: no enforced unrolling, 0: full unrolling,'
-        ' > 0: unrolling factor)', -1)
-
-    def template_file(self):
-        return 'vertical_advection_' + type(self).__name__.lower() + '.j2'
-
-    def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    domain=self.domain,
-                    block_size=self.block_size,
-                    backend=self.backend,
-                    gpu_timers=self.gpu_timers,
-                    unroll_factor=self.unroll_factor)
-
-
-class HorizontalDiffusionMixin(StencilMixin):
-    block_size = benchmark.Parameter('block size', (32, 8, 1))
-
-    def template_file(self):
-        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
-
-    def template_args(self):
-        return dict(args=self.args,
-                    ctype=self.ctype_name,
-                    strides=self.strides,
-                    domain=self.domain,
-                    block_size=self.block_size,
-                    backend=self.backend,
-                    gpu_timers=self.gpu_timers)

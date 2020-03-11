@@ -1,8 +1,27 @@
-from .mixin import BasicStencilMixin, HorizontalDiffusionMixin
-from ..base import HorizontalDiffusionStencil
+from stencil_benchmarks.benchmark import Parameter
+from stencil_benchmarks.benchmarks_collection.stencils import base
+
+from .mixin import StencilMixin
+from .basic import BasicStencilMixin
 
 
-class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
+class HorizontalDiffusionMixin(StencilMixin):
+    block_size = Parameter('block size', (32, 8, 1))
+
+    def template_file(self):
+        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
+
+    def template_args(self):
+        return dict(args=self.args,
+                    ctype=self.ctype_name,
+                    strides=self.strides,
+                    domain=self.domain,
+                    block_size=self.block_size,
+                    backend=self.backend,
+                    gpu_timers=self.gpu_timers)
+
+
+class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
     def stencil_body(self):
         stride_x, stride_y, _ = self.strides
         return f'''const auto inp_ij = inp[index];
@@ -51,35 +70,38 @@ class OnTheFly(BasicStencilMixin, HorizontalDiffusionStencil):
                 '''
 
 
-class OnTheFlyIncache(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class OnTheFlyIncache(HorizontalDiffusionMixin,
+                      base.HorizontalDiffusionStencil):
     pass
 
 
-class Classic(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class Classic(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanSharedMem(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class JScanSharedMem(HorizontalDiffusionMixin,
+                     base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanOtfIncache(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class JScanOtfIncache(HorizontalDiffusionMixin,
+                      base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanOtf(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class JScanOtf(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
 class JScanShuffleIncache(HorizontalDiffusionMixin,
-                          HorizontalDiffusionStencil):
+                          base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanShuffle(HorizontalDiffusionMixin, HorizontalDiffusionStencil):
+class JScanShuffle(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
 class JScanShuffleSystolic(HorizontalDiffusionMixin,
-                           HorizontalDiffusionStencil):
+                           base.HorizontalDiffusionStencil):
     pass
