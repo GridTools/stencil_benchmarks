@@ -63,10 +63,6 @@ class StencilMixin(Benchmark):
                 flags += ' --amdgpu-target=' + self.gpu_architecture
         return flags
 
-    @property
-    def ctype_name(self):
-        return compilation.dtype_cname(self.dtype)
-
     @abc.abstractmethod
     def template_file(self):
         pass
@@ -74,7 +70,7 @@ class StencilMixin(Benchmark):
     def template_args(self):
         return dict(args=self.args,
                     backend=self.backend,
-                    ctype=self.ctype_name,
+                    ctype=compilation.dtype_cname(self.dtype),
                     domain=self.domain,
                     gpu_timers=self.gpu_timers,
                     strides=self.strides)
