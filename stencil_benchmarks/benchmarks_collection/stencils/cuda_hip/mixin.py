@@ -1,4 +1,5 @@
 import abc
+import contextlib
 import ctypes
 import os
 import warnings
@@ -75,46 +76,47 @@ class StencilMixin(Benchmark):
                     gpu_timers=self.gpu_timers,
                     strides=self.strides)
 
-    def run_stencil(self, data):
-        offset = (self.halo, ) * 3
+    @contextlib.contextmanager
+    def on_device(self, data):
+        runtime = api.runtime(self.backend)
+
         device_data = [
             array.alloc_array(self.domain_with_halo,
                               self.dtype,
                               self.layout,
                               self.alignment,
-                              index_to_align=offset,
-                              alloc=self.runtime.malloc,
+                              index_to_align=(self.halo, ) * 3,
+                              alloc=runtime.malloc,
                               apply_offset=self.offset_allocations)
             for _ in data
         ]
+
         for host_array, device_array in zip(data, device_data):
-            self.runtime.memcpy(device_array.ctypes.data,
-                                host_array.ctypes.data,
-                                array.nbytes(host_array), 'HostToDevice')
-        self.runtime.device_synchronize()
+            runtime.memcpy(device_array.ctypes.data, host_array.ctypes.data,
+                           array.nbytes(host_array), 'HostToDevice')
+        runtime.device_synchronize()
 
-        data_ptrs = [
-            compilation.data_ptr(device_array, offset)
-            for device_array in device_data
-        ]
+        yield device_data
 
-        time = ctypes.c_double()
-        try:
-            self.compiled.kernel(ctypes.byref(time), *data_ptrs)
+        for host_array, device_array in zip(data, device_data):
+            runtime.memcpy(host_array.ctypes.data, device_array.ctypes.data,
+                           array.nbytes(host_array), 'DeviceToHost')
+        runtime.device_synchronize()
 
-            if self.run_twice:
+    def run_stencil(self, data):
+        with self.on_device(data) as device_data:
+            data_ptrs = [
+                compilation.data_ptr(device_array, (self.halo, ) * 3)
+                for device_array in device_data
+            ]
+
+            time = ctypes.c_double()
+            try:
                 self.compiled.kernel(ctypes.byref(time), *data_ptrs)
-        except compilation.ExecutionError as error:
-            raise ExecutionError() from error
 
-        for host_array, device_array in zip(data, device_data):
-            self.runtime.memcpy(host_array.ctypes.data,
-                                device_array.ctypes.data,
-                                array.nbytes(host_array), 'DeviceToHost')
-        self.runtime.device_synchronize()
+                if self.run_twice:
+                    self.compiled.kernel(ctypes.byref(time), *data_ptrs)
+            except compilation.ExecutionError as error:
+                raise ExecutionError() from error
 
         return time.value
-
-    @property
-    def runtime(self):
-        return api.runtime(self.backend)
