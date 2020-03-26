@@ -263,7 +263,10 @@ class _MaybeRange(click.ParamType):
         return self.base_type.convert(value, param, ctx)
 
     def get_metavar(self, param):
-        return self.base_type.get_metavar(param)
+        base_var = self.base_type.get_metavar(param)
+        if not base_var:
+            base_var = self.base_type.name
+        return f'{base_var} [or {base_var} range]'
 
 
 _RANGE_TYPES = {
