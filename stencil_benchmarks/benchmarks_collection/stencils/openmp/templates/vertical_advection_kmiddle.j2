@@ -6,7 +6,9 @@ static constexpr {{ ctype }} beta_v = 0;
 static constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
 static constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, ishift, jshift, ccol, dcol, wcon, ustage, upos, utens, utensstage)
+#endif
 __attribute__((always_inline)) inline void forward_sweep_kmin(int i,
     const int j,
     const int ishift,
@@ -36,7 +38,9 @@ __attribute__((always_inline)) inline void forward_sweep_kmin(int i,
     dcol[index] = dcol[index] * divided;
 }
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, k, ishift, jshift, ccol, dcol, wcon, ustage, upos, utens, utensstage)
+#endif
 __attribute__((always_inline)) inline void forward_sweep_kbody(int i,
     const int j,
     const int k,
@@ -71,7 +75,9 @@ __attribute__((always_inline)) inline void forward_sweep_kbody(int i,
     dcol[index] = (dcol[index] - dcol[index - {{ strides[2] }}] * acol) * divided;
 }
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, ishift, jshift, ccol, dcol, wcon, ustage, upos, utens, utensstage)
+#endif
 __attribute__((always_inline)) inline void forward_sweep_kmax(int i,
     const int j,
     const int ishift,
@@ -100,7 +106,9 @@ __attribute__((always_inline)) inline void forward_sweep_kmax(int i,
     dcol[index] = (dcol[index] - dcol[index - {{ strides[2] }}] * acol) * divided;
 }
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, k, ishift, jshift, ccol, dcol, wcon, ustage, upos, utens, utensstage)
+#endif
 __attribute__((always_inline)) inline void forward_sweep_k(int i,
     const int j,
     const int k,
@@ -155,7 +163,9 @@ __attribute__((always_inline)) inline void forward_sweep_k(int i,
 }
 
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, ccol, dcol, datacol, upos, utensstage)
+#endif
 __attribute__((always_inline)) inline void backward_sweep_kmax(int i,
     const int j,
     const {{ ctype }} *__restrict__ ccol,
@@ -171,7 +181,9 @@ __attribute__((always_inline)) inline void backward_sweep_kmax(int i,
     utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
 }
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, k, ccol, dcol, datacol, upos, utensstage)
+#endif
 __attribute__((always_inline)) inline void backward_sweep_kbody(int i,
     const int j,
     const int k,
@@ -187,7 +199,9 @@ __attribute__((always_inline)) inline void backward_sweep_kbody(int i,
     utensstage[index] = dtr_stage * (datacol[datacol_index] - upos[index]);
 }
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, k, ccol, dcol, datacol, upos, utensstage)
+#endif
 __attribute__((always_inline)) inline void backward_sweep_k(int i,
     const int j,
     const int k,

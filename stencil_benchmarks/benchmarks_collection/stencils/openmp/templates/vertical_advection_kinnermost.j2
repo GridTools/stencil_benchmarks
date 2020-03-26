@@ -10,7 +10,9 @@ static constexpr {{ ctype }} beta_v = 0;
 static constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
 static constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, ishift, jshift, ccol, dcol, wcon, ustage, upos, utens, utensstage)
+#endif
 __attribute__((always_inline)) inline void forward_sweep(int i,
     const int j,
     const int ishift,
@@ -146,7 +148,9 @@ __attribute__((always_inline)) inline void forward_sweep(int i,
     }
 }
 
+#ifndef __clang__
 #pragma omp declare simd linear(i) uniform(j, ccol, dcol, upos, utensstage)
+#endif
 __attribute__((always_inline)) inline void backward_sweep(int i,
     const int j,
     const {{ ctype }} *__restrict__ ccol,
