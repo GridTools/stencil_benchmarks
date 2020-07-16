@@ -251,6 +251,10 @@ class HorizontalDiffusionStencil(Stencil):
 
 
 class VerticalAdvectionStencil(Stencil):
+    u_only = Parameter(
+        'only advect u component (like in the GridTools benchmark) '
+        'instead of all (like in the COSMO dycore)', False)
+
     def setup(self):
         super().setup()
 
@@ -260,9 +264,13 @@ class VerticalAdvectionStencil(Stencil):
 
     @property
     def args(self):
-        return ('ustage', 'upos', 'utens', 'utensstage', 'vstage', 'vpos',
-                'vtens', 'vtensstage', 'wstage', 'wpos', 'wtens', 'wtensstage',
-                'wcon', 'ccol', 'dcol', 'datacol')
+        u = ('ustage', 'upos', 'utens', 'utensstage')
+        v = ('vstage', 'vpos', 'vtens', 'vtensstage')
+        w = ('wstage', 'wpos', 'wtens', 'wtensstage')
+        common = ('wcon', 'ccol', 'dcol', 'datacol')
+        if self.u_only:
+            return u + common
+        return u + v + w + common
 
     @property
     def data_size(self):
@@ -276,12 +284,13 @@ class VerticalAdvectionStencil(Stencil):
         validation.check_equality(data_before.ustage, data_after.ustage)
         validation.check_equality(data_before.upos, data_after.upos)
         validation.check_equality(data_before.utens, data_after.utens)
-        validation.check_equality(data_before.vstage, data_after.vstage)
-        validation.check_equality(data_before.vpos, data_after.vpos)
-        validation.check_equality(data_before.vtens, data_after.vtens)
-        validation.check_equality(data_before.wstage, data_after.wstage)
-        validation.check_equality(data_before.wpos, data_after.wpos)
-        validation.check_equality(data_before.wtens, data_after.wtens)
+        if not self.u_only:
+            validation.check_equality(data_before.vstage, data_after.vstage)
+            validation.check_equality(data_before.vpos, data_after.vpos)
+            validation.check_equality(data_before.vtens, data_after.vtens)
+            validation.check_equality(data_before.wstage, data_after.wstage)
+            validation.check_equality(data_before.wpos, data_after.wpos)
+            validation.check_equality(data_before.wtens, data_after.wtens)
         validation.check_equality(data_before.wcon, data_after.wcon)
 
         halo = self.halo
@@ -303,9 +312,13 @@ class VerticalAdvectionStencil(Stencil):
             def __setitem__(self, index, value):
                 self.__getitem__(index)[:] = value
 
-        (ustage, upos, utens, utensstage, vstage, vpos, vtens, vtensstage,
-         wstage, wpos, wtens, wtensstage, wcon, ccol, dcol,
-         datacol) = [Wrapper(data) for data in data_before]
+        if self.u_only:
+            (ustage, upos, utens, utensstage, wcon, ccol, dcol,
+             datacol) = [Wrapper(data) for data in data_before]
+        else:
+            (ustage, upos, utens, utensstage, vstage, vpos, vtens, vtensstage,
+             wstage, wpos, wtens, wtensstage, wcon, ccol, dcol,
+             datacol) = [Wrapper(data) for data in data_before]
 
         dtr_stage = 3 / 20
         beta_v = 0
@@ -378,15 +391,18 @@ class VerticalAdvectionStencil(Stencil):
         forward_sweep(1, 0, ustage, upos, utens, utensstage)
         backward_sweep(upos, utensstage)
 
-        forward_sweep(0, 1, vstage, vpos, vtens, vtensstage)
-        backward_sweep(vpos, vtensstage)
+        if not self.u_only:
+            forward_sweep(0, 1, vstage, vpos, vtens, vtensstage)
+            backward_sweep(vpos, vtensstage)
 
-        forward_sweep(0, 0, wstage, wpos, wtens, wtensstage)
-        backward_sweep(wpos, wtensstage)
+            forward_sweep(0, 0, wstage, wpos, wtens, wtensstage)
+            backward_sweep(wpos, wtensstage)
 
         validation.check_equality(data_before.utensstage,
                                   data_after.utensstage)
-        validation.check_equality(data_before.vtensstage,
-                                  data_after.vtensstage)
-        validation.check_equality(data_before.wtensstage,
-                                  data_after.wtensstage)
+
+        if not self.u_only:
+            validation.check_equality(data_before.vtensstage,
+                                      data_after.vtensstage)
+            validation.check_equality(data_before.wtensstage,
+                                      data_after.wtensstage)

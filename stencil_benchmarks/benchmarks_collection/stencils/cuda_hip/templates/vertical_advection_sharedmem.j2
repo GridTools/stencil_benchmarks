@@ -165,6 +165,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
     {{ ctype }} *__restrict__ utensstage,
+{%- if not u_only %}
     const {{ ctype }} *__restrict__ vstage,
     const {{ ctype }} *__restrict__ vpos,
     const {{ ctype }} *__restrict__ vtens,
@@ -173,6 +174,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ wpos,
     const {{ ctype }} *__restrict__ wtens,
     {{ ctype }} *__restrict__ wtensstage,
+{%- endif %}
     const {{ ctype }} *__restrict__ wcon,
     {{ ctype }} *__restrict__ /*ccol*/,
     {{ ctype }} *__restrict__ /*dcol*/,
@@ -192,6 +194,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         utensstage);
     backward_sweep(ccol, dcol, upos, utensstage);
 
+{%- if not u_only %}
     forward_sweep(0,
         1,
         ccol,
@@ -213,6 +216,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         wtens,
         wtensstage);
     backward_sweep(ccol, dcol, wpos, wtensstage);
+{%- endif %}
 
 }
 {% endblock gpu_kernel %}

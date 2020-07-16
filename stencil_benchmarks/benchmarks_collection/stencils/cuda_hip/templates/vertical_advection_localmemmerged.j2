@@ -5,7 +5,9 @@ __forceinline__ __device__ void backward_sweep(
     const {{ ctype }} *uccol,
     const {{ ctype }} *udcol,
     const {{ ctype }} *__restrict__ upos,
-    {{ ctype }} *__restrict__ utensstage,
+    {{ ctype }} *__restrict__ utensstage
+{%- if not u_only %}
+    ,
     const {{ ctype }} *vccol,
     const {{ ctype }} *vdcol,
     const {{ ctype }} *__restrict__ vpos,
@@ -13,14 +15,18 @@ __forceinline__ __device__ void backward_sweep(
     const {{ ctype }} *wccol,
     const {{ ctype }} *wdcol,
     const {{ ctype }} *__restrict__ wpos,
-    {{ ctype }} *__restrict__ wtensstage) {
+    {{ ctype }} *__restrict__ wtensstage
+{%- endif %}
+) {
     constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
     const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
     const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
 
     {{ ctype }} udatacol;
+{%- if not u_only %}
     {{ ctype }} vdatacol;
     {{ ctype }} wdatacol;
+{%- endif %}
 
     if (i >= {{ domain[0] }} && j >= {{ domain[1] }})
         return;
@@ -31,11 +37,13 @@ __forceinline__ __device__ void backward_sweep(
         udatacol = udcol[{{ domain[2] - 1 }}];
         utensstage[index] = dtr_stage * (udatacol - upos[index]);
 
+{%- if not u_only %}
         vdatacol = vdcol[{{ domain[2] - 1 }}];
         vtensstage[index] = dtr_stage * (vdatacol - vpos[index]);
 
         wdatacol = wdcol[{{ domain[2] - 1 }}];
         wtensstage[index] = dtr_stage * (wdatacol - wpos[index]);
+{%- endif %}
 
         index -= {{ strides[2] }};
     }
@@ -48,11 +56,13 @@ __forceinline__ __device__ void backward_sweep(
         udatacol = udcol[k] - uccol[k] * udatacol;
         utensstage[index] = dtr_stage * (udatacol - upos[index]);
 
+{%- if not u_only %}
         vdatacol = vdcol[k] - vccol[k] * vdatacol;
         vtensstage[index] = dtr_stage * (vdatacol - vpos[index]);
 
         wdatacol = wdcol[k] - wccol[k] * wdatacol;
         wtensstage[index] = dtr_stage * (wdatacol - wpos[index]);
+{%- endif %}
 
         index -= {{ strides[2] }};
     }
@@ -64,7 +74,9 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     const {{ ctype }} *__restrict__ ustage,
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
-    const {{ ctype }} *__restrict__ utensstage,
+    const {{ ctype }} *__restrict__ utensstage
+{%- if not u_only %}
+    ,
     {{ ctype }} *vccol,
     {{ ctype }} *vdcol,
     const {{ ctype }} *__restrict__ vstage,
@@ -76,7 +88,9 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     const {{ ctype }} *__restrict__ wstage,
     const {{ ctype }} *__restrict__ wpos,
     const {{ ctype }} *__restrict__ wtens,
-    const {{ ctype }} *__restrict__ wtensstage) {
+    const {{ ctype }} *__restrict__ wtensstage
+{%- endif %}
+) {
     constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
     constexpr {{ ctype }} beta_v = 0;
     constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
@@ -89,6 +103,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     {{ ctype }} udcol0, udcol1;
     {{ ctype }} ustage0, ustage1, ustage2;
     {{ ctype }} uwcon_shift0, uwcon_shift1;
+{%- if not u_only %}
     {{ ctype }} vccol0, vccol1;
     {{ ctype }} vdcol0, vdcol1;
     {{ ctype }} vstage0, vstage1, vstage2;
@@ -97,6 +112,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     {{ ctype }} wdcol0, wdcol1;
     {{ ctype }} wstage0, wstage1, wstage2;
     {{ ctype }} wwcon_shift0, wwcon_shift1;
+{%- endif %}
 
     if (i >= {{ domain[0] }} && j >= {{ domain[1] }})
         return;
@@ -125,6 +141,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         uccol[0] = uccol0;
         udcol[0] = udcol0;
 
+{%- if not u_only %}
         vwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 1 * {{ strides[1] }} + {{ strides[2] }}];
         {{ ctype }} vgcv = {{ ctype }}(0.25) * (vwcon_shift0 + wcon0);
         {{ ctype }} vcs = vgcv * bet_m;
@@ -162,6 +179,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
 
         wccol[0] = wccol0;
         wdcol[0] = wdcol0;
+{%- endif %}
 
         index += {{ strides[2] }};
     }
@@ -177,6 +195,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         ustage2 = ustage1;
         ustage1 = ustage0;
         uwcon_shift1 = uwcon_shift0;
+{%- if not u_only %}
         vccol1 = vccol0;
         vdcol1 = vdcol0;
         vstage2 = vstage1;
@@ -187,6 +206,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         wstage2 = wstage1;
         wstage1 = wstage0;
         wwcon_shift1 = wwcon_shift0;
+{%- endif %}
 
         wcon0 = wcon[index + {{ strides[2] }}];
 
@@ -212,6 +232,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         uccol[k] = uccol0;
         udcol[k] = udcol0;
 
+{%- if not u_only %}
         {{ ctype }} vgav = {{ ctype }}(-0.25) * (vwcon_shift1 + wcon1);
         vwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 1 * {{ strides[1] }} + {{ strides[2] }}];
         {{ ctype }} vgcv = {{ ctype }}(0.25) * (vwcon_shift0 + wcon0);
@@ -255,6 +276,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
 
         wccol[k] = wccol0;
         wdcol[k] = wdcol0;
+{%- endif %}
 
         index += {{ strides[2] }};
     }
@@ -267,6 +289,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         ustage2 = ustage1;
         ustage1 = ustage0;
         uwcon_shift1 = uwcon_shift0;
+{%- if not u_only %}
         vccol1 = vccol0;
         vdcol1 = vdcol0;
         vstage2 = vstage1;
@@ -277,6 +300,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         wstage2 = wstage1;
         wstage1 = wstage0;
         wwcon_shift1 = wwcon_shift0;
+{%- endif %}
 
         {{ ctype }} ugav = {{ ctype }}(-0.25) * (uwcon_shift1 + wcon1);
 
@@ -294,6 +318,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         uccol[{{ domain[2] - 1 }}] = uccol0;
         udcol[{{ domain[2] - 1 }}] = udcol0;
 
+{%- if not u_only %}
         {{ ctype }} vgav = {{ ctype }}(-0.25) * (vwcon_shift1 + wcon1);
 
         {{ ctype }} vas = vgav * bet_m;
@@ -325,6 +350,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
 
         wccol[{{ domain[2] - 1 }}] = wccol0;
         wdcol[{{ domain[2] - 1 }}] = wdcol0;
+{%- endif %}
     }
 }
 
@@ -334,6 +360,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
     {{ ctype }} *__restrict__ utensstage,
+{%- if not u_only %}
     const {{ ctype }} *__restrict__ vstage,
     const {{ ctype }} *__restrict__ vpos,
     const {{ ctype }} *__restrict__ vtens,
@@ -342,6 +369,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ wpos,
     const {{ ctype }} *__restrict__ wtens,
     {{ ctype }} *__restrict__ wtensstage,
+{%- endif %}
     const {{ ctype }} *__restrict__ wcon,
     {{ ctype }} *__restrict__ /*ccol*/,
     {{ ctype }} *__restrict__ /*dcol*/,
@@ -349,10 +377,12 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
 
     {{ ctype }} uccol[{{ domain[2] }}];
     {{ ctype }} udcol[{{ domain[2] }}];
+{%- if not u_only %}
     {{ ctype }} vccol[{{ domain[2] }}];
     {{ ctype }} vdcol[{{ domain[2] }}];
     {{ ctype }} wccol[{{ domain[2] }}];
     {{ ctype }} wdcol[{{ domain[2] }}];
+{%- endif %}
 
     forward_sweep(
         wcon,
@@ -361,7 +391,9 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         ustage,
         upos,
         utens,
-        utensstage,
+        utensstage
+{%- if not u_only %}
+        ,
         vccol,
         vdcol,
         vstage,
@@ -373,12 +405,16 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         wstage,
         wpos,
         wtens,
-        wtensstage);
+        wtensstage
+{%- endif %}
+);
     backward_sweep(
         uccol,
         udcol,
         upos,
-        utensstage,
+        utensstage
+{%- if not u_only %}
+        ,
         vccol,
         vdcol,
         vpos,
@@ -386,7 +422,9 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         wccol,
         wdcol,
         wpos,
-        wtensstage);
+        wtensstage
+{%- endif %}
+);
 }
 {% endblock gpu_kernel %}
 

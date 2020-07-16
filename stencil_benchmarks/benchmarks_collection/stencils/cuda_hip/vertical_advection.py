@@ -17,7 +17,8 @@ class VerticalAdvectionMixin(StencilMixin):
     def template_args(self):
         return dict(**super().template_args(),
                     block_size=self.block_size,
-                    unroll_factor=self.unroll_factor)
+                    unroll_factor=self.unroll_factor,
+                    u_only=self.u_only)
 
 
 class Classic(VerticalAdvectionMixin, base.VerticalAdvectionStencil):

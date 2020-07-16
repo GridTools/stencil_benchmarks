@@ -257,6 +257,7 @@ __attribute__((always_inline)) inline void backward_sweep_k(int i,
                                 backward_sweep_k(i, j, k, ccol, dcol, datacol, upos, utensstage);
                             }
                     }
+{%- if not u_only %}
                     for (index_t k = 0; k < {{ domain[2] }}; ++k) {
                         {%- if block_size[0] > 1 %}
                             const index_t imax = std::min((index_t){{ domain[0] }}, ib + {{ block_size[0] }});
@@ -309,6 +310,7 @@ __attribute__((always_inline)) inline void backward_sweep_k(int i,
                                 backward_sweep_k(i, j, k, ccol, dcol, datacol, wpos, wtensstage);
                             }
                     }
+{%- endif %}
                 }
         }
     }

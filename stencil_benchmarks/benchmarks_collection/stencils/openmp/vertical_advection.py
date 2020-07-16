@@ -11,7 +11,9 @@ class VerticalAdvectionMixin(StencilMixin):
         return 'vertical_advection_' + type(self).__name__.lower() + '.j2'
 
     def template_args(self):
-        return dict(**super().template_args(), block_size=self.block_size)
+        return dict(**super().template_args(),
+                    block_size=self.block_size,
+                    u_only=self.u_only)
 
 
 class KInnermost(VerticalAdvectionMixin, base.VerticalAdvectionStencil):
