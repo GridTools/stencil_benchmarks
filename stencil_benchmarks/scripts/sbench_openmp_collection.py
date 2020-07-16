@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from ast import literal_eval
+
 import click
 import numpy as np
 
@@ -25,18 +27,7 @@ def common_kwargs(options=None, **overrides):
     for o in options:
         name, value = o.split('=', 1)
         name = name.replace('-', '_')
-        if value.lower() == 'true':
-            value = True
-        elif value.lower() == 'false':
-            value = False
-        else:
-            try:
-                value = int(value)
-            except ValueError:
-                try:
-                    value = float(value)
-                except ValueError:
-                    pass
+        value = literal_eval(value)
         kwargs[name] = value
     return kwargs
 

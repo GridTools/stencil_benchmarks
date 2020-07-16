@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from ast import literal_eval
+
 import click
 
 from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
@@ -14,15 +16,22 @@ def main():
     pass
 
 
-def common_kwargs(backend, gpu_architecture, dtype):
-    return dict(backend=backend,
-                compiler='nvcc' if backend == 'cuda' else 'hipcc',
-                gpu_architecture=gpu_architecture,
-                verify=False,
-                run_twice=True,
-                gpu_timers=True,
-                alignment=128 if backend == 'cuda' else 64,
-                dtype=dtype)
+def common_kwargs(backend, gpu_architecture, dtype, options=None, **overrides):
+    kwargs = dict(backend=backend,
+                  compiler='nvcc' if backend == 'cuda' else 'hipcc',
+                  gpu_architecture=gpu_architecture,
+                  verify=False,
+                  run_twice=True,
+                  gpu_timers=True,
+                  alignment=128 if backend == 'cuda' else 64,
+                  dtype=dtype)
+    kwargs.update(overrides)
+    for o in options:
+        name, value = o.split('=', 1)
+        name = name.replace('-', '_')
+        value = literal_eval(value)
+        kwargs[name] = value
+    return kwargs
 
 
 @main.command()
@@ -31,9 +40,14 @@ def common_kwargs(backend, gpu_architecture, dtype):
 @click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
 @click.option('--dtype', '-d', default='float32')
-def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
-    kwargs = common_kwargs(backend, gpu_architecture, dtype)
-    kwargs.update(
+@click.option('--option', '-o', multiple=True)
+def basic_bandwidth(backend, gpu_architecture, output, executions, dtype,
+                    option):
+    kwargs = common_kwargs(
+        backend,
+        gpu_architecture,
+        dtype,
+        option,
         loop='3D',
         block_size=(32, 8, 1),
         halo=1,
@@ -79,9 +93,10 @@ def basic_bandwidth(backend, gpu_architecture, output, executions, dtype):
 @click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
 @click.option('--dtype', '-d', default='float32')
+@click.option('--option', '-o', multiple=True)
 def horizontal_diffusion_bandwidth(backend, gpu_architecture, output,
-                                   executions, dtype):
-    kwargs = common_kwargs(backend, gpu_architecture, dtype)
+                                   executions, dtype, option):
+    kwargs = common_kwargs(backend, gpu_architecture, dtype, option)
 
     def choose(hip, cuda):
         return hip if backend == 'hip' else cuda
@@ -135,9 +150,10 @@ def horizontal_diffusion_bandwidth(backend, gpu_architecture, output,
 @click.argument('output', type=click.Path())
 @click.option('--executions', '-e', type=int, default=101)
 @click.option('--dtype', '-d', default='float32')
+@click.option('--option', '-o', multiple=True)
 def vertical_advection_bandwidth(backend, gpu_architecture, output, executions,
-                                 dtype):
-    kwargs = common_kwargs(backend, gpu_architecture, dtype)
+                                 dtype, option):
+    kwargs = common_kwargs(backend, gpu_architecture, dtype, option)
 
     def choose(hip, cuda):
         return hip if backend == 'hip' else cuda
