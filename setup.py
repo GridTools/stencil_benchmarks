@@ -63,8 +63,8 @@ setuptools.setup(
             'sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main',
             'sbench-v100mi50-collection=stencil_benchmarks.scripts'
             '.sbench_v100mi50_collection:main',
-            'sbench-openmp-collection=stencil_benchmarks.scripts'
-            '.sbench_openmp_collection:main',
+            'sbench-a64fx-collection=stencil_benchmarks.scripts'
+            '.sbench_a64fx_collection:main',
             'sbench-rome-collection=stencil_benchmarks.scripts'
             '.sbench_rome_collection:main'
         ]
