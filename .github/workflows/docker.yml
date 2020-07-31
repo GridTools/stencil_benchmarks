@@ -18,7 +18,7 @@ jobs:
         docker build -t fthaler/stencil_benchmarks:${{ matrix.variant }} . -f dockerfiles/${{ matrix.variant }}.Dockerfile
     - name: test
       run: >
-        docker run --rm fthaler/stencil_benchmarks:${{ matrix.variant }} /bin/bash -c "pip3 install -r /stencil_benchmarks/requirements-dev.txt && pytest /stencil_benchmarks"
+        docker run --rm fthaler/stencil_benchmarks:${{ matrix.variant }} /bin/bash -c "pip3 install -r /stencil_benchmarks/requirements-dev.txt && pytest -c /stencil_benchmarks/pytest.ini"
 #   - name: push
 #     run: >
 #       echo ${{ secrets.DOCKER_TOKEN }} | docker login -u fthaler --password-stdin &&
