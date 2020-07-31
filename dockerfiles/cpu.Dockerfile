@@ -10,3 +10,5 @@ RUN apt-get update -qq && \
 
 COPY . /stencil_benchmarks
 RUN pip3 install /stencil_benchmarks
+
+RUN /bin/bash -c 'for c in $(compgen -c sbench); do cup=${c^^} && echo "eval \"$""(_${cup//-/_}_COMPLETE=source $c)\""; done >> ~/.bashrc'
