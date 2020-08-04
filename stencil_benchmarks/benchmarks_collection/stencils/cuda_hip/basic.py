@@ -78,7 +78,7 @@ class Copy(BasicStencilMixin, base.CopyStencil):
 class OnesidedAverage(BasicStencilMixin, base.OnesidedAverageStencil):
     def stencil_body(self):
         stride = self.strides[self.axis]
-        return f'out[index] = (inp[index] + inp[index + {stride}]) / 2);'
+        return f'out[index] = (inp[index] + inp[index + {stride}]) / 2;'
 
 
 class SymmetricAverage(BasicStencilMixin, base.SymmetricAverageStencil):
