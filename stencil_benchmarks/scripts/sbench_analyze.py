@@ -34,16 +34,35 @@ def strip(df, invert=False):
 
 @main.command(name='print')
 @click.argument('csv', type=click.Path(exists=True))
-@click.option('--common/--non-common', '-c', default=False)
-@click.option('--auto-group/--no-auto-group', '-a', default=False)
-@click.option('--group', '-g', multiple=True)
-@click.option('--select', '-s', multiple=True)
-@click.option('--pivot', '-p', nargs=2)
-@click.option('--aggregation', default='median')
-@click.option('--sort/--no-sort', default=False)
-@click.option('--output', '-o', type=click.Path())
+@click.option(
+    '--common/--non-common',
+    '-c',
+    default=False,
+    help='Only print values common for all sbench runs in the input file.')
+@click.option('--auto-group/--no-auto-group',
+              '-a',
+              default=False,
+              help='Automatically group values.')
+@click.option('--group',
+              '-g',
+              multiple=True,
+              help='Group values by data column with the given name.')
+@click.option('--select',
+              '-s',
+              multiple=True,
+              help='Only print values from selected columns.')
+@click.option('--pivot',
+              '-p',
+              nargs=2,
+              help='Create a pivot table with the given columns as axes.')
+@click.option('--aggregation',
+              default='median',
+              help='Aggregation function used for pivotting.')
+@click.option('--sort/--no-sort', default=False, help='Sort values.')
+@click.option('--output', '-o', type=click.File(mode='w'), help='Output file.')
 def print_csv(csv, common, auto_group, group, select, pivot, aggregation, sort,
               output):
+    """Print reports of CSV files produces by sbench."""
     df = read_csv(csv)
     df = strip(df, invert=common)
     if pivot:
@@ -71,6 +90,7 @@ def print_csv(csv, common, auto_group, group, select, pivot, aggregation, sort,
 @click.option('--select', multiple=True, default=['time', 'bandwidth'])
 @click.option('--separate-by')
 def summary(csv, best_only, select, separate_by):
+    """Print same data summary as the sbench executable does by default."""
     df = read_csv(csv)
     nunique = df.apply(pd.Series.nunique)
     if len(df.index) > 1:
@@ -99,16 +119,29 @@ def summary(csv, best_only, select, separate_by):
 
 @main.command()
 @click.argument('csv', type=click.Path(exists=True))
-@click.argument('by')
 @click.argument('x')
 @click.argument('y')
-@click.option('--aggregation', default='median')
-@click.option('--uniform/--non-uniform', '-u')
-@click.option('--ylim', type=float, nargs=2)
-@click.option('--title', '-t')
-@click.option('--group-by', '-g', multiple=True)
-@click.option('--output', '-o', type=click.Path())
-def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
+@click.option('--labels', help='CSV column to use as labels.')
+@click.option('--aggregation',
+              default='median',
+              help='Aggregation function to use in pivotting.')
+@click.option('--uniform/--non-uniform',
+              '-u',
+              help='Equidistant placement of x-axis ticks.')
+@click.option('--ylim', type=float, nargs=2, help='Y-axis limits.')
+@click.option('--title', '-t', help='Plot title.')
+@click.option('--group-by',
+              '-g',
+              multiple=True,
+              help='CSV column to use for grouping.')
+@click.option('--output', '-o', type=click.Path(), help='Output file.')
+def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
+         output):
+    """Plot output of sbench.
+
+    X is the data column name for the values used for the x-axis in the plot, Y
+    is the column name for the y-axis.
+    """
     df = read_csv(csv)
     common = strip(df, invert=True)
     df = strip(df)
@@ -123,13 +156,20 @@ def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
                                        plt.rcParams['axes.prop_cycle'])
 
     def pivot_and_plot(df, prefix=None):
-        df = df.pivot_table(index=x, columns=by, aggfunc=aggregation)[y]
+        df = df.pivot_table(index=x, columns=labels, aggfunc=aggregation)[y]
 
         xticks = np.arange(len(df.index)) if uniform else df.index.to_numpy()
-        for label, values in df.items():
+        if isinstance(df, pd.DataFrame):
+            for label, values in df.items():
+                if prefix:
+                    label = prefix + label
+                plt.plot(xticks, values.values, label=label)
+        else:
+            assert isinstance(df, pd.Series)
+            label = df.name
             if prefix:
                 label = prefix + label
-            plt.plot(xticks, values.values, label=label)
+            plt.plot(xticks, df.values, label=label)
         if uniform:
             plt.xticks(xticks, df.index)
 
@@ -170,8 +210,9 @@ def plot(csv, by, x, y, aggregation, uniform, ylim, title, group_by, output):
 
 @main.command()
 @click.argument('csv', type=click.Path(exists=True), nargs=-1)
-@click.argument('output', type=click.Path())
+@click.argument('output', type=click.File(mode='w'))
 def merge(csv, output):
+    """Merge multiple CSV files produces by sbench."""
     dfs = [read_csv(c) for c in csv]
     df = pd.concat(dfs, ignore_index=True)
     df.to_csv(output)
