@@ -121,7 +121,7 @@ def summary(csv, best_only, select, separate_by):
 @click.argument('csv', type=click.Path(exists=True))
 @click.argument('x')
 @click.argument('y')
-@click.option('--labels', help='CSV column to use as labels.')
+@click.option('--labels', '-l', help='CSV column to use as labels.')
 @click.option('--aggregation',
               default='median',
               help='Aggregation function to use in pivotting.')
@@ -134,9 +134,13 @@ def summary(csv, best_only, select, separate_by):
               '-g',
               multiple=True,
               help='CSV column to use for grouping.')
+@click.option('--reference',
+              '-r',
+              multiple=True,
+              help='Reference value in the form `label=value`.')
 @click.option('--output', '-o', type=click.Path(), help='Output file.')
 def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
-         output):
+         reference, output):
     """Plot output of sbench.
 
     X is the data column name for the values used for the x-axis in the plot, Y
@@ -182,6 +186,12 @@ def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
             pivot_and_plot(df[mask], ' '.join(group) + ': ')
     else:
         pivot_and_plot(df)
+
+    for i, ref in enumerate(reference):
+        label, value = ref.split('=', 1)
+        value = float(value)
+        dashes = (5 * (i + 1) + 3 * i, 3)
+        plt.axhline(value, color='k', ls=(0, dashes), label=label)
 
     plt.legend()
     plt.xlabel(x)
