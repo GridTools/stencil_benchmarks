@@ -118,6 +118,8 @@ def _cli_func(bmark):
                 for kws in progress.report(unpacked_kwargs):
                     bmark_instance = _instantiate(
                         bmark, ctx.obj.skip_invalid_parameters, **kws)
+                    if bmark_instance is None:
+                        continue
 
                     for _ in progress.report(range(ctx.obj.executions)):
                         instance_results, result_keys = _run_instance(
