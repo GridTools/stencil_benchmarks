@@ -21,7 +21,8 @@ common_kwargs = default_kwargs(backend='hip',
                                verify=False,
                                dry_runs=1,
                                gpu_timers=True,
-                               alignment=64)
+                               alignment=64,
+                               dtype='float32')
 
 
 @main.command()
