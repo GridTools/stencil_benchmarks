@@ -118,19 +118,19 @@ def vertical_advection_bandwidth(output, executions, option):
     configurations = [
         Configuration(vadv.Classic,
                       block_size=(512, 2),
-                      unroll_factor=choose(3, 5),
+                      unroll_factor=5,
                       **kwargs),
         Configuration(vadv.LocalMem,
                       block_size=(64, 4),
-                      unroll_factor=choose(10, 8),
+                      unroll_factor=8,
                       **kwargs),
         Configuration(vadv.SharedMem,
                       block_size=(64, 1),
-                      unroll_factor=choose(6, 0),
+                      unroll_factor=0,
                       **kwargs),
         Configuration(vadv.LocalMemMerged,
                       block_size=(32, 1),
-                      unroll_factor=choose(-1, 0),
+                      unroll_factor=0,
                       **kwargs)
     ]
 
