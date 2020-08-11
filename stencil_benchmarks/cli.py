@@ -31,7 +31,7 @@ def _run_instance(bmark_instance, skip_execution_failures):
         results = bmark_instance.run()
     except benchmark.ExecutionError as error:
         if skip_execution_failures:
-            return []
+            return
         click.echo('execution error: ' + ' '.join(error.args))
         sys.exit(1)
     except validation.ValidationError:
