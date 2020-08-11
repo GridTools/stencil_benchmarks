@@ -19,7 +19,7 @@ common_kwargs = default_kwargs(backend='hip',
                                compiler='hipcc',
                                gpu_architecture='gfx906',
                                verify=False,
-                               run_twice=True,
+                               dry_runs=1,
                                gpu_timers=True,
                                alignment=64)
 

@@ -18,7 +18,7 @@ class StencilMixin(Benchmark):
                         choices=['cuda', 'hip'])
     gpu_architecture = Parameter('GPU architecture', dtype=str, nargs=1)
     print_code = Parameter('print generated code', False)
-    run_twice = Parameter('run kernels twice and measure second run', False)
+    dry_runs = Parameter('kernel dry-runs before the measurement', 0)
     gpu_timers = Parameter('use GPU timers instead of standard C++ timers',
                            False)
 
@@ -42,9 +42,9 @@ class StencilMixin(Benchmark):
         except compilation.CompilationError as error:
             raise ParameterError(*error.args) from error
 
-        if self.verify and self.run_twice:
+        if self.verify and self.dry_runs:
             warnings.warn(
-                'enabling --run-twice and verification might lead to '
+                'using --dry-runs together with verification might lead to '
                 'false negatives for stencils with read-write fields')
 
     def default_compiler_flags(self):
@@ -112,10 +112,10 @@ class StencilMixin(Benchmark):
 
             time = ctypes.c_double()
             try:
-                self.compiled.kernel(ctypes.byref(time), *data_ptrs)
-
-                if self.run_twice:
+                for _ in range(self.dry_runs):
                     self.compiled.kernel(ctypes.byref(time), *data_ptrs)
+
+                self.compiled.kernel(ctypes.byref(time), *data_ptrs)
             except compilation.ExecutionError as error:
                 raise ExecutionError() from error
 
