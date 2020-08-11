@@ -61,8 +61,10 @@ setuptools.setup(
         'console_scripts': [
             'sbench=stencil_benchmarks.scripts.sbench:main',
             'sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main',
-            'sbench-v100mi50-collection=stencil_benchmarks.scripts'
-            '.sbench_v100mi50_collection:main',
+            'sbench-v100-collection=stencil_benchmarks.scripts'
+            '.sbench_v100_collection:main',
+            'sbench-mi50-collection=stencil_benchmarks.scripts'
+            '.sbench_mi50_collection:main',
             'sbench-a64fx-collection=stencil_benchmarks.scripts'
             '.sbench_a64fx_collection:main',
             'sbench-rome-collection=stencil_benchmarks.scripts'

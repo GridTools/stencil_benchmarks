@@ -1,3 +1,4 @@
+from ast import literal_eval
 import gc
 import re
 
@@ -62,3 +63,17 @@ def truncate_block_size_to_domain(**kwargs):
         kwargs['block_size'] = tuple(
             min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
     return kwargs
+
+
+def default_kwargs(**kwargs):
+    def override(options=None, **overrides):
+        kws = kwargs.copy()
+        kws.update(overrides)
+        for o in options:
+            name, value = o.split('=', 1)
+            name = name.replace('-', '_')
+            value = literal_eval(value)
+            kws[name] = value
+        return kws
+
+    return override
