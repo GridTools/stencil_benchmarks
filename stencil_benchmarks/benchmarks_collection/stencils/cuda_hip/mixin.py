@@ -73,6 +73,7 @@ class StencilMixin(Benchmark):
                     backend=self.backend,
                     ctype=compilation.dtype_cname(self.dtype),
                     domain=self.domain,
+                    dry_runs=self.dry_runs,
                     gpu_timers=self.gpu_timers,
                     strides=self.strides)
 
@@ -112,9 +113,6 @@ class StencilMixin(Benchmark):
 
             time = ctypes.c_double()
             try:
-                for _ in range(self.dry_runs):
-                    self.compiled.kernel(ctypes.byref(time), *data_ptrs)
-
                 self.compiled.kernel(ctypes.byref(time), *data_ptrs)
             except compilation.ExecutionError as error:
                 raise ExecutionError() from error

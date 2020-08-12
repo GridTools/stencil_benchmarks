@@ -99,6 +99,14 @@ extern "C" int kernel(
         return 1;
     }
 
+    for (int dry_run = 0; dry_run < {{ dry_runs }}; ++dry_run) {
+        gpu_kernel<<<grid_size, block_size, smem_size>>>(
+            {% for arg in args %}
+                {{ arg }}{{ "," if not loop.last }}
+            {%- endfor %}
+        );
+    }
+
     {%- if gpu_timers %}
     {{ backend }}Event_t start, stop;
     CHECK(EventCreate(&start));
@@ -107,6 +115,8 @@ extern "C" int kernel(
     CHECK(EventRecord(start));
     {%- else %}
     using clock = std::chrono::high_resolution_clock;
+
+    CHECK(DeviceSynchronize());
     auto start = clock::now();
     {%- endif %}
 
