@@ -138,9 +138,12 @@ def summary(csv, best_only, select, separate_by):
               '-r',
               multiple=True,
               help='Reference value in the form `label=value`.')
+@click.option('--relative-to',
+              type=float,
+              help='Plot percentage relative to given value.')
 @click.option('--output', '-o', type=click.Path(), help='Output file.')
 def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
-         reference, output):
+         reference, relative_to, output):
     """Plot output of sbench.
 
     X is the data column name for the values used for the x-axis in the plot, Y
@@ -152,7 +155,7 @@ def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
 
     import matplotlib
     matplotlib.use('Agg')
-    from matplotlib import pyplot as plt
+    from matplotlib import pyplot as plt, ticker
     import cycler
     plt.style.use('ggplot')
 
@@ -164,16 +167,19 @@ def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
 
         xticks = np.arange(len(df.index)) if uniform else df.index.to_numpy()
         if isinstance(df, pd.DataFrame):
-            for label, values in df.items():
-                if prefix:
-                    label = prefix + label
-                plt.plot(xticks, values.values, label=label)
+            items = df.items()
         else:
             assert isinstance(df, pd.Series)
-            label = df.name
+            items = [(df.name, df)]
+
+        for label, series in items:
             if prefix:
                 label = prefix + label
-            plt.plot(xticks, df.values, label=label)
+            values = series.values
+            if relative_to:
+                values = values / relative_to
+            plt.plot(xticks, values, label=label)
+
         if uniform:
             plt.xticks(xticks, df.index)
 
@@ -198,6 +204,8 @@ def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
     plt.ylabel(y)
     if ylim:
         plt.ylim(ylim)
+    if relative_to:
+        plt.gca().yaxis.set_major_formatter(ticker.PercentFormatter(1.0))
     if not title:
         title = os.path.split(csv)[-1]
     plt.title(title)
