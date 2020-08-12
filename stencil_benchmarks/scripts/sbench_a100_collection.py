@@ -19,7 +19,7 @@ common_kwargs = default_kwargs(backend='cuda',
                                compiler='nvcc',
                                gpu_architecture='sm_80',
                                verify=False,
-                               run_twice=True,
+                               dry_runs=1,
                                gpu_timers=True,
                                alignment=128,
                                dtype='float32')
