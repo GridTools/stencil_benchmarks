@@ -19,8 +19,8 @@ jobs:
     - name: test
       run: >
         docker run --rm fthaler/stencil_benchmarks:${{ matrix.variant }} /bin/bash -c "pip3 install -r /stencil_benchmarks/requirements-dev.txt && pytest -c /stencil_benchmarks/pytest.ini"
-#   - name: push
-#     run: >
-#       echo ${{ secrets.DOCKER_TOKEN }} | docker login -u fthaler --password-stdin &&
-#       docker push fthaler/stencil_benchmarks:${{ matrix.variant }} &&
-#       docker logout
+    - name: push
+      run: >
+        echo ${{ secrets.DOCKER_TOKEN }} | docker login -u fthaler --password-stdin &&
+        docker push fthaler/stencil_benchmarks:${{ matrix.variant }} &&
+        docker logout
