@@ -1,4 +1,5 @@
-FROM nvidia/cuda:11.0-devel-ubuntu18.04
+ARG CUDA_VERSION=11.0
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 LABEL maintainer="Felix Thaler <thaler@cscs.ch>"
 
 RUN apt-get update -qq && \
