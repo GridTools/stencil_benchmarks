@@ -19,8 +19,8 @@ __forceinline__ __device__ void backward_sweep(
 {%- endif %}
 ) {
     constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
-    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
-    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
+    const {{ index_type }} i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
+    const {{ index_type }} j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
 
     {{ ctype }} udatacol;
 {%- if not u_only %}
@@ -31,7 +31,7 @@ __forceinline__ __device__ void backward_sweep(
     if (i >= {{ domain[0] }} && j >= {{ domain[1] }})
         return;
 
-    std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
+    {{ index_type }} index = i * {{ strides[0] }} + j * {{ strides[1] }} + {{ (domain[2] - 1) * strides[2] }};
     // k maximum
     {
         udatacol = udcol[{{ domain[2] - 1 }}];
@@ -52,7 +52,7 @@ __forceinline__ __device__ void backward_sweep(
 {%- if unroll_factor >= 0 %}
     #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
 {%- endif %}
-    for (std::ptrdiff_t k = {{ domain[2] }} - 2; k >= 0; --k) {
+    for ({{ index_type }} k = {{ domain[2] }} - 2; k >= 0; --k) {
         udatacol = udcol[k] - uccol[k] * udatacol;
         utensstage[index] = dtr_stage * (udatacol - upos[index]);
 
@@ -95,8 +95,8 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     constexpr {{ ctype }} beta_v = 0;
     constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
     constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
-    const std::ptrdiff_t i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
-    const std::ptrdiff_t j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
+    const {{ index_type }} i = blockIdx.x * {{ block_size[0] }} + threadIdx.x;
+    const {{ index_type }} j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
 
     {{ ctype }} wcon0, wcon1;
     {{ ctype }} uccol0, uccol1;
@@ -117,7 +117,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     if (i >= {{ domain[0] }} && j >= {{ domain[1] }})
         return;
 
-    std::ptrdiff_t index = i * {{ strides[0] }} + j * {{ strides[1] }};
+    {{ index_type }} index = i * {{ strides[0] }} + j * {{ strides[1] }};
     // k minimum
     {
         wcon0 = wcon[index + {{ strides[2] }}];
@@ -188,7 +188,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
 {%- if unroll_factor >= 0 %}
     #pragma unroll {{ unroll_factor if unroll_factor > 0 }}
 {%- endif %}
-    for (std::ptrdiff_t k = 1; k < {{ domain[2] - 1 }}; ++k) {
+    for ({{ index_type }} k = 1; k < {{ domain[2] - 1 }}; ++k) {
         wcon1 = wcon0;
         uccol1 = uccol0;
         udcol1 = udcol0;

@@ -3,11 +3,11 @@
 {% set block_halo = 2 %}
 
 {% block gpu_kernel_body %}
-    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + threadIdx.x;
-    const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
-    const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
+    const {{ index_type }} i = {{ index_type }}(blockIdx.x) * {{ block_size[0] }} + threadIdx.x;
+    const {{ index_type }} j_min = {{ index_type }}(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
+    const {{ index_type }} k = {{ index_type }}(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
 
-    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+    const {{ index_type }} jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
     if (k >= {{ domain[2] }} || i >= {{ domain[0] }})
         return;
 
@@ -17,7 +17,7 @@
     {{ ctype }} inp_im2jp1, inp_im1jp1, inp_ijp1, inp_ip1jp1, inp_ip2jp1;
     {{ ctype }} inp_im2jp2, inp_im1jp2, inp_ijp2, inp_ip1jp2, inp_ip2jp2;
 
-    std::ptrdiff_t index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
+    {{ index_type }} index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
 
     inp_im1j = inp[index - {{ strides[0] }}];
     inp_ij = inp[index];
@@ -29,7 +29,7 @@
     inp_ip1jp1 = inp[index + {{ strides[0] }} + {{ strides[1] }}];
     inp_ip2jp1 = inp[index + 2 * {{ strides[0] }} + {{ strides[1] }}];
 
-    for (std::ptrdiff_t jb = -{{ block_halo }}; jb < {{ block_size[1] }}; ++jb) {
+    for ({{ index_type }} jb = -{{ block_halo }}; jb < {{ block_size[1] }}; ++jb) {
         if (jb < jb_max) {
             inp_im2jp2 = inp[index - 2 * {{ strides[0] }} + 2 * {{ strides[1] }}];
             inp_im1jp2 = inp[index - {{ strides[0] }} + 2 * {{ strides[1] }}];

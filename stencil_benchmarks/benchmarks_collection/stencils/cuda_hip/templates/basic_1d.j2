@@ -6,11 +6,11 @@
     {% set indices = (block_size[0] ~ ' * blockIdx.x + threadIdx.x', block_size[1] ~ ' * blockIdx.y + threadIdx.y', block_size[2] ~ ' * blockIdx.z + threadIdx.z') %}
     {% set dim = 0 if block_size[0] > 1 else 1 if block_size[1] > 1 else 2%}
 
-    const std::ptrdiff_t base_index = {{ indices[dim] }};
+    const {{ index_type }} base_index = {{ indices[dim] }};
 
     {% for ib in range(0, block_size[dim], threads_per_block[dim]) %}
     {
-        const std::ptrdiff_t index = base_index + {{ ib }};
+        const {{ index_type }} index = base_index + {{ ib }};
         if (index < {{ elements }}) {
             {{ body }}
         }

@@ -3,21 +3,21 @@
 {% set block_halo = 2 %}
 
 {% block gpu_kernel_body %}
-    const std::ptrdiff_t ib = std::ptrdiff_t(threadIdx.x) - {{ block_halo }};
+    const {{ index_type }} ib = {{ index_type }}(threadIdx.x) - {{ block_halo }};
 
-    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + ib;
-    const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
-    const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
+    const {{ index_type }} i = {{ index_type }}(blockIdx.x) * {{ block_size[0] }} + ib;
+    const {{ index_type }} j_min = {{ index_type }}(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
+    const {{ index_type }} k = {{ index_type }}(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
     if (k >= {{ domain[2] }})
         return;
 
-    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
-    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+    const {{ index_type }} ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
+    const {{ index_type }} jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
         
     if (ib >= ib_max + {{ block_halo }})
         return;
 
-    std::ptrdiff_t index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
+    {{ index_type }} index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
 
 {%- if backend == "hip" %}
 #define SHFL_UP(x) __shfl_up((x), 1)
@@ -35,7 +35,7 @@
     inp_ijp1 = inp[index + {{ strides[1] }}];
 
 #pragma unroll
-    for (std::ptrdiff_t jb = -{{ block_halo }}; jb < {{ block_size[1] }}; ++jb) {
+    for ({{ index_type }} jb = -{{ block_halo }}; jb < {{ block_size[1] }}; ++jb) {
         if (jb < jb_max) {
             inp_ijp2 = inp[index + 2 * {{ strides[1] }}];
 

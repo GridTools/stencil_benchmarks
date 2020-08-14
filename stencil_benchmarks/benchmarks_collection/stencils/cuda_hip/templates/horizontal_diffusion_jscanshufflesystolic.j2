@@ -1,11 +1,11 @@
 {% extends "base.j2" %}
 
 {% block gpu_kernel_body %}
-    const std::ptrdiff_t ib = std::ptrdiff_t(threadIdx.x);
+    const {{ index_type }} ib = {{ index_type }}(threadIdx.x);
 
-    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + ib;
-    const std::ptrdiff_t j_base = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }};
-    const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
+    const {{ index_type }} i = {{ index_type }}(blockIdx.x) * {{ block_size[0] }} + ib;
+    const {{ index_type }} j_base = {{ index_type }}(blockIdx.y) * {{ block_size[1] }};
+    const {{ index_type }} k = {{ index_type }}(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
     if (k >= {{ domain[2] }})
         return;
 
@@ -13,8 +13,8 @@
     {{ ctype }} flx[{{ block_size[1] + 2 }}];
     {{ ctype }} fly[{{ block_size[1] + 2 }}];
 
-    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
-    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+    const {{ index_type }} ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
+    const {{ index_type }} jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
 
 #ifdef __HIPCC__
 #define SHFL_UP(x) __shfl_up((x), 1)
@@ -22,11 +22,11 @@
 #define SHFL_UP(x) __shfl_up_sync(0xffffffff, (x), 1)
 #endif
 
-    const std::ptrdiff_t base_index = i * {{ strides[0] }} + j_base * {{ strides[1] }} + k * {{ strides[2] }};
+    const {{ index_type }} base_index = i * {{ strides[0] }} + j_base * {{ strides[1] }} + k * {{ strides[2] }};
     
     {
-        std::ptrdiff_t index = base_index - {{ 2 * strides[0] }} - {{ strides[1] }};
-        std::ptrdiff_t cache_index = 0;
+        {{ index_type }} index = base_index - {{ 2 * strides[0] }} - {{ strides[1] }};
+        {{ index_type }} cache_index = 0;
         {{ ctype }} inp_ijm1 = {{ ctype }}(0), inp_ij = {{ ctype }}(0);
 
 
@@ -36,7 +36,7 @@
         }
 
 #pragma unroll
-        for (std::ptrdiff_t jb = -1; jb < {{ block_size[1] + 1 }}; ++jb) {
+        for ({{ index_type }} jb = -1; jb < {{ block_size[1] + 1 }}; ++jb) {
             if (jb < jb_max + 1) {
                 {{ ctype }} inp_ijp1 = {{ ctype }}(0);
                 if (threadIdx.x < ib_max + 4)
@@ -60,12 +60,12 @@
     }
 
     {
-        constexpr std::ptrdiff_t i_offset = 3;
-        std::ptrdiff_t index = base_index - i_offset * {{ strides[0] }};
-        std::ptrdiff_t cache_index = 1;
+        constexpr {{ index_type }} i_offset = 3;
+        {{ index_type }} index = base_index - i_offset * {{ strides[0] }};
+        {{ index_type }} cache_index = 1;
 
 #pragma unroll
-        for (std::ptrdiff_t jb = 0; jb < {{ block_size[1] }}; ++jb) {
+        for ({{ index_type }} jb = 0; jb < {{ block_size[1] }}; ++jb) {
             if (jb < jb_max) {
                 {{ ctype }} inp_ij = {{ ctype }}(0);
                 
@@ -90,15 +90,15 @@
     }
 
     {
-        constexpr std::ptrdiff_t i_offset = 4;
-        std::ptrdiff_t index = base_index - i_offset * {{ strides[0] }} - {{ strides[1] }};
-        std::ptrdiff_t cache_index = 0;
+        constexpr {{ index_type }} i_offset = 4;
+        {{ index_type }} index = base_index - i_offset * {{ strides[0] }} - {{ strides[1] }};
+        {{ index_type }} cache_index = 0;
         {{ ctype }} inp_ij = {{ ctype }}(0);
         if (threadIdx.x >= 4 && threadIdx.x < ib_max + 4)
             inp_ij = inp[index];
 
 #pragma unroll
-        for (std::ptrdiff_t jb = -1; jb < {{ block_size[1] }}; ++jb) {
+        for ({{ index_type }} jb = -1; jb < {{ block_size[1] }}; ++jb) {
             if (jb < jb_max) {
                 {{ ctype }} inp_ijp1 = {{ ctype }}(0);
                 if (threadIdx.x >= 4 && threadIdx.x < ib_max + 4)
@@ -120,12 +120,12 @@
     }
 
     {
-        constexpr std::ptrdiff_t i_offset = 4;
-        std::ptrdiff_t index = base_index - i_offset * {{ strides[0] }};
-        std::ptrdiff_t cache_index = 1;
+        constexpr {{ index_type }} i_offset = 4;
+        {{ index_type }} index = base_index - i_offset * {{ strides[0] }};
+        {{ index_type }} cache_index = 1;
 
 #pragma unroll
-        for (std::ptrdiff_t jb = 0; jb < {{ block_size[1] }}; ++jb) {
+        for ({{ index_type }} jb = 0; jb < {{ block_size[1] }}; ++jb) {
             if (jb < jb_max) {
                 {{ ctype }} sum = 0;
                 sum += flx[cache_index];

@@ -21,6 +21,7 @@ class StencilMixin(Benchmark):
     dry_runs = Parameter('kernel dry-runs before the measurement', 0)
     gpu_timers = Parameter('use GPU timers instead of standard C++ timers',
                            False)
+    index_type = Parameter('index data type', 'std::ptrdiff_t')
 
     def setup(self):
         super().setup()
@@ -75,7 +76,8 @@ class StencilMixin(Benchmark):
                     domain=self.domain,
                     dry_runs=self.dry_runs,
                     gpu_timers=self.gpu_timers,
-                    strides=self.strides)
+                    strides=self.strides,
+                    index_type=self.index_type)
 
     @contextlib.contextmanager
     def on_device(self, data):

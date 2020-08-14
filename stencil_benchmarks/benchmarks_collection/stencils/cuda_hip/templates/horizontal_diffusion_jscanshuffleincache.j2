@@ -3,11 +3,11 @@
 {% set block_halo = 2 %}
 
 {% block gpu_kernel_body %}
-    const std::ptrdiff_t ib = std::ptrdiff_t(threadIdx.x) - {{ block_halo }};
+    const {{ index_type }} ib = {{ index_type }}(threadIdx.x) - {{ block_halo }};
 
-    const std::ptrdiff_t i = std::ptrdiff_t(blockIdx.x) * {{ block_size[0] }} + ib;
-    const std::ptrdiff_t j_min = std::ptrdiff_t(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
-    const std::ptrdiff_t k = std::ptrdiff_t(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
+    const {{ index_type }} i = {{ index_type }}(blockIdx.x) * {{ block_size[0] }} + ib;
+    const {{ index_type }} j_min = {{ index_type }}(blockIdx.y) * {{ block_size[1] }} - {{ block_halo }};
+    const {{ index_type }} k = {{ index_type }}(blockIdx.z) * {{ block_size[2] }} + threadIdx.z;
     if (k >= {{ domain[2] }})
         return;
 
@@ -15,8 +15,8 @@
 
     {% set cache_strides = (1, block_size[0] + 2 * block_halo, (block_size[0] + 2 * block_halo) * (block_size[1] + 2 * block_halo)) %}
     
-    const std::ptrdiff_t ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
-    const std::ptrdiff_t jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
+    const {{ index_type }} ib_max = (blockIdx.x + 1) * {{ block_size[0] }} <= {{ domain[0] }} ? {{ block_size[0] }} : {{ domain[0] }} - blockIdx.x * {{ block_size[0] }};
+    const {{ index_type }} jb_max = (blockIdx.y + 1) * {{ block_size[1] }} <= {{ domain[1] }} ? {{ block_size[1] }} : {{ domain[1] }} - blockIdx.y * {{ block_size[1] }};
 
     {{ ctype }} fly_ij, fly_ijm1;
     {{ ctype }} lap_ij, lap_ijp1;    
@@ -29,11 +29,11 @@
 #define SHFL_DOWN(x) __shfl_down_sync(0xffffffff, (x), 1)
     {%- endif%}
 
-    std::ptrdiff_t index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
-    std::ptrdiff_t cache_index = (ib + {{ block_halo }}) * {{ cache_strides[0] }} + threadIdx.z * {{ cache_strides[2] }};
+    {{ index_type }} index = i * {{ strides[0] }} + j_min * {{ strides[1] }} + k * {{ strides[2] }};
+    {{ index_type }} cache_index = (ib + {{ block_halo }}) * {{ cache_strides[0] }} + threadIdx.z * {{ cache_strides[2] }};
 
 #pragma unroll
-    for (std::ptrdiff_t jb = {{ -block_halo }}; jb < {{ block_size[1] + block_halo }}; ++jb) {
+    for ({{ index_type }} jb = {{ -block_halo }}; jb < {{ block_size[1] + block_halo }}; ++jb) {
         if (ib < ib_max + {{ block_halo }} && jb < jb_max + {{ block_halo }}) {
             inc[cache_index] = inp[index];
             index += {{ strides[1] }};
@@ -47,7 +47,7 @@
     cache_index = (ib + {{ block_halo }}) * {{ cache_strides[0] }} + threadIdx.z * {{ cache_strides[2] }};
 
 #pragma unroll
-    for (std::ptrdiff_t jb = {{ -block_halo }}; jb < {{ block_size[1] }}; ++jb) {
+    for ({{ index_type }} jb = {{ -block_halo }}; jb < {{ block_size[1] }}; ++jb) {
         if (jb < jb_max) {
             if (ib >= -1 && ib < ib_max + 1) {
                 lap_ijp1 = {{ ctype }}(4) * inc[cache_index + {{ cache_strides[1] }}] -
