@@ -12,7 +12,7 @@ class TestAllBenchmarks(unittest.TestCase):
             with self.subTest(benchmark=bmark_name):
                 try:
                     bmark_instance = bmark()
-                except benchmark.ParameterError:
+                except (benchmark.ParameterError, ImportError):
                     untested.append(bmark_name)
                     continue
                 bmark_instance.run()
