@@ -4,6 +4,7 @@ LABEL maintainer="Felix Thaler <thaler@cscs.ch>"
 
 RUN apt-get update -qq && \
     apt-get install -qq -y \
+    file \
     python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
