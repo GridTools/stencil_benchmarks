@@ -34,7 +34,7 @@ import os
 import re
 import warnings
 
-from ...benchmark import Benchmark, Parameter, ParameterError, ExecutionError
+from ...benchmark import Benchmark, Parameter, ExecutionError
 from ...tools import compilation, cpphelpers, template
 
 
