@@ -73,61 +73,90 @@ __device__ inline {{ ctype }}4 operator* (float a, {{ ctype }}4 b) {
                         } \
                  }
 
-{%- if vector_size > 1 %}
+{%- if vector_size > 1 and explicit_vectorization %}
 {%- set ctype_vec = ctype + (vector_size | string) %}
 {%- else %}
 {%- set ctype_vec = ctype %}
 {%- endif %}
 
-__global__ void init({{ ctype_vec }} *__restrict__ a,
-                     {{ ctype_vec }} *__restrict__ b,
-                     {{ ctype_vec }} *__restrict__ c) {
-    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
-
-    if (i < {{ array_size // vector_size }}) {
-        {%- if vector_size > 1 %}
-            a[i] = make_{{ ctype_vec }}({% for m in range(vector_size) %}{{ '2' }}{{ ', ' if not loop.last }}{% endfor %});
-            b[i] = make_{{ ctype_vec }}({% for m in range(vector_size) %}{{ '2' }}{{ ', ' if not loop.last }}{% endfor %});
-            c[i] = make_{{ ctype_vec }}({% for m in range(vector_size) %}{{ '0' }}{{ ', ' if not loop.last }}{% endfor %});
-        {%- else %}
-            a[i] = 2;
-            b[i] = 2;
-            c[i] = 0;
-        {%- endif %}
+{%- macro kernel(name) %}
+__global__
+{%- if launch_bounds %}
+__launch_bounds__({{ block_size }})
+{%- endif %}
+void {{ name }}({{ varargs | join(', ') }}) {
+    {%- if vector_size > 1 and not explicit_vectorization %}
+    const {{ index_type }} base = (threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }}) * {{ vector_size }};
+    for ({{ index_type }} v = 0; v < {{ vector_size }}; ++v) {
+        const {{ index_type }} i = base + v;
+    {%- else %}
+        const {{ index_type }} i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+    {%- endif %}
+        {{ caller() }}
+    {%- if vector_size > 1 and not explicit_vectorization -%}
     }
+    {%- endif %}
 }
+{%- endmacro %}
 
-__global__ void copy({{ ctype_vec }} *__restrict__ c,
-                     const {{ ctype_vec }} * __restrict__ a) {
-    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+{%- macro load(access) %}
+{%- if streaming_loads -%}
+    __builtin_nontemporal_load(&{{ access }})
+{%- else -%}
+    {{ access }}
+{%- endif -%}
+{%- endmacro %}
 
-    c[i] = a[i];
-}
+{%- macro store(access, value) %}
+{%- if streaming_stores -%}
+    __builtin_nontemporal_store({{ value }}, &{{ access }})
+{%- else -%}
+    {{ access }} = {{ value }}
+{%- endif -%}
+{%- endmacro %}
 
-__global__ void scale({{ ctype_vec }} *__restrict__ b,
-                      const {{ ctype }} scalar,
-                      const {{ ctype_vec }} * __restrict__ c) {
-    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+{% call kernel('init',
+               ctype_vec + '*__restrict__ a',
+               ctype_vec + '*__restrict__ b',
+               ctype_vec + '*__restrict__ c') %}
+    {%- if vector_size > 1 and explicit_vectorization %}
+        {{ store('a[i]', 'make_' +  ctype_vec + '(' + (['2'] * vector_size) | join(', ') + ')') }};
+        {{ store('b[i]', 'make_' +  ctype_vec + '(' + (['2'] * vector_size) | join(', ') + ')') }};
+        {{ store('c[i]', 'make_' +  ctype_vec + '(' + (['0'] * vector_size) | join(', ') + ')') }};
+    {%- else %}
+        {{ store('a[i]', '2') }};
+        {{ store('b[i]', '2') }};
+        {{ store('c[i]', '0') }};
+    {%- endif %}
+{% endcall %}
 
-    b[i] = scalar * c[i];
-}
+{% call kernel('copy',
+               ctype_vec + '*__restrict__ c',
+               'const ' + ctype_vec + '* __restrict__ a') %}
+    {{ store('c[i]', load('a[i]')) }};
+{% endcall %}
 
-__global__ void add({{ ctype_vec }} *__restrict__ c,
-                      const {{ ctype_vec }} * __restrict__ a,
-                      const {{ ctype_vec }} * __restrict__ b) {
-    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+{% call kernel('scale',
+               ctype_vec + '*__restrict__ b',
+               'const ' + ctype + ' scalar',
+               'const ' + ctype_vec + '* __restrict__ c') %}
+    {{ store('b[i]', 'scalar * ' + load('c[i]')) }};
+{% endcall %}
 
-    c[i] = a[i] + b[i];
-}
+{% call kernel('add',
+               ctype_vec + '*__restrict__ c',
+               'const ' + ctype_vec + '* __restrict__ a',
+               'const ' + ctype_vec + '* __restrict__ b') %}
+    {{ store('c[i]', load('a[i]') + ' + ' + load('b[i]')) }};
+{% endcall %}
 
-__global__ void triad({{ ctype_vec }} *__restrict__ a,
-                      const {{ ctype_vec }} * __restrict__ b,
-                      const {{ ctype }} scalar,
-                      const {{ ctype_vec }} * __restrict__ c) {
-    std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
-
-    a[i] = b[i] + scalar * c[i];
-}
+{% call kernel('triad',
+               ctype_vec + '*__restrict__ a',
+               'const ' + ctype_vec + '* __restrict__ b',
+               'const ' + ctype + ' scalar',
+               'const ' + ctype_vec + '* __restrict__ c') %}
+    {{ store('a[i]', load('b[i]') + ' + scalar * ' + load('c[i]')) }};
+{% endcall %}
 
 bool check_results({{ ctype }}* a,
                    {{ ctype }}* b,
