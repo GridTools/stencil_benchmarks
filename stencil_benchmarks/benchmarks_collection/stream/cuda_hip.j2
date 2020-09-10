@@ -120,11 +120,11 @@ void {{ name }}({{ varargs | join(', ') }}) {
                ctype_vec + '*__restrict__ b',
                ctype_vec + '*__restrict__ c') %}
     {%- if vector_size > 1 and explicit_vectorization %}
-        {{ store('a[i]', 'make_' +  ctype_vec + '(' + (['2'] * vector_size) | join(', ') + ')') }};
+        {{ store('a[i]', 'make_' +  ctype_vec + '(' + (['1'] * vector_size) | join(', ') + ')') }};
         {{ store('b[i]', 'make_' +  ctype_vec + '(' + (['2'] * vector_size) | join(', ') + ')') }};
         {{ store('c[i]', 'make_' +  ctype_vec + '(' + (['0'] * vector_size) | join(', ') + ')') }};
     {%- else %}
-        {{ store('a[i]', '2') }};
+        {{ store('a[i]', '1') }};
         {{ store('b[i]', '2') }};
         {{ store('c[i]', '0') }};
     {%- endif %}
@@ -176,7 +176,6 @@ extern "C" int run() {
     dim3 block_size({{ block_size if axis == 'x' else 1 }},
                     {{ block_size if axis == 'y' else 1 }},
                     {{ block_size if axis == 'z' else 1 }});
-    std::cerr << {{ grid_size }} << " " << {{ block_size }} << std::endl;
 
     init<<<grid_size, block_size>>>(({{ ctype_vec }}*)a,
                                     ({{ ctype_vec }}*)b,
@@ -275,6 +274,13 @@ extern "C" int run() {
 }
 
 bool check_array(std::string const& name, {{ ctype }}* a, {{ ctype }} expected) {
+    {%- if ctype in ['float', 'double', 'long double'] -%}
+    if (std::isinf(expected)) {
+        std::cerr << "expected value is infinite, ntimes too large for verication" << std::endl;
+        return false;
+    }
+    {%- endif %}
+
     std::vector<{{ ctype }}> ah({{ array_size }});
     CHECK(Memcpy(ah.data(), a, {{ array_size }} * sizeof({{ ctype }}), GPU(MemcpyDeviceToHost)));
 
@@ -296,7 +302,7 @@ bool check_array(std::string const& name, {{ ctype }}* a, {{ ctype }} expected) 
                   << std::endl;
 
         for (std::size_t j = 0; j < {{ array_size }}; ++j) {
-            if (std::abs(a[j] / expected - 1) > epsilon)
+            if (std::abs(ah[j] / expected - 1) > epsilon)
                 ++ierr;
         }
         std::cerr << "for array " << name << "[], " << ierr
@@ -310,7 +316,7 @@ bool check_results({{ ctype }}* a,
                    {{ ctype }}* b,
                    {{ ctype }}* c) {
     {{ ctype }} scalar = 3;
-    {{ ctype }} aj = 2, bj = 2, cj = 0;
+    {{ ctype }} aj = 1, bj = 2, cj = 0;
 
     for (int k = 0; k < {{ ntimes }}; ++k) {
         cj = aj;
