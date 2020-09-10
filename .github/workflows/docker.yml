@@ -40,3 +40,22 @@ jobs:
         echo ${{ secrets.DOCKER_TOKEN }} | docker login -u fthaler --password-stdin &&
         docker push fthaler/stencil_benchmarks:cuda-${{ matrix.cuversion }} &&
         docker logout
+  rocm:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rocmversion: ['3.5', '3.7']
+    steps:
+    - uses: actions/checkout@v2
+      name: checkout
+    - name: build
+      run: >
+        docker build --build-arg ROCM_VERSION=${{ matrix.rocmversion }} -t fthaler/stencil_benchmarks:rocm-${{ matrix.rocmversion }} . -f dockerfiles/rocm.Dockerfile
+    - name: test
+      run: >
+        docker run --rm fthaler/stencil_benchmarks:rocm-${{ matrix.rocmversion }} /bin/bash -c "pip3 install -r /stencil_benchmarks/requirements-dev.txt && pytest -c /stencil_benchmarks/pytest.ini"
+    - name: push
+      run: >
+        echo ${{ secrets.DOCKER_TOKEN }} | docker login -u fthaler --password-stdin &&
+        docker push fthaler/stencil_benchmarks:rocm-${{ matrix.rocmversion }} &&
+        docker logout
