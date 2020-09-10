@@ -38,7 +38,7 @@ from ...tools import compilation, cpphelpers, template
 
 
 class Native(Benchmark):
-    array_size = Parameter('number of elements in arrays', 10000000)
+    array_size = Parameter('number of elements in arrays', 10000384)
     ntimes = Parameter('number of runs', 10)
     block_size = Parameter('threads per block', 1024)
     dtype = Parameter('data type in NumPy format, e.g. float32 or float64',
@@ -54,6 +54,10 @@ class Native(Benchmark):
 
     def setup(self):
         super().setup()
+
+        if self.array_size % (self.block_size * self.vector_size):
+            raise ParameterError(
+                'array size must be divisible by block size times vector size')
 
         template_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), 'cuda_hip.j2')

@@ -101,8 +101,7 @@ __global__ void copy({{ ctype_vec }} *__restrict__ c,
                      const {{ ctype_vec }} * __restrict__ a) {
     std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
 
-    if (i < {{ array_size // vector_size }})
-        c[i] = a[i];
+    c[i] = a[i];
 }
 
 __global__ void scale({{ ctype_vec }} *__restrict__ b,
@@ -110,8 +109,7 @@ __global__ void scale({{ ctype_vec }} *__restrict__ b,
                       const {{ ctype_vec }} * __restrict__ c) {
     std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
 
-    if (i < {{ array_size // vector_size }})
-        b[i] = scalar * c[i];
+    b[i] = scalar * c[i];
 }
 
 __global__ void add({{ ctype_vec }} *__restrict__ c,
@@ -119,8 +117,7 @@ __global__ void add({{ ctype_vec }} *__restrict__ c,
                       const {{ ctype_vec }} * __restrict__ b) {
     std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
 
-    if (i < {{ array_size // vector_size }})
-        c[i] = a[i] + b[i];
+    c[i] = a[i] + b[i];
 }
 
 __global__ void triad({{ ctype_vec }} *__restrict__ a,
@@ -129,8 +126,7 @@ __global__ void triad({{ ctype_vec }} *__restrict__ a,
                       const {{ ctype_vec }} * __restrict__ c) {
     std::size_t i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
 
-    if (i < {{ array_size // vector_size }})
-        a[i] = b[i] + scalar * c[i];
+    a[i] = b[i] + scalar * c[i];
 }
 
 bool check_results({{ ctype }}* a,
