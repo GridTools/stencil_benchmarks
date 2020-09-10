@@ -172,13 +172,17 @@ class GnuLibrary:
             stderr = io.StringIO()
             with _capture_output(stdout, stderr):
                 result = func(*args)
-            stdout.seek(0)
-            stderr.seek(0)
+            stdout = stdout.getvalue()
+            stderr = stderr.getvalue()
 
             if result != 0:
-                raise ExecutionError(stderr.read())
+                raise ExecutionError(stderr)
+            elif stderr:
+                warnings.warn(
+                    f'unexpected output in call to {attr}(…) to stderr:\n' +
+                    stderr)
 
-            return stdout.read()
+            return stdout
 
         wrapper.__name__ = attr
         return wrapper
@@ -258,9 +262,9 @@ def dtype_cname(dtype: np.dtype) -> str:
     raise NotImplementedError(f'Conversion of type {dtype} is not supported')
 
 
-def data_ptr(array: np.ndarray,
-             offset: Union[int, Tuple[int, ...], None] = None
-             ) -> ctypes.c_void_p:
+def data_ptr(
+        array: np.ndarray,
+        offset: Union[int, Tuple[int, ...], None] = None) -> ctypes.c_void_p:
     if offset is None:
         offset = 0
     elif isinstance(offset, int):
