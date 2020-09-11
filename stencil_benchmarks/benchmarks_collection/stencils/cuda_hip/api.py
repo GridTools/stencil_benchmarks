@@ -88,7 +88,7 @@ class Runtime:
 @functools.lru_cache(maxsize=2)
 def runtime(name):
     if name == 'hip':
-        return Runtime('hip', 'libhip_hcc.so')
+        return Runtime('hip', 'libamdhip64.so')
     if name == 'cuda':
         return Runtime('cuda', 'libcudart.so')
     raise RuntimeError('Invalid GPU runtime name')
