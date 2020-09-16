@@ -172,9 +172,12 @@ def summary(csv, best_only, select, separate_by):
 @click.option('--relative-to',
               type=float,
               help='Plot percentage relative to given value.')
+@click.option('--ascii/--no-ascii',
+              '-a',
+              help='Use ASCII plotting (requires drawilleplot package).')
 @click.option('--output', '-o', type=click.Path(), help='Output file.')
 def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
-         reference, relative_to, output):
+         reference, relative_to, ascii, output):
     """Plot output of sbench.
 
     X is the data column name for the values used for the x-axis in the plot, Y
@@ -184,10 +187,12 @@ def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
     common = strip(df, invert=True)
     df = strip(df)
 
-    import matplotlib
-    matplotlib.use('Agg')
     from matplotlib import pyplot as plt, ticker
     import cycler
+    if output:
+        plt.switch_backend('Agg')
+    elif ascii:
+        plt.switch_backend('module://drawilleplot')
     plt.style.use('ggplot')
 
     plt.rcParams['axes.prop_cycle'] = (cycler.cycler(marker=['o', '^', 's']) *
