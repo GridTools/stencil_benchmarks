@@ -110,5 +110,10 @@ setuptools.setup(
     install_requires=[
         'click', 'numpy', 'pandas', 'jinja2', 'matplotlib', 'pybind11'
     ],
+    extras_require={
+        'gt4py-dace': [
+            'gt4py[dace] @ git+https://github.com/gridtools/gt4py.git@dace'
+        ]
+    },
     setup_requires=['pybind11'],
     zip_safe=False)

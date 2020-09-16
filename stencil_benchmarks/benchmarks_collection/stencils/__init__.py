@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import cuda_hip, numba_cpu, numpy, openmp
 
-__all__ = ['cuda_hip', 'numba_cpu', 'numpy', 'openmp']
+from . import cuda_hip, numba_cpu, numpy, openmp, gt4py
+
+__all__ = ['cuda_hip', 'numba_cpu', 'numpy', 'openmp', 'gt4py']
