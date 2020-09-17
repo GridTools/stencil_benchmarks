@@ -1,4 +1,5 @@
 import numpy as np
+import contextlib
 
 from ..base import HorizontalDiffusionStencil
 from ....tools import timing
@@ -61,36 +62,21 @@ from gt4py import gtscript
 class GT4PyDaceHorizontalDiffusionStencil(HorizontalDiffusionStencil):
     @timing.return_time
     def run_stencil(self, data):
-        import gt4py.storage
-
-        backend = self._gt4py_stencil_object.backend
-        origin = (self.halo,) * 3
-        inp, coeff, out = [
-            gt4py.storage.from_array(
-                d, backend=backend, default_origin=origin, dtype=d.dtype
+        with self.on_device(data) as device_data:
+            exec_info = {}
+            origin = (self.halo,) * 3
+            inp, coeff, out = device_data
+            self._gt4py_stencil_object.run(
+                in_field=inp,
+                coeff=coeff,
+                out_field=out,
+                exec_info=exec_info,
+                _domain_=self.domain,
+                _origin_=dict(in_field=origin, coeff=origin, out_field=origin),
             )
-            for d in data
-        ]
-        inp.host_to_device(force=True)
-        data[0][...] = inp
-        coeff.host_to_device(force=True)
-        data[1][...] = coeff
-        out.host_to_device(force=True)
-        data[2][...] = out
-        self._gt4py_stencil_object.run(
-            in_field=inp,
-            coeff=coeff,
-            out_field=out,
-            exec_info=None,
-            _domain_=self.domain,
-            _origin_=dict(in_field=origin, coeff=origin, out_field=origin),
+        return (
+            exec_info["pyext_program_end_time"] - exec_info["pyext_program_start_time"]
         )
-        inp.device_to_host(force=True)
-        data[0][...] = inp
-        coeff.device_to_host(force=True)
-        data[1][...] = coeff
-        out.device_to_host(force=True)
-        data[2][...] = out
 
     @property
     def definition(self):
@@ -135,6 +121,10 @@ class CPUGT4PyDaceHorizontalDiffusionStencil(
         choices=list("".join(p) for p in itertools.permutations("IJK")),
     )
 
+    @contextlib.contextmanager
+    def on_device(self, data):
+        yield data
+
 
 class GPUGT4PyDaceHorizontalDiffusionStencil(
     GT4PyStencilMixin, GT4PyDaceHorizontalDiffusionStencil
@@ -146,3 +136,43 @@ class GPUGT4PyDaceHorizontalDiffusionStencil(
         default="IJK",
         choices=list("".join(p) for p in itertools.permutations("IJK")),
     )
+
+    @contextlib.contextmanager
+    def on_device(self, data):
+        from ..cuda_hip import api
+        from stencil_benchmarks.tools import array
+
+        runtime = api.runtime(self.backend)
+
+        device_data = [
+            array.alloc_array(
+                self.domain_with_halo,
+                self.dtype,
+                self.layout,
+                self.alignment,
+                index_to_align=(self.halo,) * 3,
+                alloc=runtime.malloc,
+                apply_offset=self.offset_allocations,
+            )
+            for _ in data
+        ]
+
+        for host_array, device_array in zip(data, device_data):
+            runtime.memcpy(
+                device_array.ctypes.data,
+                host_array.ctypes.data,
+                array.nbytes(host_array),
+                "HostToDevice",
+            )
+        runtime.device_synchronize()
+
+        yield device_data
+
+        for host_array, device_array in zip(data, device_data):
+            runtime.memcpy(
+                host_array.ctypes.data,
+                device_array.ctypes.data,
+                array.nbytes(host_array),
+                "DeviceToHost",
+            )
+        runtime.device_synchronize()
