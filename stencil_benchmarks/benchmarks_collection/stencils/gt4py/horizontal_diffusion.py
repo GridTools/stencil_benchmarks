@@ -137,6 +137,10 @@ class GPUGT4PyDaceHorizontalDiffusionStencil(
         choices=list("".join(p) for p in itertools.permutations("IJK")),
     )
 
+    @property
+    def backend(self):
+        return 'cuda'
+
     @contextlib.contextmanager
     def on_device(self, data):
         from ..cuda_hip import api
