@@ -139,7 +139,7 @@ class GPUGT4PyDaceHorizontalDiffusionStencil(
 
     @property
     def backend(self):
-        return 'cuda'
+        return "cuda"
 
     @contextlib.contextmanager
     def on_device(self, data):
@@ -170,6 +170,8 @@ class GPUGT4PyDaceHorizontalDiffusionStencil(
             )
         runtime.device_synchronize()
 
+        for o in device_data:
+            o.__cuda_array_interface__ = o.__array_interface__
         yield device_data
 
         for host_array, device_array in zip(data, device_data):
