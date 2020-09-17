@@ -8,11 +8,35 @@ from stencil_benchmarks.benchmark import Parameter
 from gt4py.testing.utils import ApplyOTFOptimizer
 
 
-class GT4PyStencilMixin:
+class GT4PyCPUStencilMixin:
+    def setup(self):
+        super().setup()
+        halo = (self.halo,) * 3
+        alignment = max(self.parameters["alignment"], 1)
+        passes = []
+        if self.parameters["use_otf_transform"]:
+            passes.append(ApplyOTFOptimizer())
+
+        self._gt4py_stencil_object = build_dace_adhoc(
+            definition=self.definition,
+            domain=self.domain,
+            halo=halo,
+            specialize_strides=self.strides,
+            dtype=self.parameters["dtype"],
+            passes=passes,
+            alignment=alignment,
+            layout=self.parameters["layout"],
+            loop_order=self.parameters["loop_order"],
+            device="cpu",
+        )
+
+
+class GT4PyGPUStencilMixin:
     def setup(self):
         super().setup()
         halo = (self.halo,) * 3
         passes = []
+
         if self.parameters["use_otf_transform"]:
             passes.append(ApplyOTFOptimizer())
 
@@ -26,7 +50,7 @@ class GT4PyStencilMixin:
             alignment=self.parameters["alignment"],
             layout=self.parameters["layout"],
             loop_order=self.parameters["loop_order"],
-            device="cpu",
+            device="gpu",
         )
 
 
@@ -35,19 +59,21 @@ from gt4py import gtscript
 
 
 class GT4PyDaceHorizontalDiffusionStencil(
-    GT4PyStencilMixin, HorizontalDiffusionStencil
+    HorizontalDiffusionStencil
 ):
-    use_otf_transform = Parameter("use_otf_transform", True)
-    loop_order = Parameter(
-        "loop_order",
-        default="IJK",
-        choices=list("".join(p) for p in itertools.permutations("IJK")),
-    )
 
     @timing.return_time
     def run_stencil(self, data):
-        inp, coeff, out = data
+        import gt4py.storage
+
+        backend = self._gt4py_stencil_object.backend
         origin = (self.halo,) * 3
+        inp, coeff, out = [
+            gt4py.storage.from_array(
+                d, backend=backend, default_origin=origin, dtype=d.dtype
+            )
+            for d in data
+        ]
         self._gt4py_stencil_object.run(
             in_field=inp,
             coeff=coeff,
@@ -56,6 +82,12 @@ class GT4PyDaceHorizontalDiffusionStencil(
             _domain_=self.domain,
             _origin_=dict(in_field=origin, coeff=origin, out_field=origin),
         )
+        inp.device_to_host(force=True)
+        data[0][...] = inp
+        coeff.device_to_host(force=True)
+        data[1][...] = coeff
+        out.device_to_host(force=True)
+        data[2][...] = out
 
     @property
     def definition(self):
@@ -87,3 +119,17 @@ class GT4PyDaceHorizontalDiffusionStencil(
                 )
 
         return horizontal_diffusion
+class CPUGT4PyDaceHorizontalDiffusionStencil(GT4PyCPUStencilMixin, GT4PyDaceHorizontalDiffusionStencil):
+    use_otf_transform = Parameter("use_otf_transform", True)
+    loop_order = Parameter(
+        "loop_order",
+        default="IJK",
+        choices=list("".join(p) for p in itertools.permutations("IJK")),
+    )
+class GPUGT4PyDaceHorizontalDiffusionStencil(GT4PyGPUStencilMixin, GT4PyDaceHorizontalDiffusionStencil):
+    use_otf_transform = Parameter("use_otf_transform", True)
+    loop_order = Parameter(
+        "loop_order",
+        default="IJK",
+        choices=list("".join(p) for p in itertools.permutations("IJK")),
+    )
