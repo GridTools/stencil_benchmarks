@@ -169,10 +169,14 @@ class GPUGT4PyDaceHorizontalDiffusionStencil(
                 "HostToDevice",
             )
         runtime.device_synchronize()
+        from types import SimpleNamespace
 
-        for o in device_data:
-            o.__cuda_array_interface__ = o.__array_interface__
-        yield device_data
+        device_data_wrapped = [
+            SimpleNamespace(__cuda_array_interface__=o.__array_interface__)
+            for o in device_data
+        ]
+
+        yield device_data_wrapped
 
         for host_array, device_array in zip(data, device_data):
             runtime.memcpy(
