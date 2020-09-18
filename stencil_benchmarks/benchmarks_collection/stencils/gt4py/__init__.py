@@ -1,3 +1,3 @@
-from . import horizontal_diffusion
+from . import horizontal_diffusion, vertical_advection
 
-__all__ = ['horizontal_diffusion']
+__all__ = ["horizontal_diffusion", "vertical_advection"]
