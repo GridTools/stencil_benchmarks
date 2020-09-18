@@ -38,45 +38,51 @@ class ValidationError(RuntimeError):
     pass
 
 
-def _report_failures_large(result, expected):
-    failing_indices = np.nonzero(~np.isclose(result, expected))
+def _report_failures_large(result, expected, failure):
+    failing_indices = np.argwhere(failure)
     n_report = 20
-    n_failures = 0
-    for n_failures, index in enumerate(zip(*failing_indices)):
-        if n_failures < n_report:
-            index_str = ', '.join(str(i) for i in index)
-            print(f'failed at {index_str}: '
-                  f'{result[index]:12.7f} != {expected[index]:12.7f}')
+    n_failures = len(failing_indices)
+    for index in failing_indices[:n_report]:
+        index_str = ', '.join(f'{i:3}' for i in index) + ':'
+        print(f'failed at {index_str} {result[tuple(index)]:12.7f}    != '
+              f'{expected[tuple(index)]:12.7f}')
     if n_failures - n_report > 0:
         print(f'omitted further {n_failures - n_report} failures.')
 
 
-def _report_failures_small(result, expected):
+def _report_failures_small(result, expected, failure):
     assert result.ndim == expected.ndim == 3
 
-    def print_slice(data, correct):
-        fmt = '{:12.6g}'
+    def print_slice(data, failure):
+        fmt = '{:12.7f}'
         for j in reversed(range(data.shape[1])):
             for i in range(data.shape[0]):
                 click.echo(click.style(fmt.format(data[i, j]),
-                                       fg='green' if correct[i, j] else 'red'),
+                                       fg='red' if failure[i, j] else 'green'),
                            nl=False)
             click.echo()
 
     for k in range(expected.shape[2]):
-        correct = np.isclose(result[:, :, k], expected[:, :, k])
         print(f'result[:, :, {k}]:')
-        print_slice(result[:, :, k], correct)
+        print_slice(result[:, :, k], failure[:, :, k])
         print(f'expected[:, :, {k}]:')
-        print_slice(expected[:, :, k], correct)
+        print_slice(expected[:, :, k], failure[:, :, k])
+
+
+def _tolerances(dtype):
+    if dtype == np.float32:
+        return dict(rtol=1e-4, atol=1e-5)
+    return dict()
 
 
 def check_equality(result, expected):
-    close = np.isclose(result, expected)
-    if np.all(close):
+    assert result.dtype == expected.dtype
+    failure = ~np.isclose(result, expected, **_tolerances(result.dtype))
+    if not np.any(failure):
         return
     if result.ndim != 3 or np.product(result.shape) > 1000:
-        _report_failures_large(result, expected)
+        _report_failures_large(result, expected, failure)
     else:
-        _report_failures_small(result, expected)
-    raise ValidationError()
+        _report_failures_small(result, expected, failure)
+    raise ValidationError(
+        f'validation failed at {np.count_nonzero(failure)} points')
