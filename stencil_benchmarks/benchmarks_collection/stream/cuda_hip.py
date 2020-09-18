@@ -32,6 +32,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import re
+import warnings
 
 from ...benchmark import Benchmark, Parameter, ExecutionError
 from ...tools import compilation, cpphelpers, template
@@ -49,11 +50,25 @@ class Native(Benchmark):
                      'x',
                      choices=['x', 'y', 'z'])
     vector_size = Parameter('vector size', 1)
+    explicit_vectorization = Parameter(
+        'use float2, float3, float4 types, '
+        'otherwise just add a loop and let the compiler vectorize', True)
+    launch_bounds = Parameter('specify launch bounds', True)
+    index_type = Parameter('index data type', 'std::size_t')
+    streaming_stores = Parameter('use streaming store instructions', False)
+    streaming_loads = Parameter('use streaming load instructions', False)
     print_code = Parameter('print code', False)
     verify = Parameter('verify results', True)
 
     def setup(self):
         super().setup()
+
+        elements_per_block = self.block_size * self.vector_size
+        if self.array_size % elements_per_block:
+            warnings.warn(
+                'adapting array size to match block and vector sizes')
+        self.array_size = ((self.array_size + elements_per_block - 1) //
+                           elements_per_block) * elements_per_block
 
         template_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), 'cuda_hip.j2')
@@ -77,6 +92,11 @@ class Native(Benchmark):
                     ctype=compilation.dtype_cname(self.dtype),
                     ntimes=self.ntimes,
                     vector_size=self.vector_size,
+                    explicit_vectorization=self.explicit_vectorization,
+                    launch_bounds=self.launch_bounds,
+                    index_type=self.index_type,
+                    streaming_loads=self.streaming_loads,
+                    streaming_stores=self.streaming_stores,
                     verify=self.verify)
 
     def run(self):
