@@ -167,9 +167,9 @@ class EmptyStencil(BasicStencil):
 
 class CopyStencil(BasicStencil):
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality(data_before.inp, data_after.inp)
+        validation.check_equality('inp', data_before.inp, data_after.inp)
 
-        validation.check_equality(data_after.out[self.inner_slice()],
+        validation.check_equality('out', data_after.out[self.inner_slice()],
                                   data_before.inp[self.inner_slice()])
 
 
@@ -177,14 +177,14 @@ class OnesidedAverageStencil(BasicStencil):
     axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality(data_before.inp, data_after.inp)
+        validation.check_equality('inp', data_before.inp, data_after.inp)
 
         inp = data_before.inp
         out = data_after.out
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         validation.check_equality(
-            out[self.inner_slice()],
+            'out', out[self.inner_slice()],
             (inp[self.inner_slice(shift)] + inp[self.inner_slice()]) / 2)
 
 
@@ -192,14 +192,14 @@ class SymmetricAverageStencil(BasicStencil):
     axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality(data_before.inp, data_after.inp)
+        validation.check_equality('inp', data_before.inp, data_after.inp)
 
         inp = data_before.inp
         out = data_after.out
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         validation.check_equality(
-            out[self.inner_slice()],
+            'out', out[self.inner_slice()],
             (inp[self.inner_slice(shift)] + inp[self.inner_slice(-shift)]) / 2)
 
 
@@ -215,7 +215,7 @@ class LaplacianStencil(BasicStencil):
                 f'positive halo size required (given halo: {self.halo})')
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality(data_before.inp, data_after.inp)
+        validation.check_equality('inp', data_before.inp, data_after.inp)
 
         inp = data_before.inp
         out = data_after.out
@@ -228,7 +228,7 @@ class LaplacianStencil(BasicStencil):
                 result += (2 * inp[self.inner_slice()] -
                            inp[self.inner_slice(shift)] -
                            inp[self.inner_slice(-shift)])
-        validation.check_equality(out[self.inner_slice()], result)
+        validation.check_equality('out', out[self.inner_slice()], result)
 
 
 class HorizontalDiffusionStencil(Stencil):
@@ -249,8 +249,8 @@ class HorizontalDiffusionStencil(Stencil):
                 np.product(np.array(self.domain) + 4)) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality(data_before.inp, data_after.inp)
-        validation.check_equality(data_before.coeff, data_after.coeff)
+        validation.check_equality('inp', data_before.inp, data_after.inp)
+        validation.check_equality('coeff', data_before.coeff, data_after.coeff)
 
         inp = data_before.inp
         coeff = data_before.coeff
@@ -278,7 +278,7 @@ class HorizontalDiffusionStencil(Stencil):
             flx[1:-1, 1:-1, :] - flx[:-2, 1:-1, :] + fly[1:-1, 1:-1, :] -
             fly[1:-1, :-2, :])
 
-        validation.check_equality(out[self.inner_slice()],
+        validation.check_equality('out', out[self.inner_slice()],
                                   result[self.inner_slice()])
 
 
@@ -313,17 +313,24 @@ class VerticalAdvectionStencil(Stencil):
     def verify_stencil(self, data_before, data_after):
         # pylint: disable=unsubscriptable-object
 
-        validation.check_equality(data_before.ustage, data_after.ustage)
-        validation.check_equality(data_before.upos, data_after.upos)
-        validation.check_equality(data_before.utens, data_after.utens)
+        validation.check_equality('ustage', data_before.ustage,
+                                  data_after.ustage)
+        validation.check_equality('upos', data_before.upos, data_after.upos)
+        validation.check_equality('utens', data_before.utens, data_after.utens)
         if not self.u_only:
-            validation.check_equality(data_before.vstage, data_after.vstage)
-            validation.check_equality(data_before.vpos, data_after.vpos)
-            validation.check_equality(data_before.vtens, data_after.vtens)
-            validation.check_equality(data_before.wstage, data_after.wstage)
-            validation.check_equality(data_before.wpos, data_after.wpos)
-            validation.check_equality(data_before.wtens, data_after.wtens)
-        validation.check_equality(data_before.wcon, data_after.wcon)
+            validation.check_equality('vstage', data_before.vstage,
+                                      data_after.vstage)
+            validation.check_equality('vpos', data_before.vpos,
+                                      data_after.vpos)
+            validation.check_equality('vtens', data_before.vtens,
+                                      data_after.vtens)
+            validation.check_equality('wstage', data_before.wstage,
+                                      data_after.wstage)
+            validation.check_equality('wpos', data_before.wpos,
+                                      data_after.wpos)
+            validation.check_equality('wtens', data_before.wtens,
+                                      data_after.wtens)
+        validation.check_equality('wcon', data_before.wcon, data_after.wcon)
 
         halo = self.halo
         domain = self.domain
@@ -430,11 +437,11 @@ class VerticalAdvectionStencil(Stencil):
             forward_sweep(0, 0, wstage, wpos, wtens, wtensstage)
             backward_sweep(wpos, wtensstage)
 
-        validation.check_equality(data_before.utensstage,
+        validation.check_equality('utensstage', data_before.utensstage,
                                   data_after.utensstage)
 
         if not self.u_only:
-            validation.check_equality(data_before.vtensstage,
+            validation.check_equality('vtensstage', data_before.vtensstage,
                                       data_after.vtensstage)
-            validation.check_equality(data_before.wtensstage,
+            validation.check_equality('wtensstage', data_before.wtensstage,
                                       data_after.wtensstage)
