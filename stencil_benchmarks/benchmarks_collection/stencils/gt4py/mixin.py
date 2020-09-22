@@ -118,6 +118,5 @@ class StencilMixin(Benchmark):
                                            _origin_=dict.fromkeys(
                                                self.args, origin))
         report = InstrumentationReport(exec_info["instrumentation_report"])
-        print(report)
         total_ms = sum(sum(v) for v in report.entries.values())
         return total_ms / 1000
