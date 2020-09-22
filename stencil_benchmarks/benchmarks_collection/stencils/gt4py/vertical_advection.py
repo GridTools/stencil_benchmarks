@@ -21,21 +21,21 @@ class Stencil(StencilMixin, base.VerticalAdvectionStencil):
 
     @property
     def constants(self):
-        return {"BET_M": 0.5, "BET_P": 0.5, "dtr_stage": 3 / 20}
+        return {'BET_M': 0.5, 'BET_P': 0.5, 'dtr_stage': 3 / 20}
 
     @property
     def definition(self):
         def vertical_advection_dycore(
-                utensstage: gtscript.Field["dtype"],  # noqa: 821
-                ustage: gtscript.Field["dtype"],  # noqa: 821
-                wcon: gtscript.Field["dtype"],  # noqa: 821
-                upos: gtscript.Field["dtype"],  # noqa: 821
-                utens: gtscript.Field["dtype"],  # noqa: 821
+                utensstage: gtscript.Field['dtype'],  # noqa: 821
+                ustage: gtscript.Field['dtype'],  # noqa: 821
+                wcon: gtscript.Field['dtype'],  # noqa: 821
+                upos: gtscript.Field['dtype'],  # noqa: 821
+                utens: gtscript.Field['dtype'],  # noqa: 821
         ):
             from __externals__ import BET_M, BET_P, dtr_stage
 
-            with computation(FORWARD): # noqa: 821
-                with interval(0, 1): # noqa: 821
+            with computation(FORWARD):  # noqa: 821
+                with interval(0, 1):  # noqa: 821
                     gcv = 0.25 * (wcon[1, 0, 1] + wcon[0, 0, 1])
                     cs = gcv * BET_M
 
@@ -52,7 +52,7 @@ class Stencil(StencilMixin, base.VerticalAdvectionStencil):
                     ccol = ccol[0, 0, 0] * divided
                     dcol = dcol[0, 0, 0] * divided
 
-                with interval(1, -1): # noqa: 821
+                with interval(1, -1):  # noqa: 821
                     gav = -0.25 * (wcon[1, 0, 0] + wcon[0, 0, 0])
                     gcv = 0.25 * (wcon[1, 0, 1] + wcon[0, 0, 1])
 
@@ -76,7 +76,7 @@ class Stencil(StencilMixin, base.VerticalAdvectionStencil):
                     dcol = (dcol[0, 0, 0] -
                             (dcol[0, 0, -1]) * acol[0, 0, 0]) * divided
 
-                with interval(-1, None): # noqa: 821
+                with interval(-1, None):  # noqa: 821
                     gav = -0.25 * (wcon[1, 0, 0] + wcon[0, 0, 0])
                     as_ = gav * BET_M
                     acol = gav * BET_P
@@ -94,13 +94,13 @@ class Stencil(StencilMixin, base.VerticalAdvectionStencil):
                     dcol = (dcol[0, 0, 0] -
                             (dcol[0, 0, -1]) * acol[0, 0, 0]) * divided
 
-            with computation(BACKWARD): # noqa: 821
-                with interval(-1, None): # noqa: 821
+            with computation(BACKWARD):  # noqa: 821
+                with interval(-1, None):  # noqa: 821
                     datacol = dcol[0, 0, 0]
                     data_col = datacol
                     utensstage = dtr_stage * (datacol - upos[0, 0, 0])
 
-                with interval(0, -1): # noqa: 821
+                with interval(0, -1):  # noqa: 821
                     datacol = dcol[0, 0, 0] - ccol[0, 0, 0] * data_col[0, 0, 1]
                     data_col = datacol
                     utensstage = dtr_stage * (datacol - upos[0, 0, 0])

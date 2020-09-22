@@ -1,5 +1,4 @@
 import contextlib
-import itertools
 
 import dace
 from dace.codegen.instrumentation.report import InstrumentationReport
@@ -9,20 +8,16 @@ from stencil_benchmarks.benchmark import Parameter, Benchmark
 
 
 class StencilMixin(Benchmark):
-    use_otf_transform = Parameter("use_otf_transform", default=True)
-    use_subgraph_fusion = Parameter("use_subgraph_fusion", default=True)
-    use_prefetching = Parameter("use_prefetching", default=False)
-    prefetch_arrays = Parameter("prefetch_arryas", default="")
-    device = Parameter("DaCe device to use", "cpu", choices=["cpu", "gpu"])
-    backend = Parameter("Dace backend to use",
-                        "default",
-                        choices=["default", "cuda", "hip"])
-
+    use_otf_transform = Parameter('use_otf_transform', default=True)
+    use_subgraph_fusion = Parameter('use_subgraph_fusion', default=True)
+    use_prefetching = Parameter('use_prefetching', default=False)
+    prefetch_arrays = Parameter('prefetch_arryas', default='')
+    device = Parameter('DaCe device to use', 'cpu', choices=['cpu', 'gpu'])
+    backend = Parameter('Dace backend to use',
+                        'default',
+                        choices=['default', 'cuda', 'hip'])
     loop_order = Parameter(
-        "loop_order",
-        default="IJK",
-        choices=list("".join(p) for p in itertools.permutations("IJK")),
-    )
+        'loop order, 2 means innermost dimension, 0 outermost', (1, 0, 2))
 
     def setup(self):
         super().setup()
@@ -35,14 +30,14 @@ class StencilMixin(Benchmark):
             passes.append(
                 SubgraphFusion(storage_type=dace.dtypes.StorageType.Register))
         if self.use_prefetching:
-            arrays = self.prefetch_arrays.split(",")
+            arrays = self.prefetch_arrays.split(',')
             passes.append(PrefetchingKCaches(arrays=arrays))
 
         kwargs = {}
-        if self.backend != "default":
-            kwargs["backend"] = self.backend
-        if hasattr(self, "constants"):
-            kwargs["constants"] = self.constants
+        if self.backend != 'default':
+            kwargs['backend'] = self.backend
+        if hasattr(self, 'constants'):
+            kwargs['constants'] = self.constants
         self._gt4py_stencil_object = build_dace_adhoc(
             definition=self.definition,
             domain=self.domain,
@@ -52,13 +47,14 @@ class StencilMixin(Benchmark):
             passes=passes,
             alignment=alignment,
             layout=self.layout,
-            loop_order=self.loop_order,
+            loop_order=''.join('IJK'[self.loop_order.index(i)]
+                               for i in range(3)),
             device=self.device,
             **kwargs)
 
     @contextlib.contextmanager
     def on_device(self, data):
-        if self.device == "cpu":
+        if self.device == 'cpu':
             yield data
             return
 
@@ -84,7 +80,7 @@ class StencilMixin(Benchmark):
                 device_array.ctypes.data,
                 host_array.ctypes.data,
                 array.nbytes(host_array),
-                "HostToDevice",
+                'HostToDevice',
             )
         runtime.device_synchronize()
         from types import SimpleNamespace
@@ -101,7 +97,7 @@ class StencilMixin(Benchmark):
                 host_array.ctypes.data,
                 device_array.ctypes.data,
                 array.nbytes(host_array),
-                "DeviceToHost",
+                'DeviceToHost',
             )
         runtime.device_synchronize()
 
@@ -117,6 +113,6 @@ class StencilMixin(Benchmark):
                                            _domain_=self.domain,
                                            _origin_=dict.fromkeys(
                                                self.args, origin))
-        report = InstrumentationReport(exec_info["instrumentation_report"])
+        report = InstrumentationReport(exec_info['instrumentation_report'])
         total_ms = sum(sum(v) for v in report.entries.values())
         return total_ms / 1000

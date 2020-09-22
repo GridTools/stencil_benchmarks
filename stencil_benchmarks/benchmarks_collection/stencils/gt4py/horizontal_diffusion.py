@@ -8,9 +8,9 @@ class Stencil(StencilMixin, base.HorizontalDiffusionStencil):
     @property
     def definition(self):
         def horizontal_diffusion(
-                inp: gtscript.Field["dtype"],  # noqa: 821
-                out: gtscript.Field["dtype"],  # noqa: 821
-                coeff: gtscript.Field["dtype"]):  # noqa: 821
+                inp: gtscript.Field['dtype'],  # noqa: 821
+                out: gtscript.Field['dtype'],  # noqa: 821
+                coeff: gtscript.Field['dtype']):  # noqa: 821
             with computation(PARALLEL), interval(...):  # noqa: 821
                 lap_field = 4.0 * inp[0, 0, 0] - (inp[1, 0, 0] +
                                                   inp[-1, 0, 0] +
