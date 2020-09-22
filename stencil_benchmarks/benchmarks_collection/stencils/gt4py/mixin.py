@@ -3,8 +3,8 @@ import itertools
 
 import dace
 from dace.codegen.instrumentation.report import InstrumentationReport
-from gt4py.testing.utils import build_dace_adhoc
-from gt4py.testing.utils import ApplyOTFOptimizer, PrefetchingKCaches, SubgraphFusion
+from gt4py.testing.utils import (build_dace_adhoc, ApplyOTFOptimizer,
+                                 PrefetchingKCaches, SubgraphFusion)
 from stencil_benchmarks.benchmark import Parameter, Benchmark
 
 
@@ -13,8 +13,10 @@ class StencilMixin(Benchmark):
     use_subgraph_fusion = Parameter("use_subgraph_fusion", default=True)
     use_prefetching = Parameter("use_prefetching", default=False)
     prefetch_arrays = Parameter("prefetch_arryas", default="")
-    device = Parameter("DaCe device to use", "gpu", choices=["cpu", "gpu"])
-    backend = Parameter("Dace backend to use", "default", choices=["default", "cuda", "hip"])
+    device = Parameter("DaCe device to use", "cpu", choices=["cpu", "gpu"])
+    backend = Parameter("Dace backend to use",
+                        "default",
+                        choices=["default", "cuda", "hip"])
 
     loop_order = Parameter(
         "loop_order",
@@ -24,13 +26,14 @@ class StencilMixin(Benchmark):
 
     def setup(self):
         super().setup()
-        halo = (self.halo,) * 3
+        halo = (self.halo, ) * 3
         alignment = max(self.alignment, 1)
         passes = []
         if self.use_otf_transform:
             passes.append(ApplyOTFOptimizer())
         if self.use_subgraph_fusion:
-            passes.append(SubgraphFusion(storage_type=dace.dtypes.StorageType.Register))
+            passes.append(
+                SubgraphFusion(storage_type=dace.dtypes.StorageType.Register))
         if self.use_prefetching:
             arrays = self.prefetch_arrays.split(",")
             passes.append(PrefetchingKCaches(arrays=arrays))
@@ -51,8 +54,7 @@ class StencilMixin(Benchmark):
             layout=self.layout,
             loop_order=self.loop_order,
             device=self.device,
-            **kwargs
-        )
+            **kwargs)
 
     @contextlib.contextmanager
     def on_device(self, data):
@@ -71,11 +73,10 @@ class StencilMixin(Benchmark):
                 self.dtype,
                 self.layout,
                 self.alignment,
-                index_to_align=(self.halo,) * 3,
+                index_to_align=(self.halo, ) * 3,
                 alloc=runtime.malloc,
                 apply_offset=self.offset_allocations,
-            )
-            for _ in data
+            ) for _ in data
         ]
 
         for host_array, device_array in zip(data, device_data):
@@ -110,13 +111,12 @@ class StencilMixin(Benchmark):
     def run_stencil(self, data):
         with self.on_device(data) as device_data:
             exec_info = {}
-            origin = (self.halo,) * 3
-            self._gt4py_stencil_object.run(
-                    **self.gt4py_data(device_data),
-                    exec_info=exec_info,
-                    _domain_=self.domain,
-                    _origin_=dict.fromkeys(self.args, origin)
-            )
+            origin = (self.halo, ) * 3
+            self._gt4py_stencil_object.run(**self.gt4py_data(device_data),
+                                           exec_info=exec_info,
+                                           _domain_=self.domain,
+                                           _origin_=dict.fromkeys(
+                                               self.args, origin))
         report = InstrumentationReport(exec_info["instrumentation_report"])
         print(report)
         total_ms = sum(sum(v) for v in report.entries.values())
