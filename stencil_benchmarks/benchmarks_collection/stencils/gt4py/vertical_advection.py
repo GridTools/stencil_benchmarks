@@ -1,56 +1,34 @@
-from ..base import VerticalAdvectionStencil
-from ....tools import timing
+from stencil_benchmarks.benchmark import ParameterError
+from stencil_benchmarks.benchmarks_collection.stencils import base
 
 from gt4py import gtscript
-from .mixin import CPUStencilMixin, GPUStencilMixin
+from .mixin import StencilMixin
 
 
-class VerticalAdvectionStencil(VerticalAdvectionStencil):
-    @timing.return_time
-    def run_stencil(self, data):
-        with self.on_device(data) as device_data:
-            exec_info = {}
-            origin = (self.halo,) * 3
-            ccol, _, _, upos, ustage, utens, utens_stage, wcon = device_data
-            print(data.datacol.shape)
-            dtr_stage = 3.0 / 20.0
-            self._gt4py_stencil_object.run(
-                utens_stage=utens_stage,
-                u_stage=ustage,
-                wcon=wcon,
-                u_pos=upos,
-                utens=utens,
-                dtr_stage=dtr_stage,
-                exec_info=exec_info,
-                _domain_=self.domain,
-                _origin_=dict(
-                    utens_stage=origin,
-                    u_stage=origin,
-                    wcon=origin,
-                    u_pos=origin,
-                    utens=origin,
-                ),
-            )
-        return (
-            exec_info["pyext_program_end_time"] - exec_info["pyext_program_start_time"]
-        )
+class Stencil(StencilMixin, base.VerticalAdvectionStencil):
+    def setup(self):
+        super().setup()
+        if not self.u_only:
+            raise ParameterError('only --u-only is currently supported')
+
+    def gt4py_data(self, data):
+        ustage, upos, utens, utensstage, wcon, ccol, dcol, datacol = data
+        return dict(ustage=ustage, upos=upos, utens=utens, utensstage=utensstage, wcon=wcon)
 
     @property
     def constants(self):
-        return {"BET_M": 0.5, "BET_P": 0.5}
+        return {"BET_M": 0.5, "BET_P": 0.5, "dtr_stage": 3 / 20}
 
     @property
     def definition(self):
         def vertical_advection_dycore(
-            utens_stage: gtscript.Field["dtype"],
-            u_stage: gtscript.Field["dtype"],
+            utensstage: gtscript.Field["dtype"],
+            ustage: gtscript.Field["dtype"],
             wcon: gtscript.Field["dtype"],
-            u_pos: gtscript.Field["dtype"],
-            utens: gtscript.Field["dtype"],
-            *,
-            dtr_stage: float,
+            upos: gtscript.Field["dtype"],
+            utens: gtscript.Field["dtype"]
         ):
-            from __externals__ import BET_M, BET_P
+            from __externals__ import BET_M, BET_P, dtr_stage
 
             with computation(FORWARD):
                 with interval(0, 1):
@@ -61,11 +39,11 @@ class VerticalAdvectionStencil(VerticalAdvectionStencil):
                     bcol = dtr_stage - ccol[0, 0, 0]
 
                     # update the d column
-                    correction_term = -cs * (u_stage[0, 0, 1] - u_stage[0, 0, 0])
+                    correction_term = -cs * (ustage[0, 0, 1] - ustage[0, 0, 0])
                     dcol = (
-                        dtr_stage * u_pos[0, 0, 0]
+                        dtr_stage * upos[0, 0, 0]
                         + utens[0, 0, 0]
-                        + utens_stage[0, 0, 0]
+                        + utensstage[0, 0, 0]
                         + correction_term
                     )
 
@@ -87,12 +65,12 @@ class VerticalAdvectionStencil(VerticalAdvectionStencil):
 
                     # update the d column
                     correction_term = -as_ * (
-                        u_stage[0, 0, -1] - u_stage[0, 0, 0]
-                    ) - cs * (u_stage[0, 0, 1] - u_stage[0, 0, 0])
+                        ustage[0, 0, -1] - ustage[0, 0, 0]
+                    ) - cs * (ustage[0, 0, 1] - ustage[0, 0, 0])
                     dcol = (
-                        dtr_stage * u_pos[0, 0, 0]
+                        dtr_stage * upos[0, 0, 0]
                         + utens[0, 0, 0]
-                        + utens_stage[0, 0, 0]
+                        + utensstage[0, 0, 0]
                         + correction_term
                     )
 
@@ -108,11 +86,11 @@ class VerticalAdvectionStencil(VerticalAdvectionStencil):
                     bcol = dtr_stage - acol[0, 0, 0]
 
                     # update the d column
-                    correction_term = -as_ * (u_stage[0, 0, -1] - u_stage[0, 0, 0])
+                    correction_term = -as_ * (ustage[0, 0, -1] - ustage[0, 0, 0])
                     dcol = (
-                        dtr_stage * u_pos[0, 0, 0]
+                        dtr_stage * upos[0, 0, 0]
                         + utens[0, 0, 0]
-                        + utens_stage[0, 0, 0]
+                        + utensstage[0, 0, 0]
                         + correction_term
                     )
 
@@ -124,23 +102,11 @@ class VerticalAdvectionStencil(VerticalAdvectionStencil):
                 with interval(-1, None):
                     datacol = dcol[0, 0, 0]
                     data_col = datacol
-                    utens_stage = dtr_stage * (datacol - u_pos[0, 0, 0])
+                    utensstage = dtr_stage * (datacol - upos[0, 0, 0])
 
                 with interval(0, -1):
                     datacol = dcol[0, 0, 0] - ccol[0, 0, 0] * data_col[0, 0, 1]
                     data_col = datacol
-                    utens_stage = dtr_stage * (datacol - u_pos[0, 0, 0])
+                    utensstage = dtr_stage * (datacol - upos[0, 0, 0])
 
         return vertical_advection_dycore
-
-
-class GpuVerticalAdvectionStencil(GPUStencilMixin, VerticalAdvectionStencil):
-    def setup(self):
-        assert self.parameters["u_only"]
-        return super().setup()
-
-
-class CpuVerticalAdvectionStencil(CPUStencilMixin, VerticalAdvectionStencil):
-    def setup(self):
-        assert self.parameters["u_only"]
-        return super().setup()

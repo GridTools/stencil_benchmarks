@@ -2,17 +2,19 @@ import contextlib
 import itertools
 
 import dace
+from dace.codegen.instrumentation.report import InstrumentationReport
 from gt4py.testing.utils import build_dace_adhoc
 from gt4py.testing.utils import ApplyOTFOptimizer, PrefetchingKCaches, SubgraphFusion
 from stencil_benchmarks.benchmark import Parameter, Benchmark
 
 
-class GT4PyStencilMixin(Benchmark):
-
+class StencilMixin(Benchmark):
     use_otf_transform = Parameter("use_otf_transform", default=True)
     use_subgraph_fusion = Parameter("use_subgraph_fusion", default=True)
     use_prefetching = Parameter("use_prefetching", default=False)
-    prefetch_arrays = Parameter("prefetch_arryas", default="", dtype=str, nargs=1)
+    prefetch_arrays = Parameter("prefetch_arryas", default="")
+    device = Parameter("DaCe device to use", "gpu", choices=["cpu", "gpu"])
+    backend = Parameter("Dace backend to use", "default", choices=["default", "cuda", "hip"])
 
     loop_order = Parameter(
         "loop_order",
@@ -23,19 +25,19 @@ class GT4PyStencilMixin(Benchmark):
     def setup(self):
         super().setup()
         halo = (self.halo,) * 3
-        alignment = max(self.parameters["alignment"], 1)
+        alignment = max(self.alignment, 1)
         passes = []
-        if self.parameters["use_otf_transform"]:
+        if self.use_otf_transform:
             passes.append(ApplyOTFOptimizer())
-        if self.parameters["use_subgraph_fusion"]:
+        if self.use_subgraph_fusion:
             passes.append(SubgraphFusion(storage_type=dace.dtypes.StorageType.Register))
-        if self.parameters["use_prefetching"]:
-            arrays = self.parameters["prefetch_arrays"].split(",")
+        if self.use_prefetching:
+            arrays = self.prefetch_arrays.split(",")
             passes.append(PrefetchingKCaches(arrays=arrays))
 
         kwargs = {}
-        if "backend" in self.parameters:
-            kwargs["backend"] = self.parameters["backend"]
+        if self.backend != "default":
+            kwargs["backend"] = self.backend
         if hasattr(self, "constants"):
             kwargs["constants"] = self.constants
         self._gt4py_stencil_object = build_dace_adhoc(
@@ -43,23 +45,21 @@ class GT4PyStencilMixin(Benchmark):
             domain=self.domain,
             halo=halo,
             specialize_strides=self.strides,
-            dtype=self.parameters["dtype"],
+            dtype=self.dtype,
             passes=passes,
             alignment=alignment,
-            layout=self.parameters["layout"],
-            loop_order=self.parameters["loop_order"],
+            layout=self.layout,
+            loop_order=self.loop_order,
             device=self.device,
             **kwargs
         )
 
-
-class GPUStencilMixin(GT4PyStencilMixin):
-    device = "gpu"
-
-    backend = Parameter("backend", choices=["cuda", "hip"], default="cuda")
-
     @contextlib.contextmanager
     def on_device(self, data):
+        if self.device == "cpu":
+            yield data
+            return
+
         from ..cuda_hip import api
         from stencil_benchmarks.tools import array
 
@@ -104,10 +104,20 @@ class GPUStencilMixin(GT4PyStencilMixin):
             )
         runtime.device_synchronize()
 
+    def gt4py_data(self, data):
+        return dict(zip(self.args, data))
 
-class CPUStencilMixin(GT4PyStencilMixin):
-    device = "cpu"
-
-    @contextlib.contextmanager
-    def on_device(self, data):
-        yield data
+    def run_stencil(self, data):
+        with self.on_device(data) as device_data:
+            exec_info = {}
+            origin = (self.halo,) * 3
+            self._gt4py_stencil_object.run(
+                    **self.gt4py_data(device_data),
+                    exec_info=exec_info,
+                    _domain_=self.domain,
+                    _origin_=dict.fromkeys(self.args, origin)
+            )
+        report = InstrumentationReport(exec_info["instrumentation_report"])
+        print(report)
+        total_ms = sum(sum(v) for v in report.entries.values())
+        return total_ms / 1000
