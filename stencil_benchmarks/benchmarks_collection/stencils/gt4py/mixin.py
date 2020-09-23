@@ -18,6 +18,8 @@ class StencilMixin(Benchmark):
                         choices=['default', 'cuda', 'hip'])
     loop_order = Parameter(
         'loop order, 2 means innermost dimension, 0 outermost', (1, 0, 2))
+    dry_runs = Parameter('kernel dry-runs before the measurement', 0)
+    block_size = Parameter('GPU block size', (0, 0, 0))
 
     def setup(self):
         super().setup()
@@ -38,6 +40,9 @@ class StencilMixin(Benchmark):
             kwargs['backend'] = self.backend
         if hasattr(self, 'constants'):
             kwargs['constants'] = self.constants
+        if self.block_size != (0, 0, 0):
+            kwargs['gpu_block_size'] = ','.join(
+                str(b) for b in self.block_size)
         self._gt4py_stencil_object = build_dace_adhoc(
             definition=self.definition,
             domain=self.domain,
@@ -108,11 +113,12 @@ class StencilMixin(Benchmark):
         with self.on_device(data) as device_data:
             exec_info = {}
             origin = (self.halo, ) * 3
-            self._gt4py_stencil_object.run(**self.gt4py_data(device_data),
-                                           exec_info=exec_info,
-                                           _domain_=self.domain,
-                                           _origin_=dict.fromkeys(
-                                               self.args, origin))
+            for _ in range(self.dry_runs + 1):
+                self._gt4py_stencil_object.run(**self.gt4py_data(device_data),
+                                               exec_info=exec_info,
+                                               _domain_=self.domain,
+                                               _origin_=dict.fromkeys(
+                                                   self.args, origin))
         report = InstrumentationReport(exec_info['instrumentation_report'])
         total_ms = sum(sum(v) for v in report.entries.values())
         return total_ms / 1000
