@@ -437,7 +437,9 @@ def range_args(**kwargs: Dict[str, Any]) -> Iterator[str]:
             yield arg
 
 
-def pretty_parameters(bmark, include_version: bool = True) -> Dict[str, Any]:
+def pretty_parameters(bmark,
+                      include_version: bool = True,
+                      include_name: bool = True) -> Dict[str, Any]:
     """Get pretty formatted dict of benchmark parameters.
 
     Parameters
@@ -476,4 +478,7 @@ def pretty_parameters(bmark, include_version: bool = True) -> Dict[str, Any]:
             parameters[name] = value
     if include_version:
         parameters['sbench-version'] = __version__
+    if include_name:
+        parameters['benchmark-name'] = (type(bmark).__module__ + '.' +
+                                        type(bmark).__name__)
     return parameters
