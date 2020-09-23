@@ -306,8 +306,12 @@ class VerticalAdvectionStencil(Stencil):
 
     @property
     def data_size(self):
-        reads = 16  # including ccol + dcol, but not datacol
-        writes = 5  # including ccol + dcol, but not datacol
+        if self.u_only:
+            reads = 7  # including ccol + dcol, but not datacol
+            writes = 3  # including ccol + dcol, but not datacol
+        else:
+            reads = 15  # including ccol + dcol, but not datacol
+            writes = 5  # including ccol + dcol, but not datacol
         return (reads + writes) * np.product(self.domain) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
