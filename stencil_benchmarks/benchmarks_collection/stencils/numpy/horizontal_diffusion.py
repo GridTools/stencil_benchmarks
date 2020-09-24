@@ -52,6 +52,5 @@ class OnTheFly(HorizontalDiffusionStencil):
         fly = np.where(fly * (inp[1:-2, 2:-1, :] - inp[1:-2, 1:-2, :]) > 0, 0,
                        fly)
 
-        out[2:-2, 2:-2, :] = inp[2:-2, 2:-2, :] - coeff[2:-2, 2:-2, :] * (
-            flx[1:, 1:, :] - flx[:-1, 1:, :] + fly[1:, 1:, :] -
-            fly[1:, :-1, :])
+        out[2:-2, 2:-2, :] = inp[2:-2, 2:-2, :] - coeff[2:-2, 2:-2, :] * (flx[
+            1:, 1:, :] - flx[:-1, 1:, :] + fly[1:, 1:, :] - fly[1:, :-1, :])
