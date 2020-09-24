@@ -3,15 +3,20 @@ import contextlib
 import dace
 from dace.codegen.instrumentation.report import InstrumentationReport
 from gt4py.testing.utils import (build_dace_adhoc, ApplyOTFOptimizer,
-                                 PrefetchingKCaches, SubgraphFusion)
+                                 DeduplicateAccesses, PrefetchingKCaches,
+                                 PruneTransientOutputs, SubgraphFusion)
 from stencil_benchmarks.benchmark import Parameter, Benchmark
 
 
 class StencilMixin(Benchmark):
-    use_otf_transform = Parameter('use_otf_transform', default=True)
-    use_subgraph_fusion = Parameter('use_subgraph_fusion', default=True)
-    use_prefetching = Parameter('use_prefetching', default=False)
-    prefetch_arrays = Parameter('prefetch_arryas', default='')
+    use_prune_transient_outputs = Parameter(
+        'switch pruning of transient output accesses on or off', default=True)
+    use_deduplicate_accesses = Parameter(
+        'only access each offset once per map and field.', default=False)
+    use_otf_transform = Parameter('apply on-the-fly transform', default=True)
+    use_subgraph_fusion = Parameter('fuse subgraphs', default=True)
+    use_prefetching = Parameter('apply prefetching transform', default=False)
+    prefetch_arrays = Parameter('arrays to prefetch', default='')
     device = Parameter('DaCe device to use', 'cpu', choices=['cpu', 'gpu'])
     backend = Parameter('Dace backend to use',
                         'default',
@@ -26,11 +31,15 @@ class StencilMixin(Benchmark):
         halo = (self.halo, ) * 3
         alignment = max(self.alignment, 1)
         passes = []
+        if self.use_prune_transient_outputs:
+            passes.append(PruneTransientOutputs())
         if self.use_otf_transform:
             passes.append(ApplyOTFOptimizer())
         if self.use_subgraph_fusion:
             passes.append(
                 SubgraphFusion(storage_type=dace.dtypes.StorageType.Register))
+        if self.use_deduplicate_accesses:
+            passes.append(DeduplicateAccesses())
         if self.use_prefetching:
             arrays = self.prefetch_arrays.split(',')
             passes.append(PrefetchingKCaches(arrays=arrays))
