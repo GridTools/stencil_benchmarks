@@ -169,6 +169,8 @@ extern "C" int kernel(
 
     float ftime;
     CHECK(EventElapsedTime(&ftime, start, stop));
+    CHECK(EventDestroy(start));
+    CHECK(EventDestroy(stop));
     *time = double(ftime) / 1000.0;
     {%- else %}
     CHECK(DeviceSynchronize());
