@@ -64,10 +64,10 @@ def _run_instance(bmark_instance, skip_execution_failures):
     except benchmark.ExecutionError as error:
         if skip_execution_failures:
             return
-        click.echo('execution error: ' + ' '.join(error.args))
+        click.echo('\nexecution error: ' + ' '.join(error.args).strip())
         sys.exit(1)
-    except validation.ValidationError:
-        click.echo('error: validation failed')
+    except validation.ValidationError as error:
+        click.echo('\nvalidation error: ' + ' '.join(error.args).strip())
         sys.exit(2)
     assert results
 

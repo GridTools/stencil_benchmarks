@@ -465,7 +465,7 @@ def pretty_parameters(bmark,
     ...     def run(self):
     ...         pass
     >>> bmark = BMark(foo_bar=42)
-    >>> pretty_parameters(bmark, include_version=False)
+    >>> pretty_parameters(bmark, include_version=False, include_name=False)
     {'foo-bar': 42, 'baz-0': 1, 'baz-1': 2}
     """
     parameters = dict()
