@@ -51,12 +51,16 @@ class StencilMixin(Benchmark):
     gpu_architecture = Parameter('GPU architecture', dtype=str, nargs=1)
     print_code = Parameter('print generated code', False)
     dry_runs = Parameter('kernel dry-runs before the measurement', 0)
-    gpu_timers = Parameter('use GPU timers instead of standard C++ timers',
-                           False)
+    timers = Parameter('timer type',
+                       default='gpu',
+                       choices=['gpu', 'wall', 'hip-ext'])
     index_type = Parameter('index data type', 'std::ptrdiff_t')
 
     def setup(self):
         super().setup()
+
+        if self.backend == 'cuda' and self.timers == 'hip-ext':
+            raise ParameterError('hip-ext timers are not compatible with CUDA')
 
         template_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), 'templates',
@@ -107,7 +111,7 @@ class StencilMixin(Benchmark):
                     ctype=compilation.dtype_cname(self.dtype),
                     domain=self.domain,
                     dry_runs=self.dry_runs,
-                    gpu_timers=self.gpu_timers,
+                    timers=self.timers,
                     strides=self.strides,
                     index_type=self.index_type)
 
