@@ -38,6 +38,7 @@ SPDX-License-Identifier: BSD-3-Clause
 
 {%- if backend == "hip" %}
 #include <hip/hip_runtime.h>
+#include <hip/hip_ext.h>
 #include <hip/hip_fp16.h>
 using hipDeviceProp = hipDeviceProp_t;
 {%- else %}
@@ -135,18 +136,20 @@ extern "C" int kernel(
 
     for (int dry_run = 0; dry_run < {{ dry_runs }}; ++dry_run) {
         gpu_kernel<<<grid_size, block_size, smem_size>>>(
-            {% for arg in args %}
+            {%- for arg in args %}
                 {{ arg }}{{ "," if not loop.last }}
             {%- endfor %}
         );
     }
 
-    {%- if gpu_timers %}
+    {%- if timers != 'wall' %}
     {{ backend }}Event_t start, stop;
     CHECK(EventCreate(&start));
     CHECK(EventCreate(&stop));
 
+    {%- if timers == 'gpu' -%}
     CHECK(EventRecord(start));
+    {%- endif -%}
     {%- else %}
     using clock = std::chrono::high_resolution_clock;
 
@@ -154,17 +157,24 @@ extern "C" int kernel(
     auto start = clock::now();
     {%- endif %}
 
+    {%- if timers == 'hip-ext' %}
+    hipExtLaunchKernelGGL(gpu_kernel, grid_size, block_size, smem_size, 0, start, stop, 0,
+    {%- else %}
     gpu_kernel<<<grid_size, block_size, smem_size>>>(
-        {% for arg in args %}
+    {%- endif %}
+        {%- for arg in args %}
             {{ arg }}{{ "," if not loop.last }}
         {%- endfor %}
     );
 
     CHECK(GetLastError());
 
-    {%- if gpu_timers %}
+    {%- if timers == 'gpu' %}
     CHECK(EventRecord(stop));
+    {%- endif %}
 
+    {%- if timers != 'wall' %}
+    CHECK(EventSynchronize(start));
     CHECK(EventSynchronize(stop));
 
     float ftime;
