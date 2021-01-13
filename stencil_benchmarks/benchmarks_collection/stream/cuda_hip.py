@@ -53,6 +53,8 @@ class Native(Benchmark):
     explicit_vectorization = Parameter(
         'use float2, float3, float4 types, '
         'otherwise just add a loop and let the compiler vectorize', True)
+    unroll_factor = Parameter(
+        'loop unroll factor (in addition to vectorization)', 1)
     launch_bounds = Parameter('specify launch bounds', True)
     index_type = Parameter('index data type', 'std::size_t')
     streaming_stores = Parameter('use streaming store instructions', False)
@@ -63,7 +65,8 @@ class Native(Benchmark):
     def setup(self):
         super().setup()
 
-        elements_per_block = self.block_size * self.vector_size
+        elements_per_block = (self.block_size * self.vector_size *
+                              self.unroll_factor)
         if self.array_size % elements_per_block:
             warnings.warn(
                 'adapting array size to match block and vector sizes')
@@ -93,6 +96,7 @@ class Native(Benchmark):
                     ntimes=self.ntimes,
                     vector_size=self.vector_size,
                     explicit_vectorization=self.explicit_vectorization,
+                    unroll_factor=self.unroll_factor,
                     launch_bounds=self.launch_bounds,
                     index_type=self.index_type,
                     streaming_loads=self.streaming_loads,

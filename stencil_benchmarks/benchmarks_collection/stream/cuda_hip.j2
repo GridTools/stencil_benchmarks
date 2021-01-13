@@ -75,8 +75,10 @@ __device__ inline {{ ctype }}4 operator* (float a, {{ ctype }}4 b) {
 
 {%- if vector_size > 1 and explicit_vectorization %}
 {%- set ctype_vec = ctype + (vector_size | string) %}
+{%- set vector_ctype_elements = 1 %}
 {%- else %}
 {%- set ctype_vec = ctype %}
+{%- set vector_ctype_elements = vector_size %}
 {%- endif %}
 
 {%- macro kernel(name) %}
@@ -85,17 +87,25 @@ __global__
 __launch_bounds__({{ block_size }})
 {%- endif %}
 void {{ name }}({{ varargs | join(', ') }}) {
-    {%- if vector_size > 1 and not explicit_vectorization %}
-    const {{ index_type }} base = (threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }}) * {{ vector_size }};
-    for ({{ index_type }} v = 0; v < {{ vector_size }}; ++v) {
-        const {{ index_type }} i = base + v;
+    const {{ index_type }} block_base = (threadIdx.x + blockIdx.{{ axis }} * blockDim.{{ axis }} * {{ unroll_factor }}) * {{ vector_ctype_elements }};
+    {%- if unroll_factor > 1 %}
+    for ({{ index_type }} unroll = 0; unroll < {{ unroll_factor }}; ++unroll) {
+        const {{ index_type }} vector_base = block_base + unroll * blockDim.{{ axis }} * {{ vector_ctype_elements }};
     {%- else %}
-        const {{ index_type }} i = threadIdx.{{ axis }} + blockDim.{{ axis }} * blockIdx.{{ axis }};
+    {
+        const {{ index_type }} vector_base = block_base;
     {%- endif %}
+
+        {%- if vector_size > 1 and not explicit_vectorization %}
+        for ({{ index_type }} v = 0; v < {{ vector_size }}; ++v) {
+            const {{ index_type }} i = vector_base + v;
+            {{ caller() }}
+        }
+        {%- else %}
+        const {{ index_type }} i = vector_base;
         {{ caller() }}
-    {%- if vector_size > 1 and not explicit_vectorization -%}
+        {%- endif %}
     }
-    {%- endif %}
 }
 {%- endmacro %}
 
@@ -168,7 +178,7 @@ extern "C" int run() {
     CHECK(Malloc(&b, sizeof({{ ctype }}) * {{ array_size }}));
     CHECK(Malloc(&c, sizeof({{ ctype }}) * {{ array_size }}));
 
-    {%- set grid_size = (array_size // vector_size + block_size - 1) // block_size %}
+    {%- set grid_size = (array_size // (vector_size * unroll_factor) + block_size - 1) // block_size %}
 
     dim3 grid_size({{ grid_size if axis == 'x' else 1 }},
                    {{ grid_size if axis == 'y' else 1 }},
