@@ -132,7 +132,7 @@ class Laplacian(StencilMixin, base.LaplacianStencil):
             @jit
             def stencil(inp, out):
                 result = sum(2 * inp[center] - inp[left] - inp[right]
-                                  for left, center, right in shifts)
+                             for left, center, right in shifts)
                 if self.implementation == 'pad':
                     out = jnp.pad(result, self.halo, mode='empty')
                 else:
