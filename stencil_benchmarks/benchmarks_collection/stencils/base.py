@@ -441,11 +441,14 @@ class VerticalAdvectionStencil(Stencil):
             forward_sweep(0, 0, wstage, wpos, wtens, wtensstage)
             backward_sweep(wpos, wtensstage)
 
-        validation.check_equality('utensstage', data_before.utensstage,
-                                  data_after.utensstage)
+        validation.check_equality('utensstage',
+                                  data_after.utensstage[self.inner_slice()],
+                                  data_before.utensstage[self.inner_slice()])
 
         if not self.u_only:
-            validation.check_equality('vtensstage', data_before.vtensstage,
-                                      data_after.vtensstage)
-            validation.check_equality('wtensstage', data_before.wtensstage,
-                                      data_after.wtensstage)
+            validation.check_equality(
+                'vtensstage', data_after.vtensstage[self.inner_slice()],
+                data_before.vtensstage[self.inner_slice()])
+            validation.check_equality(
+                'wtensstage', data_after.wtensstage[self.inner_slice()],
+                data_before.wtensstage[self.inner_slice()])
