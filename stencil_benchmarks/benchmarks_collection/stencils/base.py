@@ -219,7 +219,7 @@ class LaplacianStencil(BasicStencil):
 
         inp = data_before.inp
         out = data_after.out
-        result = np.zeros(self.domain)
+        result = np.zeros(self.domain, dtype=inp.dtype)
         along_axes = (self.along_x, self.along_y, self.along_z)
         for axis, apply_along_axis in enumerate(along_axes):
             if apply_along_axis:
