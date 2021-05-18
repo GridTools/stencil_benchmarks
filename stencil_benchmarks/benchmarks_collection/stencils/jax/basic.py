@@ -109,7 +109,7 @@ class SymmetricAverage(StencilMixin, base.SymmetricAverageStencil):
 class Laplacian(StencilMixin, base.LaplacianStencil):
     implementation = Parameter('jax implementation to use',
                                'pad',
-                               choices=['pad', 'roll', 'convolve'])
+                               choices=['pad', 'set', 'roll', 'convolve'])
 
     def setup(self):
         from jax import jit, numpy as jnp, scipy as jsp
@@ -118,7 +118,7 @@ class Laplacian(StencilMixin, base.LaplacianStencil):
 
         along_axes = (self.along_x, self.along_y, self.along_z)
 
-        if self.implementation == 'pad':
+        if self.implementation in ('pad', 'set'):
             shifts = []
             for axis, apply_along_axis in enumerate(along_axes):
                 if apply_along_axis:
@@ -131,10 +131,12 @@ class Laplacian(StencilMixin, base.LaplacianStencil):
 
             @jit
             def stencil(inp, out):
-                out = jnp.pad(sum(2 * inp[center] - inp[left] - inp[right]
-                                  for left, center, right in shifts),
-                              self.halo,
-                              mode='empty')
+                result = sum(2 * inp[center] - inp[left] - inp[right]
+                                  for left, center, right in shifts)
+                if self.implementation == 'pad':
+                    out = jnp.pad(result, self.halo, mode='empty')
+                else:
+                    out = out.at[center].set(result)
                 return inp, out
         elif self.implementation == 'roll':
             axes = tuple(i for i, along_axis in enumerate(along_axes)
