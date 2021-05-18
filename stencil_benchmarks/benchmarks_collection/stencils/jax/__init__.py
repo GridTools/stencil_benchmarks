@@ -30,6 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import cuda_hip, jax, numba_cpu, numpy, openmp
+from . import basic, horizontal_diffusion, vertical_advection
 
-__all__ = ['cuda_hip', 'jax', 'numba_cpu', 'numpy', 'openmp']
+__all__ = ['basic', 'horizontal_diffusion', 'vertical_advection']
