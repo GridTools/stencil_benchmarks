@@ -32,7 +32,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 
-from stencil_benchmarks.benchmark import Parameter, ParameterError
+from stencil_benchmarks.benchmark import Parameter
 from .mixin import StencilMixin
 from .. import base
 
@@ -53,8 +53,7 @@ class Copy(StencilMixin, base.CopyStencil):
         from jax import jit, numpy as jnp
 
         def stencil(inp):
-            out = inp.at[...].set(inp)
-            #out = jnp.pad(inp[self.inner_slice()], self.halo, mode='empty')
+            out = jnp.pad(inp[self.inner_slice()], self.halo, mode='empty')
             return inp, out
 
         stencil = jit(stencil, donate_argnums=0)

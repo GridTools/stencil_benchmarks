@@ -58,7 +58,7 @@ class StencilMixin(Benchmark):
         ...
 
     def run_stencil(self, data):
-        from jax import device_put, make_jaxpr, numpy as jnp, profiler
+        from jax import make_jaxpr, numpy as jnp
 
         device_data = [jnp.array(d, dtype=d.dtype, order='K') for d in data]
 
