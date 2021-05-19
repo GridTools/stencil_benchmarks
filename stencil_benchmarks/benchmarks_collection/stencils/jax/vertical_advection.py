@@ -36,10 +36,8 @@ from .. import base
 
 
 class Basic(StencilMixin, base.VerticalAdvectionStencil):
-    def setup(self):
+    def setup_stencil(self):
         from jax import jit, lax, numpy as jnp, vmap
-
-        super().setup()
 
         if not self.u_only:
             raise ParameterError('Only option --u-only is supported')

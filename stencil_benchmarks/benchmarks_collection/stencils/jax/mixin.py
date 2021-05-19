@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+import abc
 import time
 import warnings
 
@@ -38,6 +39,7 @@ from stencil_benchmarks.benchmark import Benchmark, Parameter
 
 class StencilMixin(Benchmark):
     dry_runs = Parameter('stencil dry-runs before the measurement', 0)
+    print_jaxpr = Parameter('print resulting jaxpr', False)
 
     def setup(self):
         super().setup()
@@ -47,18 +49,36 @@ class StencilMixin(Benchmark):
                 'using --dry-runs together with verification might lead to '
                 'false negatives for stencils with read-write fields')
 
+        self.setup_stencil()
+
+        self._printed = False
+
+    @abc.abstractmethod
+    def setup_stencil(self):
+        ...
+
     def run_stencil(self, data):
-        from jax import numpy as jnp
-        device_data = [jnp.array(d, dtype=d.dtype) for d in data]
+        from jax import device_put, make_jaxpr, numpy as jnp, profiler
+
+        device_data = [jnp.array(d, dtype=d.dtype, order='K') for d in data]
+
+        if self.print_jaxpr and not self._printed:
+            print(make_jaxpr(self.stencil)(*device_data).jaxpr)
+            self._printed = True
+
+        for dd in device_data:
+            dd.block_until_ready()
         for _ in range(self.dry_runs):
             device_data = self.stencil(*device_data)
         for dd in device_data:
             dd.block_until_ready()
+
         start = time.perf_counter()
         device_data = self.stencil(*device_data)
         for dd in device_data:
             dd.block_until_ready()
         end = time.perf_counter()
+
         for dd, d in zip(device_data, data):
             d[...] = dd[...]
         return end - start

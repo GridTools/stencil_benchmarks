@@ -35,13 +35,10 @@ from .. import base
 
 
 class Basic(StencilMixin, base.HorizontalDiffusionStencil):
-    def setup(self):
+    def setup_stencil(self):
         from jax import jit, numpy as jnp
 
-        super().setup()
-
-        @jit
-        def stencil(inp, coeff, out):
+        def stencil(inp, coeff):
             inpi = inp[self.inner_slice(expand=(2, 2, 0))]
             coeffi = coeff[self.inner_slice(expand=(2, 2, 0))]
             lap = 4 * inpi[1:-1, 1:-1, :] - (
@@ -61,14 +58,13 @@ class Basic(StencilMixin, base.HorizontalDiffusionStencil):
             out = jnp.pad(out, self.halo, mode='empty')
             return inp, coeff, out
 
-        self.stencil = stencil
+        stencil = jit(stencil, donate_argnums=[0, 1])
+        self.stencil = lambda inp, coeff, out: stencil(inp, coeff)
 
 
 class Vmapped(StencilMixin, base.HorizontalDiffusionStencil):
-    def setup(self):
+    def setup_stencil(self):
         from jax import jit, numpy as jnp, vmap
-
-        super().setup()
 
         def plane(inp, coeff):
             lap = 4 * inp[1:-1, 1:-1] - (inp[2:, 1:-1] + inp[:-2, 1:-1] +
@@ -85,12 +81,12 @@ class Vmapped(StencilMixin, base.HorizontalDiffusionStencil):
             return inp[2:-2, 2:-2] - coeff[2:-2, 2:-2] * (
                 flx[1:, :] - flx[:-1, :] + fly[:, 1:] - fly[:, :-1])
 
-        @jit
-        def stencil(inp, coeff, out):
+        def stencil(inp, coeff):
             inpi = inp[self.inner_slice(expand=(2, 2, 0))]
             coeffi = coeff[self.inner_slice(expand=(2, 2, 0))]
             out = vmap(plane, in_axes=2, out_axes=2)(inpi, coeffi)
             out = jnp.pad(out, self.halo, mode='empty')
             return inp, coeff, out
 
-        self.stencil = stencil
+        stencil = jit(stencil, donate_argnums=[0, 1])
+        self.stencil = lambda inp, coeff, out: stencil(inp, coeff)
