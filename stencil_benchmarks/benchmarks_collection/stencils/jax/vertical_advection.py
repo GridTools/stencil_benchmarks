@@ -53,7 +53,7 @@ class Basic(VadvStencilMixin, base.VerticalAdvectionStencil):
     unroll_factor = Parameter('unroll factor', 1)
 
     def stencil_definition(self):
-        from jax import lax, numpy as jnp, vmap
+        from jax import lax, vmap
 
         dtr_stage = 3 / 20
         beta_v = 0
