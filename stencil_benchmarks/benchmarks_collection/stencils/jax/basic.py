@@ -37,74 +37,64 @@ from .mixin import StencilMixin
 from .. import base
 
 
-class Empty(StencilMixin, base.EmptyStencil):
+class BasicStencilMixin(StencilMixin):
     def setup_stencil(self):
         from jax import jit
 
-        @jit
+        jited = jit(self.stencil_definition(), donate_argnums=1)
+        self.stencil = lambda inp, out: (inp, jited(inp, out))
+
+
+class Empty(BasicStencilMixin, base.EmptyStencil):
+    def stencil_definition(self):
         def stencil(inp, out):
-            return inp, out
+            return out
 
-        self.stencil = stencil
-
-
-class Copy(StencilMixin, base.CopyStencil):
-    def setup_stencil(self):
-        from jax import jit, numpy as jnp
-
-        def stencil(inp):
-            out = jnp.pad(inp[self.inner_slice()], self.halo, mode='empty')
-            return inp, out
-
-        stencil = jit(stencil, donate_argnums=0)
-        self.stencil = lambda inp, out: stencil(inp)
+        return stencil
 
 
-class OnesidedAverage(StencilMixin, base.OnesidedAverageStencil):
-    def setup_stencil(self):
-        from jax import jit, numpy as jnp
+class Copy(BasicStencilMixin, base.CopyStencil):
+    def stencil_definition(self):
+        def stencil(inp, out):
+            return out.at[self.inner_slice()].set(inp[self.inner_slice()])
 
+        return stencil
+
+
+class OnesidedAverage(BasicStencilMixin, base.OnesidedAverageStencil):
+    def stencil_definition(self):
         inner = self.inner_slice()
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         shifted = self.inner_slice(shift)
 
-        def stencil(inp):
-            out = jnp.pad((inp[inner] + inp[shifted]) / 2,
-                          self.halo,
-                          mode='empty')
-            return inp, out
+        def stencil(inp, out):
+            return out.at[inner].set((inp[inner] + inp[shifted]) / 2)
 
-        stencil = jit(stencil, donate_argnums=0)
-        self.stencil = lambda inp, out: stencil(inp)
+        return stencil
 
 
-class SymmetricAverage(StencilMixin, base.SymmetricAverageStencil):
-    def setup_stencil(self):
-        from jax import jit, numpy as jnp
-
+class SymmetricAverage(BasicStencilMixin, base.SymmetricAverageStencil):
+    def stencil_definition(self):
+        inner = self.inner_slice()
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         left = self.inner_slice(shift)
         right = self.inner_slice(-shift)
 
-        def stencil(inp):
-            out = jnp.pad((inp[left] + inp[right]) / 2,
-                          self.halo,
-                          mode='empty')
-            return inp, out
+        def stencil(inp, out):
+            return out.at[inner].set((inp[left] + inp[right]) / 2)
 
-        stencil = jit(stencil, donate_argnums=0)
-        self.stencil = lambda inp, out: stencil(inp)
+        return stencil
 
 
-class Laplacian(StencilMixin, base.LaplacianStencil):
+class Laplacian(BasicStencilMixin, base.LaplacianStencil):
     implementation = Parameter('jax implementation to use',
-                               'pad',
+                               'set',
                                choices=['pad', 'set', 'roll', 'convolve'])
 
-    def setup_stencil(self):
-        from jax import jit, numpy as jnp, scipy as jsp
+    def stencil_definition(self):
+        from jax import numpy as jnp, scipy as jsp
 
         along_axes = (self.along_x, self.along_y, self.along_z)
 
@@ -119,23 +109,21 @@ class Laplacian(StencilMixin, base.LaplacianStencil):
                     right = self.inner_slice(-shift)
                     shifts.append((left, center, right))
 
-            def stencil(inp):
+            def stencil(inp, out):
                 result = sum(2 * inp[center] - inp[left] - inp[right]
                              for left, center, right in shifts)
                 if self.implementation == 'pad':
-                    out = jnp.pad(result, self.halo, mode='empty')
+                    return jnp.pad(result, self.halo, mode='empty')
                 else:
-                    out = jnp.empty_like(inp).at[self.inner_slice()].set(
-                        result)
-                return inp, out
+                    return out.at[self.inner_slice()].set(result)
         elif self.implementation == 'roll':
             axes = tuple(i for i, along_axis in enumerate(along_axes)
                          if along_axis)
 
-            def stencil(inp):
-                out = sum(2 * inp - jnp.roll(inp, 1, axis) -
-                          jnp.roll(inp, -1, axis) for axis in axes)
-                return inp, out
+            def stencil(inp, out):
+                return out.at[...].set(
+                    sum(2 * inp - jnp.roll(inp, 1, axis) -
+                        jnp.roll(inp, -1, axis) for axis in axes))
         elif self.implementation == 'convolve':
             window = np.zeros((3, 3, 3))
             for axis, apply_along_axis in enumerate(along_axes):
@@ -148,9 +136,7 @@ class Laplacian(StencilMixin, base.LaplacianStencil):
                 for apply_along_axis in along_axes)
             window = window[slices]
 
-            def stencil(inp):
-                out = jsp.signal.convolve(inp, window, mode='same')
-                return inp, out
+            def stencil(inp, out):
+                out.at[...].set(jsp.signal.convolve(inp, window, mode='same'))
 
-        stencil = jit(stencil, donate_argnums=0)
-        self.stencil = lambda inp, out: stencil(inp)
+        return stencil

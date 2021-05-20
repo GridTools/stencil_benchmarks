@@ -30,17 +30,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from stencil_benchmarks.benchmark import ParameterError
+from stencil_benchmarks.benchmark import Parameter, ParameterError
 from .mixin import StencilMixin
 from .. import base
 
 
-class Basic(StencilMixin, base.VerticalAdvectionStencil):
+class VadvStencilMixin(StencilMixin):
     def setup_stencil(self):
-        from jax import jit, lax, numpy as jnp, vmap
+        from jax import jit
 
         if not self.u_only:
             raise ParameterError('Only option --u-only is supported')
+
+        jited = jit(self.stencil_definition(), donate_argnums=3)
+        self.stencil = (
+            lambda ustage, upos, utens, utensstage, wcon, ccol, dcol, datacol:
+            (ustage, upos, utens, jited(ustage, upos, utens, utensstage, wcon),
+             wcon, ccol, dcol, datacol))
+
+
+class Basic(VadvStencilMixin, base.VerticalAdvectionStencil):
+    unroll_factor = Parameter('unroll factor', 1)
+
+    def stencil_definition(self):
+        from jax import lax, numpy as jnp, vmap
 
         dtr_stage = 3 / 20
         beta_v = 0
@@ -139,7 +152,8 @@ class Basic(StencilMixin, base.VerticalAdvectionStencil):
                 forward,
                 (0, wcon[0], wcon_shift[0], ustage[0], ustage[0], 0.0, 0.0),
                 (wcon[1:], wcon_shift[1:], ustage[1:], upos[:-1], utens[:-1],
-                 utensstage[:-1]))
+                 utensstage[:-1]),
+                unroll=self.unroll_factor)
 
             def backward(carry, args):
                 def last_level(args):
@@ -161,24 +175,20 @@ class Basic(StencilMixin, base.VerticalAdvectionStencil):
 
             _, utensstage = lax.scan(backward, (True, 0.0),
                                      (upos[:-1], ccol, dcol),
-                                     reverse=True)
+                                     reverse=True,
+                                     unroll=self.unroll_factor)
             return utensstage
 
         h = self.halo
 
-        @jit
-        def stencil(ustage, upos, utens, utensstage, wcon, ccol, dcol,
-                    datacol):
+        def stencil(ustage, upos, utens, utensstage, wcon):
             solver = vmap(vmap(solve_column))
-            utensstage = solver(ustage[h:-h, h:-h, h:-h + 1], upos[h:-h, h:-h,
-                                                                   h:-h + 1],
-                                utens[h:-h, h:-h,
-                                      h:-h + 1], utensstage[h:-h, h:-h,
-                                                            h:-h + 1],
-                                wcon[h:-h, h:-h,
-                                     h:-h + 1], wcon[h + 1:-h + 1, h:-h,
-                                                     h:-h + 1])
-            utensstage = jnp.pad(utensstage, h, mode='empty')
-            return ustage, upos, utens, utensstage, wcon, ccol, dcol, datacol
+            result = solver(ustage[h:-h, h:-h, h:-h + 1], upos[h:-h, h:-h,
+                                                               h:-h + 1],
+                            utens[h:-h, h:-h, h:-h + 1], utensstage[h:-h, h:-h,
+                                                                    h:-h + 1],
+                            wcon[h:-h, h:-h, h:-h + 1], wcon[h + 1:-h + 1,
+                                                             h:-h, h:-h + 1])
+            return utensstage.at[self.inner_slice()].set(result)
 
-        self.stencil = stencil
+        return stencil
