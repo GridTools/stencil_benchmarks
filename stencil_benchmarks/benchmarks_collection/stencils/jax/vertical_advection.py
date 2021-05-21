@@ -49,11 +49,272 @@ class VadvStencilMixin(StencilMixin):
              wcon, ccol, dcol, datacol))
 
 
-class Basic(VadvStencilMixin, base.VerticalAdvectionStencil):
-    unroll_factor = Parameter('unroll factor', 1)
+class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
+    loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
+
+    def stencil_definition(self):
+        from jax import lax, numpy as jnp
+
+        dtr_stage = 3 / 20
+        beta_v = 0
+        bet_m = (1 - beta_v) / 2
+        bet_p = (1 + beta_v) / 2
+
+        class ColumnView:
+            def __init__(self, data):
+                self.data = data
+
+            def __getitem__(self_, k):
+                return self_.data[self.t((slice(None), slice(None), k))]
+
+            def __setitem__(self_, k, value):
+                self_.data = self_.data.at[self.t(
+                    (slice(None), slice(None), k))].set(value)
+
+        h = self.halo
+        center = self.t(self.inner_slice())
+        staggered = self.t((slice(h, -h), slice(h, -h), slice(h, -h + 1)))
+        ishift = self.t((slice(h + 1, -h + 1), slice(h, -h), slice(h, -h + 1)))
+
+        def stencil(ustage, upos, utens, utensstage, wcon):
+            k = 0
+            ccol = ColumnView(jnp.empty_like(ustage[center]))
+            dcol = ColumnView(jnp.empty_like(ustage[center]))
+            ustage = ColumnView(ustage[center])
+            upos = ColumnView(upos[center])
+            utens = ColumnView(utens[center])
+            utensstage_full = utensstage
+            utensstage = ColumnView(utensstage[center])
+            wcon_shift = ColumnView(wcon[ishift])
+            wcon = ColumnView(wcon[staggered])
+
+            gcv = (wcon_shift[k + 1] + wcon[k + 1]) / 4
+            cs = gcv * bet_m
+
+            ccol_k = gcv * bet_p
+            bcol = dtr_stage - ccol_k
+
+            correction_term = -cs * (ustage[k + 1] - ustage[k])
+            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
+                      correction_term)
+
+            divided = 1.0 / bcol
+            ccol_k = ccol_k * divided
+            dcol_k = dcol_k * divided
+
+            ccol[k] = ccol_k
+            dcol[k] = dcol_k
+
+            def forward(k, args):
+                ccol, dcol = args
+                ccol = ColumnView(ccol)
+                dcol = ColumnView(dcol)
+
+                gav = -(wcon_shift[k] + wcon[k]) / 4
+                gcv = (wcon_shift[k + 1] + wcon[k + 1]) / 4
+
+                as_ = gav * bet_m
+                cs = gcv * bet_m
+
+                acol = gav * bet_p
+                ccol_k = gcv * bet_p
+                bcol = dtr_stage - acol - ccol_k
+
+                correction_term = -as_ * (ustage[k - 1] - ustage[k]) - cs * (
+                    ustage[k + 1] - ustage[k])
+                dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
+                          correction_term)
+
+                divided = 1.0 / (bcol - ccol[k - 1] * acol)
+                ccol_k = ccol_k * divided
+                dcol_k = (dcol_k - dcol[k - 1] * acol) * divided
+
+                ccol[k] = ccol_k
+                dcol[k] = dcol_k
+
+                return ccol.data, dcol.data
+
+            ccol, dcol = ccol.data, dcol.data
+            if self.loop == 'jax':
+                ccol, dcol = lax.fori_loop(1, self.domain[2] - 1, forward,
+                                           (ccol, dcol))
+            else:
+                for k in range(1, self.domain[2] - 1):
+                    ccol, dcol = forward(k, (ccol, dcol))
+            ccol = ColumnView(ccol)
+            dcol = ColumnView(dcol)
+
+            k = self.domain[2] - 1
+
+            gav = -(wcon_shift[k] + wcon[k]) / 4
+
+            as_ = gav * bet_m
+
+            acol = gav * bet_p
+            bcol = dtr_stage - acol
+
+            correction_term = -as_ * (ustage[k - 1] - ustage[k])
+            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
+                      correction_term)
+
+            divided = 1.0 / (bcol - ccol[k - 1] * acol)
+            dcol_k = (dcol_k - dcol[k - 1] * acol) * divided
+
+            datacol = dcol_k
+            utensstage[k] = dtr_stage * (datacol - upos[k])
+
+            def backward(k, args):
+                datacol, utensstage = args
+                utensstage = ColumnView(utensstage)
+                datacol = dcol[k] - ccol[k] * datacol
+                utensstage[k] = dtr_stage * (datacol - upos[k])
+                return datacol, utensstage.data
+
+            utensstage = utensstage.data
+            if self.loop == 'jax':
+                _, utensstage = lax.fori_loop(
+                    -(self.domain[2] - 2), -(-1),
+                    lambda nk, args: backward(-nk, args),
+                    (datacol, utensstage))
+            else:
+                for k in range(self.domain[2] - 2, -1, -1):
+                    datacol, utensstage = backward(k, (datacol, utensstage))
+
+            return utensstage_full.at[center].set(utensstage)
+
+        return stencil
+
+
+class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
+    loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
 
     def stencil_definition(self):
         from jax import lax, numpy as jnp, vmap
+
+        dtr_stage = 3 / 20
+        beta_v = 0
+        bet_m = (1 - beta_v) / 2
+        bet_p = (1 + beta_v) / 2
+
+        def solve_column(ustage, upos, utens, utensstage, wcon, wcon_shift):
+            k = 0
+            ccol = jnp.empty_like(ustage)
+            dcol = jnp.empty_like(ustage)
+
+            gcv = (wcon_shift[k + 1] + wcon[k + 1]) / 4
+            cs = gcv * bet_m
+
+            ccol_k = gcv * bet_p
+            bcol = dtr_stage - ccol_k
+
+            correction_term = -cs * (ustage[k + 1] - ustage[k])
+            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
+                      correction_term)
+
+            divided = 1.0 / bcol
+            ccol_k = ccol_k * divided
+            dcol_k = dcol_k * divided
+
+            ccol = ccol.at[k].set(ccol_k)
+            dcol = dcol.at[k].set(dcol_k)
+
+            def forward(k, args):
+                ccol, dcol = args
+                gav = -(wcon_shift[k] + wcon[k]) / 4
+                gcv = (wcon_shift[k + 1] + wcon[k + 1]) / 4
+
+                as_ = gav * bet_m
+                cs = gcv * bet_m
+
+                acol = gav * bet_p
+                ccol_k = gcv * bet_p
+                bcol = dtr_stage - acol - ccol_k
+
+                correction_term = -as_ * (ustage[k - 1] - ustage[k]) - cs * (
+                    ustage[k + 1] - ustage[k])
+                dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
+                          correction_term)
+
+                divided = 1.0 / (bcol - ccol[k - 1] * acol)
+                ccol_k = ccol_k * divided
+                dcol_k = (dcol_k - dcol[k - 1] * acol) * divided
+
+                ccol = ccol.at[k].set(ccol_k)
+                dcol = dcol.at[k].set(dcol_k)
+                return ccol, dcol
+
+            if self.loop == 'jax':
+                ccol, dcol = lax.fori_loop(1, self.domain[2] - 1, forward,
+                                           (ccol, dcol))
+            else:
+                for k in range(1, self.domain[2] - 1):
+                    ccol, dcol = forward(k, (ccol, dcol))
+
+            k = self.domain[2] - 1
+
+            gav = -(wcon_shift[k] + wcon[k]) / 4
+
+            as_ = gav * bet_m
+
+            acol = gav * bet_p
+            bcol = dtr_stage - acol
+
+            correction_term = -as_ * (ustage[k - 1] - ustage[k])
+            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
+                      correction_term)
+
+            divided = 1.0 / (bcol - ccol[k - 1] * acol)
+            dcol_k = (dcol_k - dcol[k - 1] * acol) * divided
+
+            datacol = dcol_k
+            utensstage = utensstage.at[k].set(dtr_stage * (datacol - upos[k]))
+
+            def backward(k, args):
+                datacol, utensstage = args
+                datacol = dcol[k] - ccol[k] * datacol
+                utensstage = utensstage.at[k].set(dtr_stage *
+                                                  (datacol - upos[k]))
+                return datacol, utensstage
+
+            if self.loop == 'jax':
+                _, utensstage = lax.fori_loop(
+                    -(self.domain[2] - 2), -(-1),
+                    lambda nk, args: backward(-nk, args),
+                    (datacol, utensstage))
+            else:
+                for k in range(self.domain[2] - 2, -1, -1):
+                    datacol, utensstage = backward(k, (datacol, utensstage))
+
+            return utensstage
+
+        h = self.halo
+        i_axis, j_axis, k_axis = self.layout
+        inner_axis = max(i_axis, j_axis)
+        outer_axis = min(i_axis, j_axis)
+        inner_axis = 0 if inner_axis < k_axis else 1
+
+        center = self.t(self.inner_slice())
+        staggered = self.t((slice(h, -h), slice(h, -h), slice(h, -h + 1)))
+        ishift = self.t((slice(h + 1, -h + 1), slice(h, -h), slice(h, -h + 1)))
+
+        def stencil(ustage, upos, utens, utensstage, wcon):
+            solver = vmap(vmap(solve_column,
+                               in_axes=inner_axis,
+                               out_axes=inner_axis),
+                          in_axes=outer_axis,
+                          out_axes=outer_axis)
+            result = solver(ustage[center], upos[center], utens[center],
+                            utensstage[center], wcon[staggered], wcon[ishift])
+            return utensstage.at[center].set(result)
+
+        return stencil
+
+
+class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
+    unroll_factor = Parameter('unroll factor', 1)
+
+    def stencil_definition(self):
+        from jax import lax, vmap
 
         dtr_stage = 3 / 20
         beta_v = 0
@@ -180,15 +441,22 @@ class Basic(VadvStencilMixin, base.VerticalAdvectionStencil):
             return utensstage
 
         h = self.halo
+        i_axis, j_axis, k_axis = self.layout
+        inner_axis = max(i_axis, j_axis)
+        outer_axis = min(i_axis, j_axis)
+        inner_axis = 0 if inner_axis < k_axis else 1
+
+        center = self.t((slice(h, -h), slice(h, -h), slice(h, -h + 1)))
+        ishift = self.t((slice(h + 1, -h + 1), slice(h, -h), slice(h, -h + 1)))
 
         def stencil(ustage, upos, utens, utensstage, wcon):
-            solver = vmap(vmap(solve_column))
-            result = solver(ustage[h:-h, h:-h, h:-h + 1], upos[h:-h, h:-h,
-                                                               h:-h + 1],
-                            utens[h:-h, h:-h, h:-h + 1], utensstage[h:-h, h:-h,
-                                                                    h:-h + 1],
-                            wcon[h:-h, h:-h, h:-h + 1], wcon[h + 1:-h + 1,
-                                                             h:-h, h:-h + 1])
-            return utensstage.at[self.inner_slice()].set(result)
+            solver = vmap(vmap(solve_column,
+                               in_axes=inner_axis,
+                               out_axes=inner_axis),
+                          in_axes=outer_axis,
+                          out_axes=outer_axis)
+            result = solver(ustage[center], upos[center], utens[center],
+                            utensstage[center], wcon[center], wcon[ishift])
+            return utensstage.at[self.t(self.inner_slice())].set(result)
 
         return stencil

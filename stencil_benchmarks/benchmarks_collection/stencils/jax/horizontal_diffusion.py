@@ -47,24 +47,37 @@ class Basic(HdiffStencilMixin, base.HorizontalDiffusionStencil):
     def stencil_definition(self):
         from jax import numpy as jnp
 
+        class horizontal:
+            def __init__(self, data):
+                self.data = data
+
+            def __getitem__(self_, slices):
+                return self_.data[self.t(slices + (slice(None), ))]
+
         def stencil(inp, coeff, out):
-            inpi = inp[self.inner_slice(expand=(2, 2, 0))]
-            coeffi = coeff[self.inner_slice(expand=(2, 2, 0))]
-            lap = 4 * inpi[1:-1, 1:-1, :] - (
-                inpi[2:, 1:-1, :] + inpi[:-2, 1:-1, :] + inpi[1:-1, 2:, :] +
-                inpi[1:-1, :-2, :])
+            inpi = horizontal(inp[self.t(self.inner_slice(expand=(2, 2, 0)))])
+            coeffi = horizontal(coeff[self.t(self.inner_slice(expand=(2, 2,
+                                                                      0)))])
+            lap = horizontal(4 * inpi[1:-1, 1:-1] -
+                             (inpi[2:, 1:-1] + inpi[:-2, 1:-1] +
+                              inpi[1:-1, 2:] + inpi[1:-1, :-2]))
 
-            flx = lap[1:, 1:-1, :] - lap[:-1, 1:-1, :]
-            flx = jnp.where(
-                flx * (inpi[2:-1, 2:-2, :] - inpi[1:-2, 2:-2, :]) > 0, 0, flx)
+            flx = horizontal(lap[1:, 1:-1] - lap[:-1, 1:-1])
+            flx = horizontal(
+                jnp.where(
+                    flx[:, :] * (inpi[2:-1, 2:-2] - inpi[1:-2, 2:-2]) > 0, 0,
+                    flx[:, :]))
 
-            fly = lap[1:-1, 1:, :] - lap[1:-1, :-1, :]
-            fly = jnp.where(
-                fly * (inpi[2:-2, 2:-1, :] - inpi[2:-2, 1:-2, :]) > 0, 0, fly)
+            fly = horizontal(lap[1:-1, 1:] - lap[1:-1, :-1])
+            fly = horizontal(
+                jnp.where(
+                    fly[:, :] *
+                    (inpi[2:-2, 2:-1, :] - inpi[2:-2, 1:-2, :]) > 0, 0,
+                    fly[:, :]))
 
-            result = inpi[2:-2, 2:-2, :] - coeffi[2:-2, 2:-2, :] * (flx[
-                1:, :, :] - flx[:-1, :, :] + fly[:, 1:, :] - fly[:, :-1, :])
-            return out.at[self.inner_slice()].set(result)
+            result = inpi[2:-2, 2:-2] - coeffi[2:-2, 2:-2] * (
+                flx[1:, :] - flx[:-1, :] + fly[:, 1:] - fly[:, :-1])
+            return out.at[self.t(self.inner_slice())].set(result)
 
         return stencil
 
@@ -88,10 +101,12 @@ class Vmapped(HdiffStencilMixin, base.HorizontalDiffusionStencil):
             return inp[2:-2, 2:-2] - coeff[2:-2, 2:-2] * (
                 flx[1:, :] - flx[:-1, :] + fly[:, 1:] - fly[:, :-1])
 
+        k_axis = self.layout[2]
+
         def stencil(inp, coeff, out):
-            inpi = inp[self.inner_slice(expand=(2, 2, 0))]
-            coeffi = coeff[self.inner_slice(expand=(2, 2, 0))]
-            return out.at[self.inner_slice()].set(
-                vmap(plane, in_axes=2, out_axes=2)(inpi, coeffi))
+            inpi = inp[self.t(self.inner_slice(expand=(2, 2, 0)))]
+            coeffi = coeff[self.t(self.inner_slice(expand=(2, 2, 0)))]
+            return out.at[self.t(self.inner_slice())].set(
+                vmap(plane, in_axes=k_axis, out_axes=k_axis)(inpi, coeffi))
 
         return stencil

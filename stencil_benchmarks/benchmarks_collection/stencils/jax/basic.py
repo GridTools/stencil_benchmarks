@@ -55,18 +55,20 @@ class Empty(BasicStencilMixin, base.EmptyStencil):
 
 class Copy(BasicStencilMixin, base.CopyStencil):
     def stencil_definition(self):
+        inner = self.t(self.inner_slice())
+
         def stencil(inp, out):
-            return out.at[self.inner_slice()].set(inp[self.inner_slice()])
+            return out.at[inner].set(inp[inner])
 
         return stencil
 
 
 class OnesidedAverage(BasicStencilMixin, base.OnesidedAverageStencil):
     def stencil_definition(self):
-        inner = self.inner_slice()
+        inner = self.t(self.inner_slice())
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
-        shifted = self.inner_slice(shift)
+        shifted = self.t(self.inner_slice(shift))
 
         def stencil(inp, out):
             return out.at[inner].set((inp[inner] + inp[shifted]) / 2)
@@ -76,11 +78,11 @@ class OnesidedAverage(BasicStencilMixin, base.OnesidedAverageStencil):
 
 class SymmetricAverage(BasicStencilMixin, base.SymmetricAverageStencil):
     def stencil_definition(self):
-        inner = self.inner_slice()
+        inner = self.t(self.inner_slice())
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
-        left = self.inner_slice(shift)
-        right = self.inner_slice(-shift)
+        left = self.t(self.inner_slice(shift))
+        right = self.t(self.inner_slice(-shift))
 
         def stencil(inp, out):
             return out.at[inner].set((inp[left] + inp[right]) / 2)
@@ -104,9 +106,9 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
                 if apply_along_axis:
                     shift = np.zeros(3, dtype=int)
                     shift[axis] = 1
-                    left = self.inner_slice(shift)
-                    center = self.inner_slice()
-                    right = self.inner_slice(-shift)
+                    left = self.t(self.inner_slice(shift))
+                    center = self.t(self.inner_slice())
+                    right = self.t(self.inner_slice(-shift))
                     shifts.append((left, center, right))
 
             def stencil(inp, out):
@@ -115,9 +117,9 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
                 if self.implementation == 'pad':
                     return jnp.pad(result, self.halo, mode='empty')
                 else:
-                    return out.at[self.inner_slice()].set(result)
+                    return out.at[center].set(result)
         elif self.implementation == 'roll':
-            axes = tuple(i for i, along_axis in enumerate(along_axes)
+            axes = tuple(i for i, along_axis in enumerate(self.t(along_axes))
                          if along_axis)
 
             def stencil(inp, out):
@@ -134,9 +136,10 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
             slices = tuple(
                 slice(None) if apply_along_axis else slice(1, 2)
                 for apply_along_axis in along_axes)
-            window = window[slices]
+            window = window.transpose(self.t((0, 1, 2)))[slices]
 
             def stencil(inp, out):
-                out.at[...].set(jsp.signal.convolve(inp, window, mode='same'))
+                return out.at[...].set(
+                    jsp.signal.convolve(inp, window, mode='same'))
 
         return stencil

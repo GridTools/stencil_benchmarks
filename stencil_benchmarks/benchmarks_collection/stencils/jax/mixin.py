@@ -57,10 +57,19 @@ class StencilMixin(Benchmark):
     def setup_stencil(self):
         ...
 
-    def run_stencil(self, data):
-        from jax import make_jaxpr, numpy as jnp
+    def t(self, s):
+        assert isinstance(s, tuple)
+        return tuple(s[self.layout.index(i)] for i in range(3))
 
-        device_data = [jnp.array(d, dtype=d.dtype, order='K') for d in data]
+    def to_device(self, array):
+        from jax import numpy as npy
+        transposed = array.transpose(self.t((0, 1, 2)))
+        return npy.array(transposed, dtype=array.dtype)
+
+    def run_stencil(self, data):
+        from jax import make_jaxpr
+
+        device_data = [self.to_device(d) for d in data]
 
         if self.print_jaxpr and not self._printed:
             print(make_jaxpr(self.stencil)(*device_data).jaxpr)
@@ -79,6 +88,11 @@ class StencilMixin(Benchmark):
             dd.block_until_ready()
         end = time.perf_counter()
 
+        device_data = [dd.transpose(self.layout) for dd in device_data]
+        for dd in device_data:
+            dd.copy_to_host_async()
+
         for dd, d in zip(device_data, data):
-            d[...] = dd[...]
+            dd.block_until_ready()
+            d[...] = dd
         return end - start
