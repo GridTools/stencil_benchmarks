@@ -189,7 +189,7 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
     loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
 
     def stencil_definition(self):
-        from jax import lax, vmap
+        from jax import lax, numpy as jnp, vmap
 
         dtr_stage = 3 / 20
         beta_v = 0
