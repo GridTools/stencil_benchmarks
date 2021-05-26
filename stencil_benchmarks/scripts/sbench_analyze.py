@@ -35,6 +35,7 @@ import functools
 import itertools
 import operator
 import os
+import re
 import textwrap
 
 import click
@@ -175,9 +176,12 @@ def summary(csv, best_only, select, separate_by):
 @click.option('--ascii/--no-ascii',
               '-a',
               help='Use ASCII plotting (requires drawilleplot package).')
+@click.option('--label-regex',
+              help='Search and replace a pattern in the final labels, '
+              'input as /pattern/repl/ in Python regex syntax')
 @click.option('--output', '-o', type=click.Path(), help='Output file.')
 def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
-         reference, relative_to, ascii, output):
+         reference, relative_to, ascii, label_regex, output):
     """Plot output of sbench.
 
     X is the data column name for the values used for the x-axis in the plot, Y
@@ -211,6 +215,14 @@ def plot(csv, labels, x, y, aggregation, uniform, ylim, title, group_by,
         for label, series in items:
             if prefix:
                 label = prefix + label
+            if label_regex:
+                splitter = label_regex[0]
+                if label_regex[-1] != splitter:
+                    raise ValueError(
+                        'expected input in the form /pattern/repl/')
+                pattern, repl = label_regex[1:-1].split(splitter, 1)
+                label = re.sub(pattern, repl, label)
+
             values = series.values
             if relative_to:
                 values = values / relative_to
