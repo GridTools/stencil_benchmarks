@@ -1,6 +1,6 @@
 # Stencil Benchmarks
 #
-# Copyright (c) 2017-2020, ETH Zurich and MeteoSwiss
+# Copyright (c) 2017-2021, ETH Zurich and MeteoSwiss
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
