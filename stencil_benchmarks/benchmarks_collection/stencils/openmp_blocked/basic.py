@@ -32,8 +32,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import abc
 
-import numpy as np
-
 from stencil_benchmarks.benchmark import Parameter, ParameterError
 from stencil_benchmarks.benchmarks_collection.stencils import base
 
@@ -65,7 +63,8 @@ class BasicStencilMixin(StencilMixin):
         j = f'(j + {off_j}) * {self.blocked_strides[1]}'
         k = f'(k + {off_k}) * {self.blocked_strides[2]}'
         if off_i == 0:
-            i = f'i * {self.blocked_strides[0]} + bi * {self.blocked_strides[3]}'
+            i = (f'i * {self.blocked_strides[0]} + '
+                 f'bi * {self.blocked_strides[3]}')
         elif self.bit_indexing:
             masks = []
             for axis in range(4):
