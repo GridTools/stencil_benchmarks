@@ -54,9 +54,8 @@ class StencilMixin(Benchmark):
     def setup(self):
         super().setup()
 
-        template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), 'templates',
-            self.template_file())
+        template_file = os.path.join(self.template_path, 'templates',
+                                     self.template_file())
         code = template.render(template_file, **self.template_args())
 
         if self.print_code:
@@ -71,6 +70,10 @@ class StencilMixin(Benchmark):
             warnings.warn(
                 'using --dry-runs together with verification might lead to '
                 'false negatives for stencils with read-write fields')
+
+    @property
+    def template_path(self):
+        return os.path.dirname(os.path.abspath(__file__))
 
     def compile_command(self):
         command = [self.compiler]
@@ -101,13 +104,14 @@ class StencilMixin(Benchmark):
                     streaming_stores=self.streaming_stores,
                     dry_runs=self.dry_runs)
 
+    def data_ptr(self, data):
+        return compilation.data_ptr(data, (self.halo, ) * 3)
+
     def run_stencil(self, data):
-        offset = (self.halo, ) * 3
         time = ctypes.c_double()
         try:
-            self.compiled.kernel(
-                ctypes.byref(time),
-                *(compilation.data_ptr(array, offset) for array in data))
+            self.compiled.kernel(ctypes.byref(time),
+                                 *(self.data_ptr(array) for array in data))
         except compilation.ExecutionError as error:
             raise ExecutionError() from error
         return time.value

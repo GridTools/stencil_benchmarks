@@ -81,17 +81,19 @@ class Stencil(Benchmark):
         ]
         self._run = 0
 
-    def empty_field(self):
-        def alloc_data(nbytes):
-            return alloc.mmap(nbytes, self.huge_pages)
+    def alloc_field(self, domain_with_halo, layout, index_to_align):
+        return array.alloc_array(
+            domain_with_halo,
+            self.dtype,
+            layout,
+            self.alignment,
+            index_to_align=index_to_align,
+            alloc=lambda nbytes: alloc.mmap(nbytes, self.huge_pages),
+            apply_offset=self.offset_allocations)
 
-        return array.alloc_array(self.domain_with_halo,
-                                 self.dtype,
-                                 self.layout,
-                                 self.alignment,
-                                 index_to_align=(self.halo, ) * 3,
-                                 alloc=alloc_data,
-                                 apply_offset=self.offset_allocations)
+    def empty_field(self):
+        return self.alloc_field(self.domain_with_halo, self.layout,
+                                (self.halo, ) * 3)
 
     def random_field(self):
         data = self.empty_field()
@@ -104,11 +106,11 @@ class Stencil(Benchmark):
 
     @property
     def domain_with_halo(self):
-        return tuple(np.array(self.domain) + 2 * self.halo)
+        return tuple(d + 2 * self.halo for d in self.domain)
 
     @property
     def strides(self):
-        return tuple(np.array(self._data[0][0].strides) // self.dtype_size)
+        return tuple(s // self.dtype_size for s in self._data[0][0].strides)
 
     @property
     def data_size(self):
