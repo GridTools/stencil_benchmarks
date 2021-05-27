@@ -32,23 +32,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import abc
 
-from stencil_benchmarks.benchmark import Parameter, ParameterError
 from stencil_benchmarks.benchmarks_collection.stencils import base
 
 from .mixin import StencilMixin
 
 
 class BasicStencilMixin(StencilMixin):
-    bit_indexing = Parameter('enable fancy bit-twiddling indexing', False)
-
-    def setup(self):
-        super().setup()
-
-        if self.bit_indexing and any(s & (s - 1) != 0
-                                     for s in self.blocked_strides):
-            raise ParameterError(
-                '--bit-indexing requires power-of-two strides')
-
     @abc.abstractmethod
     def stencil_body(self):
         pass
@@ -60,35 +49,7 @@ class BasicStencilMixin(StencilMixin):
         return dict(**super().template_args(), body=self.stencil_body())
 
     def index(self, off_i, off_j, off_k):
-        j = f'(j + {off_j}) * {self.blocked_strides[1]}'
-        k = f'(k + {off_k}) * {self.blocked_strides[2]}'
-        if off_i == 0:
-            i = (f'i * {self.blocked_strides[0]} + '
-                 f'bi * {self.blocked_strides[3]}')
-        elif self.bit_indexing:
-            masks = []
-            for axis in range(4):
-                stride = self.blocked_strides[axis]
-                layout = self.blocked_layout[axis]
-                try:
-                    next_axis = self.blocked_layout.index(layout - 1)
-                    next_stride = self.blocked_strides[next_axis]
-                except ValueError:
-                    next_stride = 2**(self.dtype_size * 8)
-                masks.append((next_stride - 1) ^ (stride - 1))
-            mask_i = f'0x{masks[0] | masks[3]:0x}'
-            i = (f'i * {self.blocked_strides[0]} + '
-                 f'bi * {self.blocked_strides[3]}')
-            i = f'(((({i}) & {mask_i}) + ({off_i} | ~{mask_i})) & {mask_i})'
-        else:
-            abs_i = (f'(i * {self.blocked_domain[3]} + '
-                     f'bi + {off_i} + {self.halo})')
-            i = (f'({abs_i} / {self.blocked_domain[3]} - '
-                 f'{self.halo // self.blocked_domain[3]}) * '
-                 f'{self.blocked_strides[0]} + '
-                 f'({abs_i} % {self.blocked_domain[3]}) * '
-                 f'{self.blocked_strides[3]}')
-        return f'{i} + {j} + {k}'
+        return f'index<{off_i}, {off_j}, {off_k}>(i, j, k, bi)'
 
 
 class Copy(BasicStencilMixin, base.CopyStencil):

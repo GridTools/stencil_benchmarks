@@ -50,6 +50,31 @@ using index_t = std::int64_t;
 {% block pre_kernel %}
 {% endblock pre_kernel %}
 
+template <index_t I, index_t J, index_t K>
+__attribute__((always_inline)) inline index_t index(
+    index_t i, index_t j, index_t k, index_t bi
+) {
+    if (I == 0) {
+        return i * {{ blocked_strides[0] }}
+             + (j + J) * {{ blocked_strides[1] }}
+             + (k + K) * {{ blocked_strides[2] }}
+             + bi * {{ blocked_strides[3] }};
+    } else {
+        {% if bit_indexing %}
+            constexpr index_t mask = {{ bit_indexing_mask }};
+            return ((((i * {{ blocked_strides[0] }} + bi * {{ blocked_strides[3] }}) & mask) + (I | ~mask)) & mask)
+                 + (j + J) * {{ blocked_strides[1] }}
+                 + (k + K) * {{ blocked_strides[2] }};
+        {% else %}
+            index_t abs_i = i * {{ blocked_domain[3] }} + bi + I + {{ halo }};
+            return (abs_i / {{ blocked_domain[3] }} - {{ halo // blocked_domain[3] }}) * {{ blocked_strides[0] }}
+                 + (abs_i % {{ blocked_domain[3] }}) * {{ blocked_strides[3] }}
+                 + (j + J) * {{ blocked_strides[1] }}
+                 + (k + K) * {{ blocked_strides[2] }};
+        {% endif %}
+    }
+}
+
 void kernel_impl(
     {%- for arg in args %}
         {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}

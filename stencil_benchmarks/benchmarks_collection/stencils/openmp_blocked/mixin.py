@@ -43,6 +43,7 @@ from ..openmp import mixin
 
 class StencilMixin(mixin.StencilMixin):
     storage_block_size = Parameter('storage block width', 8)
+    bit_indexing = Parameter('enable fancy bit-twiddling indexing', False)
 
     def setup(self):
         super().setup()
@@ -51,6 +52,11 @@ class StencilMixin(mixin.StencilMixin):
                 or self.domain[0] % self.storage_block_size != 0):
             raise ParameterError(
                 'halo and x-domain size have to be divisible by block size')
+
+        if self.bit_indexing and any(s & (s - 1) != 0
+                                     for s in self.blocked_strides):
+            raise ParameterError(
+                '--bit-indexing requires power-of-two strides')
 
     @property
     def template_path(self):
@@ -115,8 +121,23 @@ class StencilMixin(mixin.StencilMixin):
             blocked_data = [stack.enter_context(self.blocked(d)) for d in data]
             return super().run_stencil(blocked_data)
 
+    def bit_indexing_mask(self):
+        masks = []
+        for axis in (0, 3):
+            stride = self.blocked_strides[axis]
+            layout = self.blocked_layout[axis]
+            try:
+                next_axis = self.blocked_layout.index(layout - 1)
+                next_stride = self.blocked_strides[next_axis]
+            except ValueError:
+                next_stride = 2**(self.dtype_size * 8)
+            masks.append((next_stride - 1) ^ (stride - 1))
+        return f'0x{masks[0] | masks[1]:0x}'
+
     def template_args(self):
         return dict(**super().template_args(),
                     storage_block_size=self.storage_block_size,
                     blocked_domain=self.blocked_domain,
-                    blocked_strides=self.blocked_strides)
+                    blocked_strides=self.blocked_strides,
+                    bit_indexing=self.bit_indexing,
+                    bit_indexing_mask=self.bit_indexing_mask())
