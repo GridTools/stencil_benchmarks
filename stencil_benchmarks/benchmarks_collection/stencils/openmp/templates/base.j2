@@ -148,6 +148,15 @@ using index_t = std::int64_t;
 {% block pre_kernel %}
 {% endblock pre_kernel %}
 
+void kernel_impl(
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    {% block kernel_invoke %}
+    {% endblock kernel_invoke %}
+}
+
 {% block kernel %}
 extern "C" int kernel(
     double* time,
@@ -158,11 +167,14 @@ extern "C" int kernel(
     {% block kernel_prepare %}
     {% endblock kernel_prepare %}
 
+    for (int dry_run = 0; dry_run < {{ dry_runs }}; ++dry_run) {
+        kernel_impl({{ args | join(", ") }});
+    }
+
     using clock = std::chrono::high_resolution_clock;
     auto start = clock::now();
 
-    {% block kernel_invoke %}
-    {% endblock kernel_invoke %}
+    kernel_impl({{ args | join(", ") }});
 
     auto stop = clock::now();
     *time = std::chrono::duration<double>(stop - start).count();

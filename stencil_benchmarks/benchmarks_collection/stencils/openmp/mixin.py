@@ -33,6 +33,7 @@
 import abc
 import ctypes
 import os
+import warnings
 
 from stencil_benchmarks.benchmark import Benchmark, ExecutionError, Parameter
 from stencil_benchmarks.tools import cpphelpers, compilation, template
@@ -45,6 +46,7 @@ class StencilMixin(Benchmark):
                                 'native',
                                 choices=['none', 'native'])
     print_code = Parameter('print generated code', False)
+    dry_runs = Parameter('dry-runs before the measurement', 0)
     streaming_stores = Parameter(
         'enable streaming/non-temporal store instructions '
         '(only supported by some implementations)', False)
@@ -64,6 +66,11 @@ class StencilMixin(Benchmark):
             os.environ['KMP_INIT_AT_FORK'] = '0'
 
         self.compiled = compilation.GnuLibrary(code, self.compile_command())
+
+        if self.verify and self.dry_runs:
+            warnings.warn(
+                'using --dry-runs together with verification might lead to '
+                'false negatives for stencils with read-write fields')
 
     def compile_command(self):
         command = [self.compiler]
@@ -91,7 +98,8 @@ class StencilMixin(Benchmark):
                     domain=self.domain,
                     halo=self.halo,
                     alignment=self.alignment,
-                    streaming_stores=self.streaming_stores)
+                    streaming_stores=self.streaming_stores,
+                    dry_runs=self.dry_runs)
 
     def run_stencil(self, data):
         offset = (self.halo, ) * 3
