@@ -58,7 +58,6 @@ class StencilMixin(mixin.StencilMixin):
             raise ParameterError(
                 '--bit-indexing requires power-of-two strides')
 
-    @property
     def template_path(self):
         return os.path.dirname(os.path.abspath(__file__))
 

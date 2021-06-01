@@ -54,7 +54,7 @@ class StencilMixin(Benchmark):
     def setup(self):
         super().setup()
 
-        template_file = os.path.join(self.template_path, 'templates',
+        template_file = os.path.join(self.template_path(), 'templates',
                                      self.template_file())
         code = template.render(template_file, **self.template_args())
         code = cpphelpers.format_code(code, line_numbers=False)
@@ -72,7 +72,6 @@ class StencilMixin(Benchmark):
                 'using --dry-runs together with verification might lead to '
                 'false negatives for stencils with read-write fields')
 
-    @property
     def template_path(self):
         return os.path.dirname(os.path.abspath(__file__))
 
