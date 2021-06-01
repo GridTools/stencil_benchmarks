@@ -30,6 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import basic, horizontal_diffusion, vertical_advection
+from stencil_benchmarks.benchmark import ParameterError
+from stencil_benchmarks.benchmarks_collection.stencils import base
 
-__all__ = ['basic', 'horizontal_diffusion', 'vertical_advection']
+from .mixin import StencilMixin
+
+
+class Basic(StencilMixin, base.VerticalAdvectionStencil):
+    def setup(self):
+        super().setup()
+
+        if not self.u_only:
+            raise ParameterError('Only option --u-only is supported')
+
+    def template_file(self):
+        return 'vertical_advection.j2'
+
+    def template_args(self):
+        return dict(**super().template_args(),
+                    u_only=self.u_only)

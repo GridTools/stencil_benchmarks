@@ -1,0 +1,177 @@
+{#
+Stencil Benchmarks
+
+Copyright (c) 2017-2021, ETH Zurich and MeteoSwiss
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+SPDX-License-Identifier: BSD-3-Clause
+#}
+{% extends "base.j2" %}
+
+{% block kernel_invoke %}
+constexpr {{ ctype }} dtr_stage = 3.0 / 20.0;
+constexpr {{ ctype }} beta_v = 0;
+constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
+constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
+
+#define VD(name) {{ ctype }} name[{{ blocked_domain[3] }}];
+#define VL(stmt) _Pragma("omp simd") for (index_t bi = 0; bi < {{ blocked_domain[3] }}; ++bi) { const index_t idx = index<0, 0, 0>(i, j, k, bi); stmt; } 
+
+#pragma omp parallel
+{
+    {{ ctype }} ccoll[{{ blocked_domain[2] * blocked_domain[3] }}];
+    {{ ctype }} dcoll[{{ blocked_domain[2] * blocked_domain[3] }}];
+
+#pragma omp for collapse(2)
+    for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
+        for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
+             VD(ccol0)
+             VD(ccol1)
+             VD(dcol0)
+             VD(dcol1)
+             VD(ustage0)
+             VD(ustage1)
+             VD(ustage2)
+             VD(wcon0)
+             VD(wcon1)
+             VD(wcon_shift0)
+             VD(wcon_shift1)
+             VD(datacoll)
+
+            // k minimum
+            {
+                index_t k = 0;
+
+                VL((wcon_shift0[bi] = wcon[index<1, 0, 1>(i, j, k, bi)]))
+                VL((wcon0[bi] = wcon[index<0, 0, 1>(i, j, k, bi)]))
+                VD(gcv)
+                VL((gcv[bi] = {{ ctype }}(0.25) * (wcon_shift0[bi] + wcon0[bi])))
+                VD(cs)
+                VL((cs[bi] = gcv[bi] * bet_m))
+
+                VL((ccol0[bi] = gcv[bi] * bet_p))
+                VD(bcol)
+                VL((bcol[bi] = dtr_stage - ccol0[bi]))
+
+                VL((ustage0[bi] = ustage[index<0, 0, 1>(i, j, k, bi)]))
+                VL((ustage1[bi] = ustage[idx]))
+                VD(correction_term)
+                VL((correction_term[bi] = -cs[bi] * (ustage0[bi] - ustage1[bi])))
+                VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
+
+                VD(divided)
+                VL((divided[bi] = {{ ctype }}(1.0) / bcol[bi]))
+                VL((ccol0[bi] = ccol0[bi] * divided[bi]))
+                VL((dcol0[bi] = dcol0[bi] * divided[bi]))
+
+                VL((ccoll[bi] = ccol0[bi]))
+                VL((dcoll[bi] = dcol0[bi]))
+            }
+
+            // k body
+            for (index_t k = 1; k < {{ blocked_domain[2] }} - 1; ++k) {
+                VL((ccol1[bi] = ccol0[bi]))
+                VL((dcol1[bi] = dcol0[bi]))
+                VL((ustage2[bi] = ustage1[bi]))
+                VL((ustage1[bi] = ustage0[bi]))
+                VL((wcon1[bi] = wcon0[bi]))
+                VL((wcon_shift1[bi] = wcon_shift0[bi]))
+
+                VD(gav)
+                VL((gav[bi] = {{ ctype }}(-0.25) * (wcon_shift1[bi] + wcon1[bi])))
+                VL((wcon_shift0[bi] = wcon[index<1, 0, 1>(i, j, k, bi)]))
+                VL((wcon0[bi] = wcon[index<0, 0, 1>(i, j, k, bi)]))
+                VD(gcv)
+                VL((gcv[bi] = {{ ctype }}(0.25) * (wcon_shift0[bi] + wcon0[bi])))
+
+                VD(as)
+                VD(cs)
+                VL((as[bi] = gav[bi] * bet_m))
+                VL((cs[bi] = gcv[bi] * bet_m))
+
+                VD(acol)
+                VL((acol[bi] = gav[bi] * bet_p))
+                VL((ccol0[bi] = gcv[bi] * bet_p))
+                VD(bcol)
+                VL((bcol[bi] = dtr_stage - acol[bi] - ccol0[bi]))
+
+                VL((ustage0[bi] = ustage[index<0, 0, 1>(i, j, k, bi)]))
+                VD(correction_term)
+                VL((correction_term[bi] = -as[bi] * (ustage2[bi] - ustage1[bi]) - cs[bi] * (ustage0[bi] - ustage1[bi])))
+                VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
+
+                VD(divided)
+                VL((divided[bi] = {{ ctype }}(1.0) / (bcol[bi] - ccol1[bi] * acol[bi])))
+                VL((ccol0[bi] = ccol0[bi] * divided[bi]))
+                VL((dcol0[bi] = (dcol0[bi] - dcol1[bi] * acol[bi]) * divided[bi]))
+
+                VL((ccoll[k * {{ blocked_domain[3] }} + bi] = ccol0[bi]))
+                VL((dcoll[k * {{ blocked_domain[3] }} + bi] = dcol0[bi]))
+            }
+            // k maximum
+            {
+                index_t k = {{ blocked_domain[2] - 1 }};
+                VL((ccol1[bi] = ccol0[bi]))
+                VL((dcol1[bi] = dcol0[bi]))
+                VL((ustage2[bi] = ustage1[bi]))
+                VL((ustage1[bi] = ustage0[bi]))
+                VL((wcon1[bi] = wcon0[bi]))
+                VL((wcon_shift1[bi] = wcon_shift0[bi]))
+
+                VD(gav)
+                VL((gav[bi] = {{ ctype }}(-0.25) * (wcon_shift1[bi] + wcon1[bi])))
+
+                VD(as)
+                VL((as[bi] = gav[bi] * bet_m))
+
+                VD(acol)
+                VL((acol[bi] = gav[bi] * bet_p))
+                VD(bcol)
+                VL((bcol[bi] = dtr_stage - acol[bi]))
+
+                VD(correction_term)
+                VL((correction_term[bi] = -as[bi] * (ustage2[bi] - ustage1[bi])))
+                VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
+
+                VD(divided)
+                VL((divided[bi] = {{ ctype }}(1.0) / (bcol[bi] - ccol1[bi] * acol[bi])))
+                VL((dcol0[bi] = (dcol0[bi] - dcol1[bi] * acol[bi]) * divided[bi]))
+
+                VL((datacoll[bi] = dcol0[bi]))
+                VL((utensstage[idx] = dtr_stage * (datacoll[bi] - upos[idx])))
+            }
+
+            for (index_t k = {{ blocked_domain[2] - 2 }}; k >= 0; --k) {
+                VL((datacoll[bi] = dcoll[k * {{ blocked_domain[3] }} + bi] - ccoll[k * {{ blocked_domain[3] }} + bi] * datacoll[bi]))
+                VL((utensstage[idx] = dtr_stage * (datacoll[bi] - upos[idx])))
+            }
+        }
+    }
+}
+{% endblock kernel_invoke %}
