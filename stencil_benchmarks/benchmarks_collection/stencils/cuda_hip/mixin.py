@@ -66,9 +66,10 @@ class StencilMixin(Benchmark):
             os.path.dirname(os.path.abspath(__file__)), 'templates',
             self.template_file())
         code = template.render(template_file, **self.template_args())
+        code = cpphelpers.format_code(code, line_numbers=False)
 
         if self.print_code:
-            print(cpphelpers.format_code(code))
+            print(cpphelpers.format_code(code, line_numbers=True))
 
         self.compiler_flags = (self.default_compiler_flags() + ' ' +
                                self.compiler_flags).strip()

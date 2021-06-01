@@ -57,9 +57,10 @@ class StencilMixin(Benchmark):
         template_file = os.path.join(self.template_path, 'templates',
                                      self.template_file())
         code = template.render(template_file, **self.template_args())
+        code = cpphelpers.format_code(code, line_numbers=False)
 
         if self.print_code:
-            print(cpphelpers.format_code(code))
+            print(cpphelpers.format_code(code, line_numbers=True))
 
         if self.compiler.endswith('icpc'):
             os.environ['KMP_INIT_AT_FORK'] = '0'
