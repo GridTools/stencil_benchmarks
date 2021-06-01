@@ -225,7 +225,7 @@ __attribute__((always_inline)) inline void backward_sweep_vec(index_t i,
                             forward_sweep_vec(i, j, 1, 0, ccolb, dcolb, wcon, ustage, upos, utens, utensstage);
                             backward_sweep_vec(i, j, ccolb, dcolb, upos, utensstage);
 
-                            {%- if not u_only %}
+                            {%- if all_components %}
                             forward_sweep_vec(i, j, 0, 1, ccolb, dcolb, wcon, vstage, vpos, vtens, vtensstage);
                             backward_sweep_vec(i, j, ccolb, dcolb, vpos, vtensstage);
 
@@ -237,7 +237,7 @@ __attribute__((always_inline)) inline void backward_sweep_vec(index_t i,
                             forward_sweep(i, j, 1, 0, ccolb, dcolb, wcon, ustage, upos, utens, utensstage);
                             backward_sweep(i, j, ccolb, dcolb, upos, utensstage);
 
-                            {%- if not u_only %}
+                            {%- if all_components %}
                             forward_sweep(i, j, 0, 1, ccolb, dcolb, wcon, vstage, vpos, vtens, vtensstage);
                             backward_sweep(i, j, ccolb, dcolb, vpos, vtensstage);
 

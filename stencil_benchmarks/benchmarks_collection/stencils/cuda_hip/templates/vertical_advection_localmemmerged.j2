@@ -40,7 +40,7 @@ __forceinline__ __device__ void backward_sweep(
     const {{ ctype }} *udcol,
     const {{ ctype }} *__restrict__ upos,
     {{ ctype }} *__restrict__ utensstage
-{%- if not u_only %}
+{%- if all_components %}
     ,
     const {{ ctype }} *vccol,
     const {{ ctype }} *vdcol,
@@ -57,7 +57,7 @@ __forceinline__ __device__ void backward_sweep(
     const {{ index_type }} j = blockIdx.y * {{ block_size[1] }} + threadIdx.y;
 
     {{ ctype }} udatacol;
-{%- if not u_only %}
+{%- if all_components %}
     {{ ctype }} vdatacol;
     {{ ctype }} wdatacol;
 {%- endif %}
@@ -71,7 +71,7 @@ __forceinline__ __device__ void backward_sweep(
         udatacol = udcol[{{ domain[2] - 1 }}];
         utensstage[index] = dtr_stage * (udatacol - upos[index]);
 
-{%- if not u_only %}
+{%- if all_components %}
         vdatacol = vdcol[{{ domain[2] - 1 }}];
         vtensstage[index] = dtr_stage * (vdatacol - vpos[index]);
 
@@ -90,7 +90,7 @@ __forceinline__ __device__ void backward_sweep(
         udatacol = udcol[k] - uccol[k] * udatacol;
         utensstage[index] = dtr_stage * (udatacol - upos[index]);
 
-{%- if not u_only %}
+{%- if all_components %}
         vdatacol = vdcol[k] - vccol[k] * vdatacol;
         vtensstage[index] = dtr_stage * (vdatacol - vpos[index]);
 
@@ -109,7 +109,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
     const {{ ctype }} *__restrict__ utensstage
-{%- if not u_only %}
+{%- if all_components %}
     ,
     {{ ctype }} *vccol,
     {{ ctype }} *vdcol,
@@ -137,7 +137,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
     {{ ctype }} udcol0, udcol1;
     {{ ctype }} ustage0, ustage1, ustage2;
     {{ ctype }} uwcon_shift0, uwcon_shift1;
-{%- if not u_only %}
+{%- if all_components %}
     {{ ctype }} vccol0, vccol1;
     {{ ctype }} vdcol0, vdcol1;
     {{ ctype }} vstage0, vstage1, vstage2;
@@ -175,7 +175,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         uccol[0] = uccol0;
         udcol[0] = udcol0;
 
-{%- if not u_only %}
+{%- if all_components %}
         vwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 1 * {{ strides[1] }} + {{ strides[2] }}];
         {{ ctype }} vgcv = {{ ctype }}(0.25) * (vwcon_shift0 + wcon0);
         {{ ctype }} vcs = vgcv * bet_m;
@@ -229,7 +229,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         ustage2 = ustage1;
         ustage1 = ustage0;
         uwcon_shift1 = uwcon_shift0;
-{%- if not u_only %}
+{%- if all_components %}
         vccol1 = vccol0;
         vdcol1 = vdcol0;
         vstage2 = vstage1;
@@ -266,7 +266,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         uccol[k] = uccol0;
         udcol[k] = udcol0;
 
-{%- if not u_only %}
+{%- if all_components %}
         {{ ctype }} vgav = {{ ctype }}(-0.25) * (vwcon_shift1 + wcon1);
         vwcon_shift0 = wcon[index + 0 * {{ strides[0] }} + 1 * {{ strides[1] }} + {{ strides[2] }}];
         {{ ctype }} vgcv = {{ ctype }}(0.25) * (vwcon_shift0 + wcon0);
@@ -323,7 +323,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         ustage2 = ustage1;
         ustage1 = ustage0;
         uwcon_shift1 = uwcon_shift0;
-{%- if not u_only %}
+{%- if all_components %}
         vccol1 = vccol0;
         vdcol1 = vdcol0;
         vstage2 = vstage1;
@@ -352,7 +352,7 @@ __forceinline__ __device__ void forward_sweep(const {{ ctype }} *__restrict__ wc
         uccol[{{ domain[2] - 1 }}] = uccol0;
         udcol[{{ domain[2] - 1 }}] = udcol0;
 
-{%- if not u_only %}
+{%- if all_components %}
         {{ ctype }} vgav = {{ ctype }}(-0.25) * (vwcon_shift1 + wcon1);
 
         {{ ctype }} vas = vgav * bet_m;
@@ -394,7 +394,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,
     {{ ctype }} *__restrict__ utensstage,
-{%- if not u_only %}
+{%- if all_components %}
     const {{ ctype }} *__restrict__ vstage,
     const {{ ctype }} *__restrict__ vpos,
     const {{ ctype }} *__restrict__ vtens,
@@ -411,7 +411,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
 
     {{ ctype }} uccol[{{ domain[2] }}];
     {{ ctype }} udcol[{{ domain[2] }}];
-{%- if not u_only %}
+{%- if all_components %}
     {{ ctype }} vccol[{{ domain[2] }}];
     {{ ctype }} vdcol[{{ domain[2] }}];
     {{ ctype }} wccol[{{ domain[2] }}];
@@ -426,7 +426,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         upos,
         utens,
         utensstage
-{%- if not u_only %}
+{%- if all_components %}
         ,
         vccol,
         vdcol,
@@ -447,7 +447,7 @@ __global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kerne
         udcol,
         upos,
         utensstage
-{%- if not u_only %}
+{%- if all_components %}
         ,
         vccol,
         vdcol,

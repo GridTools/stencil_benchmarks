@@ -285,9 +285,9 @@ class HorizontalDiffusionStencil(Stencil):
 
 
 class VerticalAdvectionStencil(Stencil):
-    u_only = Parameter(
-        'only advect u component (like in the GridTools benchmark) '
-        'instead of all (like in the COSMO dycore)', False)
+    all_components = Parameter(
+        'advect all velocity components (like in the COSMO dycore) '
+        'instead of the u component (like in the GridTools benchmark)', False)
 
     def setup(self):
         super().setup()
@@ -302,13 +302,13 @@ class VerticalAdvectionStencil(Stencil):
         v = ('vstage', 'vpos', 'vtens', 'vtensstage')
         w = ('wstage', 'wpos', 'wtens', 'wtensstage')
         common = ('wcon', 'ccol', 'dcol', 'datacol')
-        if self.u_only:
+        if not self.all_components:
             return u + common
         return u + v + w + common
 
     @property
     def data_size(self):
-        if self.u_only:
+        if not self.all_components:
             reads = 7  # including ccol + dcol, but not datacol
             writes = 3  # including ccol + dcol, but not datacol
         else:
@@ -323,7 +323,7 @@ class VerticalAdvectionStencil(Stencil):
                                   data_after.ustage)
         validation.check_equality('upos', data_before.upos, data_after.upos)
         validation.check_equality('utens', data_before.utens, data_after.utens)
-        if not self.u_only:
+        if self.all_components:
             validation.check_equality('vstage', data_before.vstage,
                                       data_after.vstage)
             validation.check_equality('vpos', data_before.vpos,
@@ -357,7 +357,7 @@ class VerticalAdvectionStencil(Stencil):
             def __setitem__(self, index, value):
                 self.__getitem__(index)[:] = value
 
-        if self.u_only:
+        if not self.all_components:
             (ustage, upos, utens, utensstage, wcon, ccol, dcol,
              datacol) = [Wrapper(data) for data in data_before]
         else:
@@ -436,7 +436,7 @@ class VerticalAdvectionStencil(Stencil):
         forward_sweep(1, 0, ustage, upos, utens, utensstage)
         backward_sweep(upos, utensstage)
 
-        if not self.u_only:
+        if self.all_components:
             forward_sweep(0, 1, vstage, vpos, vtens, vtensstage)
             backward_sweep(vpos, vtensstage)
 
@@ -447,7 +447,7 @@ class VerticalAdvectionStencil(Stencil):
                                   data_after.utensstage[self.inner_slice()],
                                   data_before.utensstage[self.inner_slice()])
 
-        if not self.u_only:
+        if self.all_components:
             validation.check_equality(
                 'vtensstage', data_after.vtensstage[self.inner_slice()],
                 data_before.vtensstage[self.inner_slice()])

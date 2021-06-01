@@ -39,8 +39,8 @@ class VadvStencilMixin(StencilMixin):
     def setup_stencil(self):
         from jax import jit
 
-        if not self.u_only:
-            raise ParameterError('Only option --u-only is supported')
+        if self.all_components:
+            raise ParameterError('Option --all-components is not supported')
 
         jited = jit(self.stencil_definition(), donate_argnums=3)
         self.stencil = (

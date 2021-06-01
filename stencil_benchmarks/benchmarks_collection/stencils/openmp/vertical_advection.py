@@ -45,7 +45,7 @@ class VerticalAdvectionMixin(StencilMixin):
     def template_args(self):
         return dict(**super().template_args(),
                     block_size=self.block_size,
-                    u_only=self.u_only)
+                    all_components=self.all_components)
 
 
 class KInnermost(VerticalAdvectionMixin, base.VerticalAdvectionStencil):

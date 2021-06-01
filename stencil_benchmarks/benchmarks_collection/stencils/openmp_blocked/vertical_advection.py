@@ -40,12 +40,12 @@ class Basic(StencilMixin, base.VerticalAdvectionStencil):
     def setup(self):
         super().setup()
 
-        if not self.u_only:
-            raise ParameterError('Only option --u-only is supported')
+        if self.all_components:
+            raise ParameterError('Option --all-components is not supported')
 
     def template_file(self):
         return 'vertical_advection.j2'
 
     def template_args(self):
         return dict(**super().template_args(),
-                    u_only=self.u_only)
+                    all_components=self.all_components)

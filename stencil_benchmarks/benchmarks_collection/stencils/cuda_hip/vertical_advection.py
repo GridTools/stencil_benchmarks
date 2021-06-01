@@ -50,7 +50,7 @@ class VerticalAdvectionMixin(StencilMixin):
         return dict(**super().template_args(),
                     block_size=self.block_size,
                     unroll_factor=self.unroll_factor,
-                    u_only=self.u_only)
+                    all_components=self.all_components)
 
 
 class Classic(VerticalAdvectionMixin, base.VerticalAdvectionStencil):

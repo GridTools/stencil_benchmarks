@@ -42,7 +42,7 @@ from ..openmp import mixin
 
 
 class StencilMixin(mixin.StencilMixin):
-    storage_block_size = Parameter('storage block width', 8)
+    storage_block_size = Parameter('storage block width', 1)
     bit_indexing = Parameter('enable fancy bit-twiddling indexing', False)
 
     def setup(self):
