@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pyversion: [3.6, 3.7, 3.8]
+        pyversion: [3.6, 3.7, 3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -25,6 +25,9 @@ jobs:
       - name: Install Test Dependencies
         run: |
           pip install -r requirements-dev.txt
+      - name: Install Optional Dependencies
+        run: |
+          pip install numba jax jaxlib
       - name: Test
         run: |
           pytest
