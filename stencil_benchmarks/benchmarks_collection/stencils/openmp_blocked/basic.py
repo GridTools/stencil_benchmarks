@@ -106,10 +106,11 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
                                    for i in range(self.blocked_domain[3]))
                     axis_loads = (
                         f'vec_t inp_{name}mb = load(&inp[idx - {stride}]);\n'
-                        f'vec_t inp_{name}m1 = shuffle(inp_{name}mb, inp_c, {m1});\n'
+                        f'vec_t inp_{name}m1 = '
+                        f'shuffle(inp_{name}mb, inp_c, {m1});\n'
                         f'vec_t inp_{name}pb = load(&inp[idx + {stride}]);\n'
-                        f'vec_t inp_{name}p1 = shuffle(inp_c, inp_{name}pb, {p1});\n'
-                    )
+                        f'vec_t inp_{name}p1 = '
+                        f'shuffle(inp_c, inp_{name}pb, {p1});\n')
                 else:
                     axis_loads = (
                         f'vec_t inp_{name}m1 = load(&inp[idx - {stride}]);\n'
