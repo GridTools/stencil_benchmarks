@@ -51,7 +51,7 @@ class BasicStencilMixin(StencilMixin):
 
 class Copy(BasicStencilMixin, base.CopyStencil):
     def stencil_body(self):
-        return f'VL((out[idx] = inp[idx]))'
+        return 'VL((out[idx] = inp[idx]))'
 
 
 class OnesidedAverage(BasicStencilMixin, base.OnesidedAverageStencil):
