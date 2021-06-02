@@ -48,42 +48,89 @@ class BasicStencilMixin(StencilMixin):
     def template_args(self):
         return dict(**super().template_args(), body=self.stencil_body())
 
-    def index(self, off_i, off_j, off_k):
-        return f'index<{off_i}, {off_j}, {off_k}>(i, j, k, bi)'
-
 
 class Copy(BasicStencilMixin, base.CopyStencil):
     def stencil_body(self):
-        center = self.index(0, 0, 0)
-        return f'out[{center}] = inp[{center}];'
+        return f'VL((out[idx] = inp[idx]))'
 
 
 class OnesidedAverage(BasicStencilMixin, base.OnesidedAverageStencil):
     def stencil_body(self):
-        center = self.index(0, 0, 0)
-        right = self.index(*(1 if i == self.axis else 0 for i in range(3)))
-        return f'out[{center}] = (inp[{center}] + inp[{right}]) / 2;'
+        center_load = 'VD(inp_c)\nVL((inp_c[bi] = inp[idx]))\n'
+        stride = self.blocked_strides[self.axis]
+        if self.axis == 0:
+            b = self.blocked_domain[3] - 1
+            offset_load = (
+                f'VD(inp_pb)\n'
+                f'VL((inp_pb[bi] = inp[idx + {stride}]))\n'
+                f'VD(inp_p1)\n'
+                f'VL((inp_p1[bi] = bi == {b} ? inp_pb[0] : inp_c[bi + 1]))\n')
+        else:
+            offset_load = (f'VD(inp_p1)\n'
+                           f'VL((inp_p1[bi] = inp[idx + {stride}]))\n')
+        write = 'VL((out[idx] = (inp_c[bi] + inp_p1[bi]) / 2))'
+        return center_load + offset_load + write
 
 
 class SymmetricAverage(BasicStencilMixin, base.SymmetricAverageStencil):
     def stencil_body(self):
-        center = self.index(0, 0, 0)
-        left = self.index(*(-1 if i == self.axis else 0 for i in range(3)))
-        right = self.index(*(1 if i == self.axis else 0 for i in range(3)))
-        return f'out[{center}] = (inp[{left}] + inp[{right}]) / 2;'
+        stride = self.blocked_strides[self.axis]
+        if self.axis == 0:
+            b = self.blocked_domain[3] - 1
+            loads = (
+                f'VD(inp_c)\n'
+                f'VL((inp_c[bi] = inp[idx]))\n'
+                f'VD(inp_mb)\n'
+                f'VL((inp_mb[bi] = inp[idx - {stride}]))\n'
+                f'VD(inp_m1)\n'
+                f'VL((inp_m1[bi] = bi == 0 ? inp_mb[{b}] : inp_c[bi - 1]))\n'
+                f'VD(inp_pb)\n'
+                f'VL((inp_pb[bi] = inp[idx + {stride}]))\n'
+                f'VD(inp_p1)\n'
+                f'VL((inp_p1[bi] = bi == {b} ? inp_pb[0] : inp_c[bi + 1]))\n')
+        else:
+            loads = (f'VD(inp_m1)\n'
+                     f'VL((inp_m1[bi] = inp[idx - {stride}]))\n'
+                     f'VD(inp_p1)\n'
+                     f'VL((inp_p1[bi] = inp[idx + {stride}]))\n')
+        write = 'VL((out[idx] = (inp_m1[bi] + inp_p1[bi]) / 2))'
+        return loads + write
 
 
 class Laplacian(BasicStencilMixin, base.LaplacianStencil):
     def stencil_body(self):
         along_axes = (self.along_x, self.along_y, self.along_z)
         coeff = 2 * sum(along_axes)
-        code = []
-        center = self.index(0, 0, 0)
-        for axis, apply_along_axis in enumerate(along_axes):
+        loads = ''
+        terms = []
+        for axis, (name, apply_along_axis) in enumerate(zip('ijk',
+                                                            along_axes)):
             if apply_along_axis:
-                left = self.index(*(-1 if i == axis else 0 for i in range(3)))
-                right = self.index(*(1 if i == axis else 0 for i in range(3)))
-                code.append(f'inp[{left}] + inp[{right}]')
+                stride = self.blocked_strides[axis]
+                if axis == 0:
+                    b = self.blocked_domain[3] - 1
+                    axis_loads = (
+                        f'VD(inp_{name}mb)\n'
+                        f'VL((inp_{name}mb[bi] = inp[idx - {stride}]))\n'
+                        f'VD(inp_{name}m1)\n'
+                        f'VL((inp_{name}m1[bi] = bi == 0 ? '
+                        f'inp_{name}mb[{b}] : inp_c[bi - 1]))\n'
+                        f'VD(inp_{name}pb)\n'
+                        f'VL((inp_{name}pb[bi] = inp[idx + {stride}]))\n'
+                        f'VD(inp_{name}p1)\n'
+                        f'VL((inp_{name}p1[bi] = bi == {b} ? '
+                        f'inp_{name}pb[0] : inp_c[bi + 1]))\n')
+                else:
+                    axis_loads = (f'VD(inp_{name}m1)\n'
+                                  f'VL((inp_{name}m1[bi] = '
+                                  f'inp[idx - {stride}]))\n'
+                                  f'VD(inp_{name}p1)\n'
+                                  f'VL((inp_{name}p1[bi] = '
+                                  f'inp[idx + {stride}]))\n')
+                loads += axis_loads
+                terms += [f'inp_{name}m1[bi]', f'inp_{name}p1[bi]']
 
-        return f'out[{center}] = {coeff} * inp[{center}] - (' + ' + '.join(
-            code) + ');'
+        center_load = 'VD(inp_c)\nVL((inp_c[bi] = inp[idx]))\n'
+        write = (f'VL((out[idx] = {coeff} * inp_c[bi] - (' +
+                 ' + '.join(terms) + ')))')
+        return center_load + loads + write
