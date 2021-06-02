@@ -43,7 +43,6 @@ from ..openmp import mixin
 
 class StencilMixin(mixin.StencilMixin):
     storage_block_size = Parameter('storage block width', 1)
-    bit_indexing = Parameter('enable fancy bit-twiddling indexing', False)
 
     def setup(self):
         super().setup()
@@ -52,11 +51,6 @@ class StencilMixin(mixin.StencilMixin):
                 or self.domain[0] % self.storage_block_size != 0):
             raise ParameterError(
                 'x-halo and x-domain size have to be divisible by block size')
-
-        if self.bit_indexing and any(s & (s - 1) != 0
-                                     for s in self.blocked_strides):
-            raise ParameterError(
-                '--bit-indexing requires power-of-two strides')
 
     def template_path(self):
         return os.path.dirname(os.path.abspath(__file__))
@@ -138,5 +132,4 @@ class StencilMixin(mixin.StencilMixin):
                     storage_block_size=self.storage_block_size,
                     blocked_domain=self.blocked_domain,
                     blocked_strides=self.blocked_strides,
-                    bit_indexing=self.bit_indexing,
                     bit_indexing_mask=self.bit_indexing_mask())
