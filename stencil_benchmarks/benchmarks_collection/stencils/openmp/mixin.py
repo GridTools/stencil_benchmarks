@@ -99,13 +99,12 @@ class StencilMixin(Benchmark):
                     ctype=compilation.dtype_cname(self.dtype),
                     strides=self.strides,
                     domain=self.domain,
-                    halo=self.halo,
                     alignment=self.alignment,
                     streaming_stores=self.streaming_stores,
                     dry_runs=self.dry_runs)
 
     def data_ptr(self, data):
-        return compilation.data_ptr(data, (self.halo, ) * 3)
+        return compilation.data_ptr(data, self.halo)
 
     def run_stencil(self, data):
         time = ctypes.c_double()

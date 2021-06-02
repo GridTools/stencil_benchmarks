@@ -125,7 +125,7 @@ class StencilMixin(Benchmark):
                               self.dtype,
                               self.layout,
                               self.alignment,
-                              index_to_align=(self.halo, ) * 3,
+                              index_to_align=self.halo,
                               alloc=runtime.malloc,
                               apply_offset=self.offset_allocations)
             for _ in data
@@ -146,7 +146,7 @@ class StencilMixin(Benchmark):
     def run_stencil(self, data):
         with self.on_device(data) as device_data:
             data_ptrs = [
-                compilation.data_ptr(device_array, (self.halo, ) * 3)
+                compilation.data_ptr(device_array, self.halo)
                 for device_array in device_data
             ]
 

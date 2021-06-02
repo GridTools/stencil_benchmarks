@@ -61,6 +61,18 @@ class StencilMixin(Benchmark):
         assert isinstance(s, tuple)
         return tuple(s[self.layout.index(i)] for i in range(3))
 
+    def s(self, lo_i=0, hi_i=0, lo_j=0, hi_j=0, lo_k=0, hi_k=0):
+        def axis_slice(lo, hi, halo):
+            lo += halo
+            hi -= halo
+            return slice(lo if lo > 0 else None, hi if hi < 0 else None)
+
+        return self.t(
+            tuple(
+                axis_slice(lo, hi, h)
+                for lo, hi, h in zip((lo_i, lo_j, lo_k), (hi_i, hi_j,
+                                                          hi_k), self.halo)))
+
     def to_device(self, array):
         from jax import numpy as npy
         transposed = array.transpose(self.t((0, 1, 2)))

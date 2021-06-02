@@ -47,7 +47,7 @@ class Stencil(Benchmark):
     data_sets = Parameter(
         'number of data sets, if bigger than one, data sets are cycled before '
         'each execution to start with cold cache', 1)
-    halo = Parameter('halo size', 3)
+    halo = Parameter('halo size', (3, 3, 3))
     dtype = Parameter('data type in NumPy format, e.g. float32 or float64',
                       'float64')
     layout = Parameter('data layout, 2 means innermost dimension, 0 outermost',
@@ -61,7 +61,7 @@ class Stencil(Benchmark):
 
     def setup(self):
         super().setup()
-        if self.halo < 0:
+        if any(h < 0 for h in self.halo):
             raise ParameterError(f'negative halo size given ({self.halo}')
         if tuple(sorted(self.layout)) != (0, 1, 2):
             raise ParameterError(f'invalid layout specification {self.layout}')
@@ -92,8 +92,7 @@ class Stencil(Benchmark):
             apply_offset=self.offset_allocations)
 
     def empty_field(self):
-        return self.alloc_field(self.domain_with_halo, self.layout,
-                                (self.halo, ) * 3)
+        return self.alloc_field(self.domain_with_halo, self.layout, self.halo)
 
     def random_field(self):
         data = self.empty_field()
@@ -106,7 +105,7 @@ class Stencil(Benchmark):
 
     @property
     def domain_with_halo(self):
-        return tuple(d + 2 * self.halo for d in self.domain)
+        return tuple(d + 2 * h for d, h in zip(self.domain, self.halo))
 
     @property
     def strides(self):
@@ -124,8 +123,8 @@ class Stencil(Benchmark):
         elif isinstance(expand, int):
             expand = [expand] * len(self.domain)
         return tuple(
-            slice(self.halo + s - e, self.halo + d + s + e)
-            for d, s, e in zip(self.domain, shift, expand))
+            slice(h + s - e, h + d + s + e)
+            for d, h, s, e in zip(self.domain, self.halo, shift, expand))
 
     @abc.abstractmethod
     def run_stencil(self, data):
@@ -212,9 +211,9 @@ class LaplacianStencil(BasicStencil):
 
     def setup(self):
         super().setup()
-        if self.halo < 1:
-            raise ParameterError(
-                f'positive halo size required (given halo: {self.halo})')
+        if any(h < 1 for h in self.halo[:2]):
+            raise ParameterError(f'positive horizontal halo size required '
+                                 f'(given halo: {self.halo})')
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality('inp', data_before.inp, data_after.inp)
@@ -237,9 +236,9 @@ class HorizontalDiffusionStencil(Stencil):
     def setup(self):
         super().setup()
 
-        if self.halo < 2:
-            raise ParameterError(
-                f'halo size must be at least 2 (given halo: {self.halo})')
+        if any(h < 2 for h in self.halo[:2]):
+            raise ParameterError(f'horizontal halo size must be at least 2 '
+                                 f'(given halo: {self.halo})')
 
     @property
     def args(self):
@@ -292,7 +291,8 @@ class VerticalAdvectionStencil(Stencil):
     def setup(self):
         super().setup()
 
-        if self.halo < 1:
+        if self.halo[0] < 1 or (self.all_components
+                                and any(h < 1 for h in self.halo)):
             raise ParameterError(
                 f'positive halo size required (given halo: {self.halo})')
 
@@ -338,7 +338,7 @@ class VerticalAdvectionStencil(Stencil):
                                       data_after.wtens)
         validation.check_equality('wcon', data_before.wcon, data_after.wcon)
 
-        halo = self.halo
+        hi, hj, hk = self.halo
         domain = self.domain
 
         class Wrapper:
@@ -350,8 +350,8 @@ class VerticalAdvectionStencil(Stencil):
                     i, j, k = index
                 else:
                     i, j, k = 0, 0, index
-                data_slice = (slice(halo + i, halo + domain[0] + i),
-                              slice(halo + j, halo + domain[1] + j), halo + k)
+                data_slice = (slice(hi + i, hi + domain[0] + i),
+                              slice(hj + j, hj + domain[1] + j), hk + k)
                 return self.data[data_slice]
 
             def __setitem__(self, index, value):

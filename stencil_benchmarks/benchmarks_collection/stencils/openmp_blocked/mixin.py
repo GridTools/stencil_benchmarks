@@ -48,10 +48,10 @@ class StencilMixin(mixin.StencilMixin):
     def setup(self):
         super().setup()
 
-        if (self.halo % self.storage_block_size != 0
+        if (self.halo[0] % self.storage_block_size != 0
                 or self.domain[0] % self.storage_block_size != 0):
             raise ParameterError(
-                'halo and x-domain size have to be divisible by block size')
+                'x-halo and x-domain size have to be divisible by block size')
 
         if self.bit_indexing and any(s & (s - 1) != 0
                                      for s in self.blocked_strides):
@@ -78,9 +78,10 @@ class StencilMixin(mixin.StencilMixin):
     @property
     def blocked_domain_with_halo(self):
         blocked_domain = np.array(self.blocked_domain)
-        assert self.halo % self.storage_block_size == 0
-        blocked_domain[0] += 2 * self.halo // self.storage_block_size
-        blocked_domain[1:3] += 2 * self.halo
+        assert self.halo[0] % self.storage_block_size == 0
+        blocked_domain[0] += 2 * self.halo[0] // self.storage_block_size
+        blocked_domain[1] += 2 * self.halo[1]
+        blocked_domain[2] += 2 * self.halo[2]
         return tuple(blocked_domain)
 
     @property
@@ -101,8 +102,7 @@ class StencilMixin(mixin.StencilMixin):
             data, self.blocked_domain_with_halo, blocked_strides)
 
         blocked_data = self.alloc_field(self.blocked_domain_with_halo,
-                                        self.blocked_layout,
-                                        (self.halo, ) * 3 + (0, ))
+                                        self.blocked_layout, self.halo + (0, ))
         assert blocked_data.strides == tuple(s * blocked_data.itemsize
                                              for s in self.blocked_strides)
         blocked_data[...] = blocked_view
@@ -110,9 +110,9 @@ class StencilMixin(mixin.StencilMixin):
         blocked_view[...] = blocked_data
 
     def data_ptr(self, data):
-        assert self.halo % self.storage_block_size == 0
-        offset = (self.halo // self.storage_block_size, self.halo, self.halo,
-                  0)
+        assert self.halo[0] % self.storage_block_size == 0
+        offset = (self.halo[0] // self.storage_block_size, self.halo[1],
+                  self.halo[2], 0)
         return compilation.data_ptr(data, offset)
 
     def run_stencil(self, data):

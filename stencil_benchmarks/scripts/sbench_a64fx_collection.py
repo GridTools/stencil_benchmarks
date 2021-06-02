@@ -78,11 +78,11 @@ def basic_bandwidth(output, executions, dtype, option):
     kwargs = common_kwargs(option,
                            dtype=dtype,
                            loop='3D-blocked',
-                           halo=1,
+                           halo=(1, 1, 1),
                            block_size=(1024, 16, 1))
 
     stream_kwargs = kwargs.copy()
-    stream_kwargs.update(loop='1D', halo=0)
+    stream_kwargs.update(loop='1D', halo=(0, 0, 0))
 
     configurations = [
         Configuration(basic.Copy, name='stream', **stream_kwargs),

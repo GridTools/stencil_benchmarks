@@ -42,14 +42,14 @@ class Copy(base.CopyStencil):
 
         super().setup()
 
-        halo = self.halo
+        hi, hj, hk = self.halo
         domain = self.domain
 
         @numba.njit(parallel=True)
         def kernel(inp, out):
-            for k in numba.prange(halo, domain[2] + halo):
-                for j in range(halo, domain[1] + halo):
-                    for i in range(halo, domain[0] + halo):
+            for k in numba.prange(hk, domain[2] + hk):
+                for j in range(hj, domain[1] + hj):
+                    for i in range(hi, domain[0] + hi):
                         out[i, j, k] = inp[i, j, k]
 
         self.kernel = kernel
@@ -65,7 +65,7 @@ class Laplacian(base.LaplacianStencil):
 
         super().setup()
 
-        halo = self.halo
+        hi, hj, hk = self.halo
         domain = self.domain
 
         along = (self.along_x, self.along_y, self.along_z)
@@ -73,9 +73,9 @@ class Laplacian(base.LaplacianStencil):
 
             @numba.njit(parallel=True)
             def kernel(inp, out):
-                for k in numba.prange(halo, domain[2] + halo):
-                    for j in range(halo, domain[1] + halo):
-                        for i in range(halo, domain[0] + halo):
+                for k in numba.prange(hk, domain[2] + hk):
+                    for j in range(hj, domain[1] + hj):
+                        for i in range(hi, domain[0] + hi):
                             out[i, j, k] = 4 * inp[i, j, k] - (
                                 inp[i - 1, j, k] + inp[i + 1, j, k] +
                                 inp[i, j - 1, k] + inp[i, j + 1, k])
@@ -83,9 +83,9 @@ class Laplacian(base.LaplacianStencil):
 
             @numba.njit(parallel=True)
             def kernel(inp, out):
-                for k in numba.prange(halo, domain[2] + halo):
-                    for j in range(halo, domain[1] + halo):
-                        for i in range(halo, domain[0] + halo):
+                for k in numba.prange(hk, domain[2] + hk):
+                    for j in range(hj, domain[1] + hj):
+                        for i in range(hi, domain[0] + hi):
                             out[i, j, k] = 6 * inp[i, j, k] - (
                                 inp[i - 1, j, k] + inp[i + 1, j, k] +
                                 inp[i, j - 1, k] + inp[i, j + 1, k] +

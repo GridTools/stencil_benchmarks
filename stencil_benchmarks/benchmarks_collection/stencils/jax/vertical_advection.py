@@ -40,7 +40,10 @@ class VadvStencilMixin(StencilMixin):
         from jax import jit
 
         if self.all_components:
-            raise ParameterError('Option --all-components is not supported')
+            raise ParameterError('option --all-components is not supported')
+
+        if self.halo[2] < 1:
+            raise ParameterError('z-halo required')
 
         jited = jit(self.stencil_definition(), donate_argnums=3)
         self.stencil = (
@@ -71,10 +74,9 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 self_.data = self_.data.at[self.t(
                     (slice(None), slice(None), k))].set(value)
 
-        h = self.halo
-        center = self.t(self.inner_slice())
-        staggered = self.t((slice(h, -h), slice(h, -h), slice(h, -h + 1)))
-        ishift = self.t((slice(h + 1, -h + 1), slice(h, -h), slice(h, -h + 1)))
+        center = self.s()
+        staggered = self.s(hi_k=1)
+        ishift = self.s(lo_i=1, hi_i=1, hi_k=1)
 
         def stencil(ustage, upos, utens, utensstage, wcon):
             k = 0
@@ -287,15 +289,14 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
 
             return utensstage
 
-        h = self.halo
         i_axis, j_axis, k_axis = self.layout
         inner_axis = max(i_axis, j_axis)
         outer_axis = min(i_axis, j_axis)
         inner_axis = 0 if inner_axis < k_axis else 1
 
-        center = self.t(self.inner_slice())
-        staggered = self.t((slice(h, -h), slice(h, -h), slice(h, -h + 1)))
-        ishift = self.t((slice(h + 1, -h + 1), slice(h, -h), slice(h, -h + 1)))
+        center = self.s()
+        staggered = self.s(hi_k=1)
+        ishift = self.s(lo_i=1, hi_i=1, hi_k=1)
 
         def stencil(ustage, upos, utens, utensstage, wcon):
             solver = vmap(vmap(solve_column,
@@ -440,14 +441,13 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                                      unroll=self.unroll_factor)
             return utensstage
 
-        h = self.halo
         i_axis, j_axis, k_axis = self.layout
         inner_axis = max(i_axis, j_axis)
         outer_axis = min(i_axis, j_axis)
         inner_axis = 0 if inner_axis < k_axis else 1
 
-        center = self.t((slice(h, -h), slice(h, -h), slice(h, -h + 1)))
-        ishift = self.t((slice(h + 1, -h + 1), slice(h, -h), slice(h, -h + 1)))
+        center = self.s(hi_k=1)
+        ishift = self.s(lo_i=1, hi_i=1, hi_k=1)
 
         def stencil(ustage, upos, utens, utensstage, wcon):
             solver = vmap(vmap(solve_column,
