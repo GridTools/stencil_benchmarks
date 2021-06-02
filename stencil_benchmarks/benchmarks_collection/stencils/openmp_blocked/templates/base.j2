@@ -47,20 +47,115 @@ using index_t = std::int32_t;
 using index_t = std::int64_t;
 {%- endif %}
 
+{%- set vector_size = blocked_domain[3] -%}
+{%- if vector_size is defined %}
+  using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+  using ivec_t = index_t __attribute__((vector_size({{ vector_size }} * sizeof(index_t))));
+
+  __attribute__((always_inline)) inline vec_t loadu(const {{ ctype }}* ptr) {
+#ifdef __clang__
+    ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
+    vec_t v;
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      v[i] = ptr[i];
+    return v;
+#else
+  using uvec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+  return *(uvec_t*)ptr;
+#endif
+  }
+
+  __attribute__((always_inline)) inline void storeu({{ ctype }}* ptr, vec_t v) {
+#ifdef __clang__
+    ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      ptr[i] = v[i];
+#else
+    using uvec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+    *(uvec_t*)ptr = v;
+#endif
+  }
+
+  {%- if alignment is defined and alignment > 0 and
+         ((ctype == 'float' and alignment % (4 * vector_size) == 0) or
+          (ctype == 'double' and alignment % (8 * vector_size) == 0)) %}
+    __attribute__((always_inline)) inline vec_t load(const {{ ctype }}* ptr) {
+      return *(vec_t*)ptr;
+    }
+
+    __attribute__((always_inline)) inline void store({{ ctype }}* ptr, vec_t v) {
+      *(vec_t*)ptr = v;
+    }
+
+    __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) {
+      {%- if streaming_stores  and (ctype == 'float' or ctype == 'double') %}
+        {%- if ctype == 'float' %}
+          #if defined(__SSE__) && {{ vector_size }} == 4
+            _mm_stream_ps(ptr, v);
+          #elif defined(__AVX__) && {{ vector_size }} == 8
+            _mm256_stream_ps(ptr, v);
+          #elif defined(__AVX512F__) && {{ vector_size }} == 16
+            _mm512_stream_ps(ptr, v);
+          #elif defined(__clang__)
+            __builtin_nontemporal_store(v, (vec_t*)ptr);
+          #else
+            store(ptr, v);
+          #endif
+        {%- else %}
+          #if defined(__SSE__) && {{ vector_size }} == 2
+            _mm_stream_pd(ptr, v);
+          #elif defined(__AVX__) && {{ vector_size }} == 4
+            _mm256_stream_pd(ptr, v);
+          #elif defined(__AVX512F__) && {{ vector_size }} == 8
+            _mm512_stream_pd(ptr, v);
+          #elif defined(__clang__)
+            __builtin_nontemporal_store(v, (vec_t*)ptr);
+          #else
+            store(ptr, v);
+          #endif
+        {%- endif %}
+      {%- else %}
+        #ifdef __clang__
+          __builtin_nontemporal_store(v, (vec_t*)ptr);
+        #else
+          store(ptr, v);
+        #endif
+      {%- endif %}
+    }
+  {%- else %}
+    __attribute__((always_inline)) inline vec_t load(const {{ ctype }}* ptr) { return loadu(ptr); }
+    __attribute__((always_inline)) inline void store({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+    __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+  {%- endif %}
+
+#ifdef __clang__
+  __attribute__((always_inline)) inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
+    vec_t v;
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      v[i] = condition[i] ? v1[i] : v2[i];
+    return v;
+  }
+#else
+  #define select(condition, v1, v2) ((condition) ? (v1) : (v2))
+#endif
+
+#ifdef __clang__
+  #define shuffle(v1, v2, ...) __builtin_shufflevector(v1, v2, __VA_ARGS__)
+#else
+  #define shuffle(v1, v2, ...) __builtin_shuffle(v1, v2, (ivec_t){__VA_ARGS__})
+#endif
+{%- endif %}
+
 {% block pre_kernel %}
 {% endblock pre_kernel %}
 
-__attribute__((always_inline)) inline index_t index(
-    index_t i, index_t j, index_t k, index_t bi
+__attribute__((always_inline)) inline constexpr index_t index(
+    index_t i, index_t j, index_t k
 ) {
         return i * {{ blocked_strides[0] }}
              + j * {{ blocked_strides[1] }}
-             + k * {{ blocked_strides[2] }}
-             + bi * {{ blocked_strides[3] }};
+             + k * {{ blocked_strides[2] }};
 }
-
-#define VD(name) {{ ctype }} name[{{ blocked_domain[3] }}];
-#define VL(stmt) _Pragma("omp simd") for (index_t bi = 0; bi < {{ blocked_domain[3] }}; ++bi) { const index_t idx __attribute__((unused)) = index(i, j, k, bi); stmt; }
 
 void kernel_impl(
     {%- for arg in args %}

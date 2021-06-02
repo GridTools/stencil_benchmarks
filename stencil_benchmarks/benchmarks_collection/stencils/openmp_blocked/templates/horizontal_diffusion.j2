@@ -39,98 +39,72 @@ SPDX-License-Identifier: BSD-3-Clause
 for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
     for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
         for (index_t k = 0; k < {{ blocked_domain[2] }}; ++k) {
-            VD(inp_ij)
-            VL((inp_ij[bi] = inp[idx]))
-            VD(inp_imbj)
-            VL((inp_imbj[bi] = inp[idx - {{ blocked_strides[0] }}]))
-            VD(inp_ipbj)
-            VL((inp_ipbj[bi] = inp[idx + {{ blocked_strides[0] }}]))
-            VD(inp_imbjm1)
-            VL((inp_imbjm1[bi] = inp[idx - {{ blocked_strides[0] + blocked_strides[1] }}]))
-            VD(inp_ipbjm1)
-            VL((inp_ipbjm1[bi] = inp[idx + {{ blocked_strides[0] - blocked_strides[1] }}]))
-            VD(inp_imbjp1)
-            VL((inp_imbjp1[bi] = inp[idx - {{ blocked_strides[0] - blocked_strides[1] }}]))
-            VD(inp_ipbjp1)
-            VL((inp_ipbjp1[bi] = inp[idx + {{ blocked_strides[0] + blocked_strides[1] }}]))
-            VD(inp_ijm2)
-            VL((inp_ijm2[bi] = inp[idx - {{ 2 * blocked_strides[1] }}]))
-            VD(inp_ijm1)
-            VL((inp_ijm1[bi] = inp[idx - {{ blocked_strides[1] }}]))
-            VD(inp_ijp1)
-            VL((inp_ijp1[bi] = inp[idx + {{ blocked_strides[1] }}]))
-            VD(inp_ijp2)
-            VL((inp_ijp2[bi] = inp[idx + {{ 2 * blocked_strides[1] }}]))
+            index_t idx = index(i, j, k);
+            vec_t inp_ij = load(&inp[idx]);
+            vec_t inp_imbj = load(&inp[idx - {{ blocked_strides[0] }}]);
+            vec_t inp_ipbj = load(&inp[idx + {{ blocked_strides[0] }}]);
+            vec_t inp_imbjm1 = load(&inp[idx - {{ blocked_strides[0] + blocked_strides[1] }}]);
+            vec_t inp_ipbjm1 = load(&inp[idx + {{ blocked_strides[0] - blocked_strides[1] }}]);
+            vec_t inp_imbjp1 = load(&inp[idx - {{ blocked_strides[0] - blocked_strides[1] }}]);
+            vec_t inp_ipbjp1 = load(&inp[idx + {{ blocked_strides[0] + blocked_strides[1] }}]);
+            vec_t inp_ijm2 = load(&inp[idx - {{ 2 * blocked_strides[1] }}]);
+            vec_t inp_ijm1 = load(&inp[idx - {{ blocked_strides[1] }}]);
+            vec_t inp_ijp1 = load(&inp[idx + {{ blocked_strides[1] }}]);
+            vec_t inp_ijp2 = load(&inp[idx + {{ 2 * blocked_strides[1] }}]);
+            vec_t coeff_ij = load(&coeff[idx]);
 
-            VD(inp_im1j)
-            VL((inp_im1j[bi] = bi == 0 ? inp_imbj[{{ blocked_domain[3] - 1 }}] : inp_ij[bi - 1]))
-            VD(inp_im2j)
+            vec_t inp_im1j = shuffle(inp_imbj, inp_ij{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
             {%- if blocked_domain[3] == 1 -%}
-            VL((inp_im2j[bi] = inp[idx - {{ 2 * blocked_strides[0] }}]))
+            vec_t inp_im2j = load(&inp[idx - {{ 2 * blocked_strides[0] }}]);
             {%- else -%}
-            VL((inp_im2j[bi] = bi < 2 ? inp_imbj[bi + {{ blocked_domain[3] - 2 }}] : inp_ij[bi - 2]))
+            vec_t inp_im2j = shuffle(inp_imbj, inp_ij{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 2 }}{% endfor %});
             {%- endif -%}
-            VD(inp_ip1j)
-            VL((inp_ip1j[bi] = bi == {{ blocked_domain[3] - 1 }} ? inp_ipbj[0] : inp_ij[bi + 1]))
-            VD(inp_ip2j)
+            vec_t inp_ip1j = shuffle(inp_ij, inp_ipbj{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
             {%- if blocked_domain[3] == 1 -%}
-            VL((inp_ip2j[bi] = inp[idx + {{ 2 * blocked_strides[0] }}]))
+            vec_t inp_ip2j = load(&inp[idx + {{ 2 * blocked_strides[0] }}]);
             {%- else -%}
-            VL((inp_ip2j[bi] = bi >= {{ blocked_domain[3] - 2 }} ? inp_ipbj[bi - {{ blocked_domain[3] - 2 }}] : inp_ij[bi + 2]))
+            vec_t inp_ip2j = shuffle(inp_ij, inp_ipbj{% for m in range(vector_size) %}, {{ m + 2 }}{% endfor %});
             {%- endif -%}
-            VD(inp_im1jm1)
-            VL((inp_im1jm1[bi] = bi == 0 ? inp_imbjm1[{{ blocked_domain[3] - 1 }}] : inp_ijm1[bi - 1]))
-            VD(inp_im1jp1)
-            VL((inp_im1jp1[bi] = bi == 0 ? inp_imbjp1[{{ blocked_domain[3] - 1 }}] : inp_ijp1[bi - 1]))
-            VD(inp_ip1jm1)
-            VL((inp_ip1jm1[bi] = bi == {{ blocked_domain[3] - 1 }} ? inp_ipbjm1[0] : inp_ijm1[bi + 1]))
-            VD(inp_ip1jp1)
-            VL((inp_ip1jp1[bi] = bi == {{ blocked_domain[3] - 1 }} ? inp_ipbjp1[0] : inp_ijp1[bi + 1]))
+            vec_t inp_im1jm1 = shuffle(inp_imbjm1, inp_ijm1{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
+            vec_t inp_im1jp1 = shuffle(inp_imbjp1, inp_ijp1{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
+            vec_t inp_ip1jm1 = shuffle(inp_ijm1, inp_ipbjm1{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
+            vec_t inp_ip1jp1 = shuffle(inp_ijp1, inp_ipbjp1{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
 
-            VD(lap_ij) 
-            VL((lap_ij[bi] = 4 * inp_ij[bi] - inp_im1j[bi]
-                                            - inp_ip1j[bi]
-                                            - inp_ijm1[bi]
-                                            - inp_ijp1[bi]))
-            VD(lap_imj) 
-            VL((lap_imj[bi] = 4 * inp_im1j[bi] - inp_im2j[bi]
-                                               - inp_ij[bi]
-                                               - inp_im1jm1[bi]
-                                               - inp_im1jp1[bi]))
-            VD(lap_ipj) 
-            VL((lap_ipj[bi] = 4 * inp_ip1j[bi] - inp_ij[bi]
-                                               - inp_ip2j[bi]
-                                               - inp_ip1jm1[bi]
-                                               - inp_ip1jp1[bi]))
-            VD(lap_ijm) 
-            VL((lap_ijm[bi] = 4 * inp_ijm1[bi] - inp_im1jm1[bi]
-                                               - inp_ip1jm1[bi]
-                                               - inp_ijm2[bi]
-                                               - inp_ij[bi]))
-            VD(lap_ijp) 
-            VL((lap_ijp[bi] = 4 * inp_ijp1[bi] - inp_im1jp1[bi]
-                                               - inp_ip1jp1[bi]
-                                               - inp_ij[bi]
-                                               - inp_ijp2[bi]))
+            vec_t lap_ij = 4 * inp_ij - inp_im1j
+                                            - inp_ip1j
+                                            - inp_ijm1
+                                            - inp_ijp1;
+            vec_t lap_imj = 4 * inp_im1j - inp_im2j
+                                               - inp_ij
+                                               - inp_im1jm1
+                                               - inp_im1jp1;
+            vec_t lap_ipj = 4 * inp_ip1j - inp_ij
+                                               - inp_ip2j
+                                               - inp_ip1jm1
+                                               - inp_ip1jp1;
+            vec_t lap_ijm = 4 * inp_ijm1 - inp_im1jm1
+                                               - inp_ip1jm1
+                                               - inp_ijm2
+                                               - inp_ij;
+            vec_t lap_ijp = 4 * inp_ijp1 - inp_im1jp1
+                                               - inp_ip1jp1
+                                               - inp_ij
+                                               - inp_ijp2;
 
-            VD(flx_ij) 
-            VL((flx_ij[bi] = lap_ipj[bi] - lap_ij[bi]))
-            VL((flx_ij[bi] = flx_ij[bi] * (inp_ip1j[bi] - inp_ij[bi]) > 0 ? 0 : flx_ij[bi]))
+            vec_t flx_ij = lap_ipj - lap_ij;
+            flx_ij = select(flx_ij * (inp_ip1j - inp_ij) > 0, 0, flx_ij);
 
-            VD(flx_imj) 
-            VL((flx_imj[bi] = lap_ij[bi] - lap_imj[bi]))
-            VL((flx_imj[bi] = flx_imj[bi] * (inp_ij[bi] - inp_im1j[bi]) > 0 ? 0 : flx_imj[bi]))
+            vec_t flx_imj = lap_ij - lap_imj;
+            flx_imj = select(flx_imj * (inp_ij - inp_im1j) > 0, 0, flx_imj);
 
-            VD(fly_ij) 
-            VL((fly_ij[bi] = lap_ijp[bi] - lap_ij[bi]))
-            VL((fly_ij[bi] = fly_ij[bi] * (inp_ijp1[bi] - inp_ij[bi]) > 0 ? 0 : fly_ij[bi]))
+            vec_t fly_ij = lap_ijp - lap_ij;
+            fly_ij = select(fly_ij * (inp_ijp1 - inp_ij) > 0, 0, fly_ij);
 
-            VD(fly_ijm) 
-            VL((fly_ijm[bi] = lap_ij[bi] - lap_ijm[bi]))
-            VL((fly_ijm[bi] = fly_ijm[bi] * (inp_ij[bi] - inp_ijm1[bi]) > 0 ? 0 : fly_ijm[bi]))
+            vec_t fly_ijm = lap_ij - lap_ijm;
+            fly_ijm = select(fly_ijm * (inp_ij - inp_ijm1) > 0, 0, fly_ijm);
 
-            VL((out[idx] = inp_ij[bi] - coeff[idx] * (flx_ij[bi] - flx_imj[bi] +
-                                                      fly_ij[bi] - fly_ijm[bi])))
+            vec_t out_ij = inp_ij - coeff_ij * (flx_ij - flx_imj + fly_ij - fly_ijm);
+            storent(&out[idx], out_ij);
         }
     }
 }

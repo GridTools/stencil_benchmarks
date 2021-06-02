@@ -42,137 +42,117 @@ constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
 
 #pragma omp parallel
 {
-    {{ ctype }} ccoll[{{ blocked_domain[2] * blocked_domain[3] }}];
-    {{ ctype }} dcoll[{{ blocked_domain[2] * blocked_domain[3] }}];
+    vec_t ccoll[{{ blocked_domain[2] }}];
+    vec_t dcoll[{{ blocked_domain[2] }}];
 
 #pragma omp for collapse(2)
     for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
         for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
-             VD(ccol0)
-             VD(ccol1)
-             VD(dcol0)
-             VD(dcol1)
-             VD(ustage0)
-             VD(ustage1)
-             VD(ustage2)
-             VD(wcon0)
-             VD(wcon1)
-             VD(wcon_shift0)
-             VD(wcon_shift1)
-             VD(datacoll)
+             vec_t ccol0, ccol1; 
+             vec_t dcol0, dcol1;
+             vec_t ustage0, ustage1, ustage2;
+             vec_t wcon0, wcon1;
+             vec_t wcon_shift0, wcon_shift1;
+             vec_t datacoll;
 
             // k minimum
             {
                 index_t k = 0;
+                index_t idx = index(i, j, k);
 
-                VD(wcon_shift0_hi)
-                VL((wcon0[bi] = wcon[idx + {{ blocked_strides[2] }}]))
-                VL((wcon_shift0_hi[bi] = wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]))
-                VL((wcon_shift0[bi] = (bi == {{ blocked_domain[3] - 1 }}) ? wcon_shift0_hi[0] : wcon0[bi + 1]))
+                wcon0 = load(&wcon[idx + {{ blocked_strides[2] }}]);
+                vec_t wcon_shift0_hi = load(&wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]);
+                wcon_shift0 = shuffle(wcon0, wcon_shift0_hi{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
 
-                VD(gcv)
-                VL((gcv[bi] = {{ ctype }}(0.25) * (wcon_shift0[bi] + wcon0[bi])))
-                VD(cs)
-                VL((cs[bi] = gcv[bi] * bet_m))
+                vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+                vec_t cs = gcv * bet_m;
 
-                VL((ccol0[bi] = gcv[bi] * bet_p))
-                VD(bcol)
-                VL((bcol[bi] = dtr_stage - ccol0[bi]))
+                ccol0 = gcv * bet_p;
+                vec_t bcol = dtr_stage - ccol0;
 
-                VL((ustage0[bi] = ustage[idx + {{ blocked_strides[2] }}]))
-                VL((ustage1[bi] = ustage[idx]))
-                VD(correction_term)
-                VL((correction_term[bi] = -cs[bi] * (ustage0[bi] - ustage1[bi])))
-                VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
+                ustage0 = load(&ustage[idx + {{ blocked_strides[2] }}]);
+                ustage1 = load(&ustage[idx]);
+                vec_t correction_term = -cs * (ustage0 - ustage1);
+                dcol0 = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
 
-                VD(divided)
-                VL((divided[bi] = {{ ctype }}(1.0) / bcol[bi]))
-                VL((ccol0[bi] = ccol0[bi] * divided[bi]))
-                VL((dcol0[bi] = dcol0[bi] * divided[bi]))
+                vec_t divided = {{ ctype }}(1.0) / bcol;
+                ccol0 = ccol0 * divided;
+                dcol0 = dcol0 * divided;
 
-                VL((ccoll[bi] = ccol0[bi]))
-                VL((dcoll[bi] = dcol0[bi]))
+                ccoll[k] = ccol0;
+                dcoll[k] = dcol0;
             }
 
             // k body
             for (index_t k = 1; k < {{ blocked_domain[2] }} - 1; ++k) {
-                VL((ccol1[bi] = ccol0[bi]))
-                VL((dcol1[bi] = dcol0[bi]))
-                VL((ustage2[bi] = ustage1[bi]))
-                VL((ustage1[bi] = ustage0[bi]))
-                VL((wcon1[bi] = wcon0[bi]))
-                VL((wcon_shift1[bi] = wcon_shift0[bi]))
+                index_t idx = index(i, j, k);
 
-                VD(wcon_shift0_hi)
-                VL((wcon0[bi] = wcon[idx + {{ blocked_strides[2] }}]))
-                VL((wcon_shift0_hi[bi] = wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]))
-                VL((wcon_shift0[bi] = (bi == {{ blocked_domain[3] - 1 }}) ? wcon_shift0_hi[0] : wcon0[bi + 1]))
+                ccol1 = ccol0;
+                dcol1 = dcol0;
+                ustage2 = ustage1;
+                ustage1 = ustage0;
+                wcon1 = wcon0;
+                wcon_shift1 = wcon_shift0;
 
-                VD(gav)
-                VL((gav[bi] = {{ ctype }}(-0.25) * (wcon_shift1[bi] + wcon1[bi])))
-                VD(gcv)
-                VL((gcv[bi] = {{ ctype }}(0.25) * (wcon_shift0[bi] + wcon0[bi])))
+                wcon0 = load(&wcon[idx + {{ blocked_strides[2] }}]);
+                vec_t wcon_shift0_hi = load(&wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]);
+                wcon_shift0 = shuffle(wcon0, wcon_shift0_hi{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
 
-                VD(as)
-                VD(cs)
-                VL((as[bi] = gav[bi] * bet_m))
-                VL((cs[bi] = gcv[bi] * bet_m))
+                vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+                vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
 
-                VD(acol)
-                VL((acol[bi] = gav[bi] * bet_p))
-                VL((ccol0[bi] = gcv[bi] * bet_p))
-                VD(bcol)
-                VL((bcol[bi] = dtr_stage - acol[bi] - ccol0[bi]))
+                vec_t as = gav * bet_m;
+                vec_t cs = gcv * bet_m;
 
-                VL((ustage0[bi] = ustage[idx + {{ blocked_strides[2] }}]))
-                VD(correction_term)
-                VL((correction_term[bi] = -as[bi] * (ustage2[bi] - ustage1[bi]) - cs[bi] * (ustage0[bi] - ustage1[bi])))
-                VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
+                vec_t acol = gav * bet_p;
+                ccol0 = gcv * bet_p;
+                vec_t bcol = dtr_stage - acol - ccol0;
 
-                VD(divided)
-                VL((divided[bi] = {{ ctype }}(1.0) / (bcol[bi] - ccol1[bi] * acol[bi])))
-                VL((ccol0[bi] = ccol0[bi] * divided[bi]))
-                VL((dcol0[bi] = (dcol0[bi] - dcol1[bi] * acol[bi]) * divided[bi]))
+                ustage0 = load(&ustage[idx + {{ blocked_strides[2] }}]);
+                vec_t correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
+                dcol0 = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
 
-                VL((ccoll[k * {{ blocked_domain[3] }} + bi] = ccol0[bi]))
-                VL((dcoll[k * {{ blocked_domain[3] }} + bi] = dcol0[bi]))
+                vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+                ccol0 = ccol0 * divided;
+                dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+                ccoll[k] = ccol0;
+                dcoll[k] = dcol0;
             }
             // k maximum
             {
                 index_t k = {{ blocked_domain[2] - 1 }};
-                VL((ccol1[bi] = ccol0[bi]))
-                VL((dcol1[bi] = dcol0[bi]))
-                VL((ustage2[bi] = ustage1[bi]))
-                VL((ustage1[bi] = ustage0[bi]))
-                VL((wcon1[bi] = wcon0[bi]))
-                VL((wcon_shift1[bi] = wcon_shift0[bi]))
+                index_t idx = index(i, j, k);
 
-                VD(gav)
-                VL((gav[bi] = {{ ctype }}(-0.25) * (wcon_shift1[bi] + wcon1[bi])))
+                ccol1 = ccol0;
+                dcol1 = dcol0;
+                ustage2 = ustage1;
+                ustage1 = ustage0;
+                wcon1 = wcon0;
+                wcon_shift1 = wcon_shift0;
 
-                VD(as)
-                VL((as[bi] = gav[bi] * bet_m))
+                vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
 
-                VD(acol)
-                VL((acol[bi] = gav[bi] * bet_p))
-                VD(bcol)
-                VL((bcol[bi] = dtr_stage - acol[bi]))
+                vec_t as = gav * bet_m;
 
-                VD(correction_term)
-                VL((correction_term[bi] = -as[bi] * (ustage2[bi] - ustage1[bi])))
-                VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
+                vec_t acol = gav * bet_p;
+                vec_t bcol = dtr_stage - acol;
 
-                VD(divided)
-                VL((divided[bi] = {{ ctype }}(1.0) / (bcol[bi] - ccol1[bi] * acol[bi])))
-                VL((dcol0[bi] = (dcol0[bi] - dcol1[bi] * acol[bi]) * divided[bi]))
+                vec_t correction_term = -as * (ustage2 - ustage1);
+                dcol0 = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
 
-                VL((datacoll[bi] = dcol0[bi]))
-                VL((utensstage[idx] = dtr_stage * (datacoll[bi] - upos[idx])))
+                vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
+                dcol0 = (dcol0 - dcol1 * acol) * divided;
+
+                datacoll = dcol0;
+                store(&utensstage[idx], dtr_stage * (datacoll - load(&upos[idx])));
             }
 
             for (index_t k = {{ blocked_domain[2] - 2 }}; k >= 0; --k) {
-                VL((datacoll[bi] = dcoll[k * {{ blocked_domain[3] }} + bi] - ccoll[k * {{ blocked_domain[3] }} + bi] * datacoll[bi]))
-                VL((utensstage[idx] = dtr_stage * (datacoll[bi] - upos[idx])))
+                index_t idx = index(i, j, k);
+
+                datacoll = dcoll[k] - ccoll[k] * datacoll;
+                store(&utensstage[idx], dtr_stage * (datacoll - load(&upos[idx])));
             }
         }
     }
