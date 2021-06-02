@@ -40,9 +40,6 @@ constexpr {{ ctype }} beta_v = 0;
 constexpr {{ ctype }} bet_m = 0.5 * (1.0 - beta_v);
 constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
 
-#define VD(name) {{ ctype }} name[{{ blocked_domain[3] }}];
-#define VL(stmt) _Pragma("omp simd") for (index_t bi = 0; bi < {{ blocked_domain[3] }}; ++bi) { const index_t idx = index<0, 0, 0>(i, j, k, bi); stmt; } 
-
 #pragma omp parallel
 {
     {{ ctype }} ccoll[{{ blocked_domain[2] * blocked_domain[3] }}];
@@ -68,8 +65,11 @@ constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
             {
                 index_t k = 0;
 
-                VL((wcon_shift0[bi] = wcon[index<1, 0, 1>(i, j, k, bi)]))
-                VL((wcon0[bi] = wcon[index<0, 0, 1>(i, j, k, bi)]))
+                VD(wcon_shift0_hi)
+                VL((wcon0[bi] = wcon[idx + {{ blocked_strides[2] }}]))
+                VL((wcon_shift0_hi[bi] = wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]))
+                VL((wcon_shift0[bi] = (bi == {{ blocked_domain[3] - 1 }}) ? wcon_shift0_hi[0] : wcon0[bi + 1]))
+
                 VD(gcv)
                 VL((gcv[bi] = {{ ctype }}(0.25) * (wcon_shift0[bi] + wcon0[bi])))
                 VD(cs)
@@ -79,7 +79,7 @@ constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
                 VD(bcol)
                 VL((bcol[bi] = dtr_stage - ccol0[bi]))
 
-                VL((ustage0[bi] = ustage[index<0, 0, 1>(i, j, k, bi)]))
+                VL((ustage0[bi] = ustage[idx + {{ blocked_strides[2] }}]))
                 VL((ustage1[bi] = ustage[idx]))
                 VD(correction_term)
                 VL((correction_term[bi] = -cs[bi] * (ustage0[bi] - ustage1[bi])))
@@ -103,10 +103,13 @@ constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
                 VL((wcon1[bi] = wcon0[bi]))
                 VL((wcon_shift1[bi] = wcon_shift0[bi]))
 
+                VD(wcon_shift0_hi)
+                VL((wcon0[bi] = wcon[idx + {{ blocked_strides[2] }}]))
+                VL((wcon_shift0_hi[bi] = wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]))
+                VL((wcon_shift0[bi] = (bi == {{ blocked_domain[3] - 1 }}) ? wcon_shift0_hi[0] : wcon0[bi + 1]))
+
                 VD(gav)
                 VL((gav[bi] = {{ ctype }}(-0.25) * (wcon_shift1[bi] + wcon1[bi])))
-                VL((wcon_shift0[bi] = wcon[index<1, 0, 1>(i, j, k, bi)]))
-                VL((wcon0[bi] = wcon[index<0, 0, 1>(i, j, k, bi)]))
                 VD(gcv)
                 VL((gcv[bi] = {{ ctype }}(0.25) * (wcon_shift0[bi] + wcon0[bi])))
 
@@ -121,7 +124,7 @@ constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
                 VD(bcol)
                 VL((bcol[bi] = dtr_stage - acol[bi] - ccol0[bi]))
 
-                VL((ustage0[bi] = ustage[index<0, 0, 1>(i, j, k, bi)]))
+                VL((ustage0[bi] = ustage[idx + {{ blocked_strides[2] }}]))
                 VD(correction_term)
                 VL((correction_term[bi] = -as[bi] * (ustage2[bi] - ustage1[bi]) - cs[bi] * (ustage0[bi] - ustage1[bi])))
                 VL((dcol0[bi] = dtr_stage * upos[idx] + utens[idx] + utensstage[idx] + correction_term[bi]))
