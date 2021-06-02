@@ -211,7 +211,8 @@ class LaplacianStencil(BasicStencil):
 
     def setup(self):
         super().setup()
-        if any(h < 1 for h in self.halo[:2]):
+        along_axes = (self.along_x, self.along_y, self.along_z)
+        if any(h < 1 for h, a in zip(self.halo, a) if a):
             raise ParameterError(f'positive horizontal halo size required '
                                  f'(given halo: {self.halo})')
 
