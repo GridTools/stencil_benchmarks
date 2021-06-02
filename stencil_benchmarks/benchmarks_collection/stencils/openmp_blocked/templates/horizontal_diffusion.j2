@@ -65,11 +65,19 @@ for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
             VD(inp_im1j)
             VL((inp_im1j[bi] = bi == 0 ? inp_imbj[{{ blocked_domain[3] - 1 }}] : inp_ij[bi - 1]))
             VD(inp_im2j)
+            {%- if blocked_domain[3] == 1 -%}
+            VL((inp_im2j[bi] = inp[idx - {{ 2 * blocked_strides[0] }}]))
+            {%- else -%}
             VL((inp_im2j[bi] = bi < 2 ? inp_imbj[bi + {{ blocked_domain[3] - 2 }}] : inp_ij[bi - 2]))
+            {%- endif -%}
             VD(inp_ip1j)
             VL((inp_ip1j[bi] = bi == {{ blocked_domain[3] - 1 }} ? inp_ipbj[0] : inp_ij[bi + 1]))
             VD(inp_ip2j)
+            {%- if blocked_domain[3] == 1 -%}
+            VL((inp_ip2j[bi] = inp[idx + {{ 2 * blocked_strides[0] }}]))
+            {%- else -%}
             VL((inp_ip2j[bi] = bi >= {{ blocked_domain[3] - 2 }} ? inp_ipbj[bi - {{ blocked_domain[3] - 2 }}] : inp_ij[bi + 2]))
+            {%- endif -%}
             VD(inp_im1jm1)
             VL((inp_im1jm1[bi] = bi == 0 ? inp_imbjm1[{{ blocked_domain[3] - 1 }}] : inp_ijm1[bi - 1]))
             VD(inp_im1jp1)
