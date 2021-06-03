@@ -80,8 +80,17 @@ class StencilMixin(mixin.StencilMixin):
 
     @property
     def blocked_strides(self):
-        return tuple(s * self.storage_block_size if l >= self.layout[0] else s
-                     for s, l in zip(self.strides, self.layout)) + (1, )
+        strides_product = self.dtype_size
+        strides = [0, 0, 0, 0]
+        for layout_value in range(3, -1, -1):
+            dimension = self.blocked_layout.index(layout_value)
+            strides[dimension] = strides_product
+            strides_product *= self.blocked_domain_with_halo[dimension]
+            if layout_value == 3 and self.alignment:
+                strides_product = (strides_product + self.alignment -
+                                   1) // self.alignment * self.alignment
+        assert all(s % self.dtype_size == 0 for s in strides)
+        return tuple(s // self.dtype_size for s in strides)
 
     @contextlib.contextmanager
     def blocked(self, data):
