@@ -32,12 +32,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import ctypes
 from typing import Any, Callable, Optional, Tuple, Union
+import warnings
 
 import numpy as np
 
 from .alloc import l1_dcache_assoc, l1_dcache_linesize, l1_dcache_size, malloc
 
-_offset: int = l1_dcache_linesize()
+_offset: int = 0
 
 
 def alloc_array(shape: Tuple[int, ...],
@@ -133,22 +134,30 @@ def alloc_array(shape: Tuple[int, ...],
             strides_product = (strides_product + alignment -
                                1) // alignment * alignment
 
-    global _offset
-    buffer = alloc(strides_product + alignment + _offset)
+    if apply_offset:
+        global _offset
+        cache_size = l1_dcache_size()
+        cache_assoc = l1_dcache_assoc()
+        if not cache_size:
+            warnings.warn('could not determine L1 cache size, assuming 32kiB')
+            cache_size = 32 * 1024
+        if not cache_assoc:
+            warnings.warn('could not determine L1 cache associativity')
+            cache_assoc = 1
+        offset_factor = max(l1_dcache_linesize(), alignment)
+        assert offset_factor > 0
+        offset = (offset_factor * _offset) % (cache_size // cache_assoc)
+        _offset += 1
+    else:
+        offset = 0
+    buffer = alloc(strides_product + alignment + offset)
     if alignment:
         pointer_to_align = ctypes.addressof(
             ctypes.c_char.from_buffer(buffer)) + np.sum(
-                np.array(strides) * np.array(index_to_align))
+                np.array(strides) * np.array(index_to_align)) + offset
         aligned_pointer = (pointer_to_align + alignment -
                            1) // alignment * alignment
         offset = aligned_pointer - pointer_to_align
-    else:
-        offset = 0
-    if apply_offset:
-        offset += _offset
-        _offset *= 2
-        if _offset >= l1_dcache_size() / max(l1_dcache_assoc(), 1):
-            _offset = l1_dcache_linesize()
     return np.ndarray(shape=shape,
                       dtype=dtype,
                       buffer=buffer,
