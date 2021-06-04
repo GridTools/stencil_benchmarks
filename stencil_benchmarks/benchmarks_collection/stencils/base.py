@@ -53,7 +53,9 @@ class Stencil(Benchmark):
     layout = Parameter('data layout, 2 means innermost dimension, 0 outermost',
                        (2, 1, 0))
     alignment = Parameter('data alignment in bytes', 0)
-    huge_pages = Parameter('use huge pages', False)
+    huge_pages = Parameter('use huge pages',
+                           'none',
+                           choices=['none', 'transparent', 'explicit'])
     offset_allocations = Parameter(
         'offset allocated data by some bytes to minimize cache conflicts',
         False)
@@ -82,14 +84,19 @@ class Stencil(Benchmark):
         self._run = 0
 
     def alloc_field(self, domain_with_halo, layout, index_to_align):
-        return array.alloc_array(
-            domain_with_halo,
-            self.dtype,
-            layout,
-            self.alignment,
-            index_to_align=index_to_align,
-            alloc=lambda nbytes: alloc.mmap(nbytes, self.huge_pages),
-            apply_offset=self.offset_allocations)
+        def allocate(nbytes):
+            if self.huge_pages == 'none':
+                return alloc.alloc_smallpages(nbytes)
+            return alloc.alloc_hugepages(nbytes,
+                                         self.huge_pages == 'transparent')
+
+        return array.alloc_array(domain_with_halo,
+                                 self.dtype,
+                                 layout,
+                                 self.alignment,
+                                 index_to_align=index_to_align,
+                                 alloc=allocate,
+                                 apply_offset=self.offset_allocations)
 
     def empty_field(self):
         return self.alloc_field(self.domain_with_halo, self.layout, self.halo)

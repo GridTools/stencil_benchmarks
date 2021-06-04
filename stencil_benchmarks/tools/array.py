@@ -32,13 +32,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import ctypes
 from typing import Any, Callable, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 
-from .alloc import l1_dcache_assoc, l1_dcache_linesize, l1_dcache_size, malloc
+from .alloc import alloc_smallpages, l1_dcache_linesize, l1_dcache_sets
 
 _offset: int = 0
+
+
+def _ilog2(i):
+    log = 0
+    i = i >> 1
+    while i:
+        log += 1
+        i = i >> 1
+    return log
 
 
 def alloc_array(shape: Tuple[int, ...],
@@ -114,7 +122,7 @@ def alloc_array(shape: Tuple[int, ...],
     layout = tuple(layout)
     alignment = int(alignment)
     index_to_align = (0, ) * ndim if index_to_align is None else index_to_align
-    alloc = malloc if alloc is None else alloc
+    alloc = alloc_smallpages if alloc is None else alloc
 
     if tuple(sorted(layout)) != tuple(range(ndim)):
         raise ValueError('invalid layout specification')
@@ -136,17 +144,7 @@ def alloc_array(shape: Tuple[int, ...],
 
     if apply_offset:
         global _offset
-        cache_size = l1_dcache_size()
-        cache_assoc = l1_dcache_assoc()
-        if not cache_size:
-            warnings.warn('could not determine L1 cache size, assuming 32kiB')
-            cache_size = 32 * 1024
-        if not cache_assoc:
-            warnings.warn('could not determine L1 cache associativity')
-            cache_assoc = 1
-        offset_factor = max(l1_dcache_linesize(), alignment)
-        assert offset_factor > 0
-        offset = (offset_factor * _offset) % (cache_size // cache_assoc)
+        offset = (_offset % l1_dcache_sets()) << _ilog2(l1_dcache_linesize())
         _offset += 1
     else:
         offset = 0

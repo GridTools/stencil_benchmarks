@@ -35,10 +35,10 @@ import unittest
 from stencil_benchmarks.tools import alloc
 
 
-class TestMalloc(unittest.TestCase):
-    def test_malloc(self):
+class TestAllocSmallpages(unittest.TestCase):
+    def test_alloc_smallpages(self):
         size = 10000
-        buffer = memoryview(alloc.malloc(size * 4)).cast('i')
+        buffer = memoryview(alloc.alloc_smallpages(size * 4)).cast('i')
         for i in range(size):
             buffer[i] = 42 * i
 
@@ -46,10 +46,10 @@ class TestMalloc(unittest.TestCase):
             self.assertEqual(buffer[i], 42 * i)
 
 
-class TestMmap(unittest.TestCase):
-    def test_malloc(self):
+class TestAllocHugepages(unittest.TestCase):
+    def test_alloc_hugepages(self):
         size = 10000
-        buffer = memoryview(alloc.mmap(size * 4, False)).cast('i')
+        buffer = memoryview(alloc.alloc_hugepages(size * 4, True)).cast('i')
         for i in range(size):
             buffer[i] = 42 * i
 
@@ -58,11 +58,8 @@ class TestMmap(unittest.TestCase):
 
 
 class TestCacheFunctions(unittest.TestCase):
-    def test_l1_dcache_assoc(self):
-        self.assertGreaterEqual(alloc.l1_dcache_assoc(), 1)
-
     def test_l1_dcache_linesize(self):
         self.assertGreaterEqual(alloc.l1_dcache_linesize(), 4)
 
-    def test_l1_dcache_size(self):
-        self.assertGreaterEqual(alloc.l1_dcache_size(), 0)
+    def test_l1_dcache_sets(self):
+        self.assertGreaterEqual(alloc.l1_dcache_sets(), 0)

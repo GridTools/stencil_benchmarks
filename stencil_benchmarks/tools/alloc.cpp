@@ -30,14 +30,16 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 // SPDX-License-Identifier: BSD-3-Clause
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <memory>
-#include <regex>
 #include <string>
 
+#include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <pybind11/pybind11.h>
@@ -45,11 +47,65 @@
 namespace py = pybind11;
 
 namespace {
+inline std::size_t get_sysinfo(const char *info, std::size_t default_value) {
+  int fd = open(info, O_RDONLY);
+  if (fd != -1) {
+    char buffer[16];
+    auto size = read(fd, buffer, sizeof(buffer));
+    if (size > 0)
+      default_value = std::atoll(buffer);
+    close(fd);
+  }
+  return default_value;
+}
 
-struct malloc_buffer {
-  malloc_buffer(std::size_t size) : data(std::malloc(size)), size(size) {
-    if (!data)
+inline std::size_t get_meminfo(const char *pattern, std::size_t default_value) {
+  auto *fp = std::fopen("/proc/meminfo", "r");
+  if (fp) {
+    char *line = nullptr;
+    size_t line_length;
+    while (getline(&line, &line_length, fp) != -1) {
+      if (std::sscanf(line, pattern, &default_value) == 1)
+        break;
+    }
+    free(line);
+    std::fclose(fp);
+  }
+  return default_value;
+}
+
+inline std::size_t l1_dcache_linesize() {
+  static const std::size_t value = get_sysinfo(
+      "/sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size", 64);
+  return value;
+}
+
+inline std::size_t l1_dcache_sets() {
+  static const std::size_t value = get_sysinfo(
+      "/sys/devices/system/cpu/cpu0/cache/index0/number_of_sets", 64);
+  return value;
+}
+
+inline std::size_t page_size() {
+  static const std::size_t value = sysconf(_SC_PAGESIZE);
+  return value;
+}
+
+inline std::size_t hugepage_size() {
+  static const std::size_t value =
+      get_meminfo("Hugepagesize: %lu kB", 2 * 1024) * 1024;
+  return value;
+}
+
+struct smallpage_buffer {
+  smallpage_buffer(std::size_t size) : size(size) {
+    std::size_t paged_size =
+        ((size + page_size() - 1) / page_size()) * page_size();
+    void *ptr;
+    if (posix_memalign(&ptr, page_size(), paged_size))
       throw std::bad_alloc();
+    madvise(ptr, paged_size, MADV_NOHUGEPAGE);
+    data.reset(ptr);
   }
 
   std::unique_ptr<void, std::integral_constant<decltype(&std::free), std::free>>
@@ -57,22 +113,8 @@ struct malloc_buffer {
   std::size_t size;
 };
 
-std::size_t get_huge_page_size() {
-  std::ifstream meminfo("/proc/meminfo");
-  std::regex hugepagesize_regex("Hugepagesize: *([0-9]+) kB$");
-
-  std::string line;
-  while (std::getline(meminfo, line)) {
-    std::smatch match;
-    if (std::regex_match(line, match, hugepagesize_regex))
-      return std::stoll(match[1].str()) * 1024;
-  }
-  return 0;
-}
-
 struct mmap_deleter {
   void operator()(void *ptr) const {
-    auto paged_size = (size + page_size - 1) / page_size * page_size;
     if (munmap(ptr, paged_size)) {
       auto err = errno;
       throw std::runtime_error(std::string("munmap failed with error ") +
@@ -80,58 +122,47 @@ struct mmap_deleter {
     }
   }
 
-  std::size_t size = 0;
-  std::size_t page_size;
+  std::size_t paged_size;
 };
 
-struct mmap_buffer {
-  mmap_buffer(std::size_t size, bool huge_pages) {
-    static const std::size_t huge_page_size = get_huge_page_size();
-    static const std::size_t normal_page_size = sysconf(_SC_PAGESIZE);
+struct hugepage_buffer {
+  hugepage_buffer(std::size_t size, bool transparent) : size(size) {
+    std::size_t paged_size =
+        ((size + hugepage_size() - 1) / hugepage_size()) * hugepage_size();
     auto flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
-    std::size_t page_size = normal_page_size;
-    if (huge_pages) {
-      if (!huge_page_size)
-        throw std::runtime_error("could not get huge page size");
+    if (!transparent)
       flags |= MAP_HUGETLB;
-      page_size = huge_page_size;
-    }
-    void *ptr = mmap(0, size, PROT_READ | PROT_WRITE, flags, -1, 0);
-    if (ptr == MAP_FAILED) {
-      auto err = errno;
-      throw std::runtime_error(std::string("mmap failed with error ") +
-                               strerror(err));
-    }
-    data =
-        std::unique_ptr<void, mmap_deleter>(ptr, mmap_deleter{size, page_size});
+    void *ptr = mmap(nullptr, paged_size, PROT_READ | PROT_WRITE, flags, -1, 0);
+    if (ptr == MAP_FAILED)
+      throw std::bad_alloc();
+    if (transparent)
+      madvise(ptr, paged_size, MADV_HUGEPAGE);
+    data = std::unique_ptr<void, mmap_deleter>(ptr, mmap_deleter{paged_size});
   }
 
   std::unique_ptr<void, mmap_deleter> data;
+  std::size_t size;
 };
 
 } // namespace
 
 PYBIND11_MODULE(alloc, m) {
-  py::class_<malloc_buffer>(m, "malloc", py::buffer_protocol())
+  py::class_<smallpage_buffer>(m, "alloc_smallpages", py::buffer_protocol())
       .def(py::init<std::size_t>())
-      .def_buffer([](malloc_buffer &mb) {
+      .def_buffer([](smallpage_buffer &mb) {
         return py::buffer_info(mb.data.get(), 1,
                                py::format_descriptor<char>::format(), 1,
                                {mb.size}, {1});
       });
 
-  py::class_<mmap_buffer>(m, "mmap", py::buffer_protocol())
+  py::class_<hugepage_buffer>(m, "alloc_hugepages", py::buffer_protocol())
       .def(py::init<std::size_t, bool>())
-      .def_buffer([](mmap_buffer &mb) {
+      .def_buffer([](hugepage_buffer &mb) {
         return py::buffer_info(mb.data.get(), 1,
                                py::format_descriptor<char>::format(), 1,
-                               {mb.data.get_deleter().size}, {1});
+                               {mb.size}, {1});
       });
 
-  m.def("l1_dcache_size", []() { return sysconf(_SC_LEVEL1_DCACHE_SIZE); });
-
-  m.def("l1_dcache_linesize",
-        []() { return sysconf(_SC_LEVEL1_DCACHE_LINESIZE); });
-
-  m.def("l1_dcache_assoc", []() { return sysconf(_SC_LEVEL1_DCACHE_ASSOC); });
+  m.def("l1_dcache_linesize", l1_dcache_linesize);
+  m.def("l1_dcache_sets", l1_dcache_sets);
 }

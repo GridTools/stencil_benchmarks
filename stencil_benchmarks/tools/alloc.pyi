@@ -30,15 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-def malloc(size: int):
+def alloc_smallpages(size: int):
     ...
 
 
-def mmap(size: int):
-    ...
-
-
-def l1_dcache_size() -> int:
+def alloc_hugepages(size: int, transparent: bool):
     ...
 
 
@@ -46,5 +42,5 @@ def l1_dcache_linesize() -> int:
     ...
 
 
-def l1_dcache_assoc() -> int:
+def l1_dcache_sets() -> int:
     ...
