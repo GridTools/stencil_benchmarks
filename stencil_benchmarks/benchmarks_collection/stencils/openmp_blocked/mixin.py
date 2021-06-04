@@ -75,13 +75,15 @@ class StencilMixin(mixin.StencilMixin):
         return self.layout + (3, )
 
     @property
-    def blocked_domain_with_halo(self):
-        blocked_domain = np.array(self.blocked_domain)
+    def blocked_halo(self):
         assert self.halo[0] % self.storage_block_size == 0
-        blocked_domain[0] += 2 * self.halo[0] // self.storage_block_size
-        blocked_domain[1] += 2 * self.halo[1]
-        blocked_domain[2] += 2 * self.halo[2]
-        return tuple(blocked_domain)
+        return (self.halo[0] // self.storage_block_size, self.halo[1],
+                self.halo[2], 0)
+
+    @property
+    def blocked_domain_with_halo(self):
+        return tuple(d + 2 * h
+                     for d, h in zip(self.blocked_domain, self.blocked_halo))
 
     @property
     def blocked_strides(self):
@@ -110,7 +112,7 @@ class StencilMixin(mixin.StencilMixin):
             data, self.blocked_domain_with_halo, blocked_strides)
 
         blocked_data = self.alloc_field(self.blocked_domain_with_halo,
-                                        self.blocked_layout, self.halo + (0, ))
+                                        self.blocked_layout, self.blocked_halo)
         assert blocked_data.strides == tuple(s * blocked_data.itemsize
                                              for s in self.blocked_strides)
         blocked_data[...] = blocked_view
@@ -118,10 +120,7 @@ class StencilMixin(mixin.StencilMixin):
         blocked_view[...] = blocked_data
 
     def data_ptr(self, data):
-        assert self.halo[0] % self.storage_block_size == 0
-        offset = (self.halo[0] // self.storage_block_size, self.halo[1],
-                  self.halo[2], 0)
-        return compilation.data_ptr(data, offset)
+        return compilation.data_ptr(data, self.blocked_halo)
 
     def run_stencil(self, data):
         with contextlib.ExitStack() as stack:
