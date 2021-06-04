@@ -36,8 +36,8 @@ SPDX-License-Identifier: BSD-3-Clause
 
 {% block kernel_invoke %}
 #pragma omp parallel for collapse(3)
-    for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
-        for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
+    for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
+        for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
             for (index_t k = 0; k < {{ blocked_domain[2] }}; ++k) {
                 index_t idx = index(i, j, k);
                 {{ body }}

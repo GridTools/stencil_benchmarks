@@ -47,7 +47,6 @@ using index_t = std::int32_t;
 using index_t = std::int64_t;
 {%- endif %}
 
-{%- set vector_size = blocked_domain[3] -%}
 {%- if vector_size is defined %}
   using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
   using ivec_t = index_t __attribute__((vector_size({{ vector_size }} * sizeof(index_t))));

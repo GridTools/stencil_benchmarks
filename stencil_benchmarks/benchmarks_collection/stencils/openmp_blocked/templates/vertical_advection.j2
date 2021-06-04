@@ -42,117 +42,137 @@ constexpr {{ ctype }} bet_p = 0.5 * (1.0 + beta_v);
 
 #pragma omp parallel
 {
-    vec_t ccoll[{{ blocked_domain[2] }}];
-    vec_t dcoll[{{ blocked_domain[2] }}];
+    {%- set n = blocked_domain[3] // vector_size -%} 
+    vec_t ccoll[{{ blocked_domain[2] }}][{{ n }}];
+    vec_t dcoll[{{ blocked_domain[2] }}][{{ n }}];
 
 #pragma omp for collapse(2)
-    for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
-        for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
-             vec_t ccol0, ccol1; 
-             vec_t dcol0, dcol1;
-             vec_t ustage0, ustage1, ustage2;
-             vec_t wcon0, wcon1;
-             vec_t wcon_shift0, wcon_shift1;
-             vec_t datacoll;
+    for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
+        for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
+            vec_t ccol0[{{ n }}], ccol1[{{ n }}]; 
+            vec_t dcol0[{{ n }}], dcol1[{{ n }}];
+            vec_t ustage0[{{ n }}], ustage1[{{ n }}], ustage2[{{ n }}];
+            vec_t wcon0[{{ n }}], wcon1[{{ n }}];
+            vec_t wcon_shift0[{{ n }}], wcon_shift1[{{ n }}];
+            vec_t datacoll[{{ n }}];
 
             // k minimum
             {
                 index_t k = 0;
-                index_t idx = index(i, j, k);
+                for (index_t v = 0; v < {{ n }}; ++v) {
+                    index_t idx = index(i, j, k) + v * {{ vector_size }};
 
-                wcon0 = load(&wcon[idx + {{ blocked_strides[2] }}]);
-                vec_t wcon_shift0_hi = load(&wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]);
-                wcon_shift0 = shuffle(wcon0, wcon_shift0_hi{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
+                    wcon0[v] = load(&wcon[idx + {{ blocked_strides[2] }}]);
+                    vec_t wcon_shift0_hi;
+                    if (v == {{ n - 1 }}) {
+                        wcon_shift0_hi = load(&wcon[index(i, j, k) + {{ blocked_strides[0] + blocked_strides[2] }}]);
+                    } else {
+                        wcon_shift0_hi = load(&wcon[idx + {{ vector_size + blocked_strides[2] }}]);
+                    }
 
-                vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
-                vec_t cs = gcv * bet_m;
+                    wcon_shift0[v] = shuffle(wcon0[v], wcon_shift0_hi{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
 
-                ccol0 = gcv * bet_p;
-                vec_t bcol = dtr_stage - ccol0;
+                    vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0[v] + wcon0[v]);
+                    vec_t cs = gcv * bet_m;
 
-                ustage0 = load(&ustage[idx + {{ blocked_strides[2] }}]);
-                ustage1 = load(&ustage[idx]);
-                vec_t correction_term = -cs * (ustage0 - ustage1);
-                dcol0 = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
+                    ccol0[v] = gcv * bet_p;
+                    vec_t bcol = dtr_stage - ccol0[v];
 
-                vec_t divided = {{ ctype }}(1.0) / bcol;
-                ccol0 = ccol0 * divided;
-                dcol0 = dcol0 * divided;
+                    ustage0[v] = load(&ustage[idx + {{ blocked_strides[2] }}]);
+                    ustage1[v] = load(&ustage[idx]);
+                    vec_t correction_term = -cs * (ustage0[v] - ustage1[v]);
+                    dcol0[v] = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
 
-                ccoll[k] = ccol0;
-                dcoll[k] = dcol0;
+                    vec_t divided = {{ ctype }}(1.0) / bcol;
+                    ccol0[v] = ccol0[v] * divided;
+                    dcol0[v] = dcol0[v] * divided;
+
+                    ccoll[k][v] = ccol0[v];
+                    dcoll[k][v] = dcol0[v];
+                }
             }
 
             // k body
             for (index_t k = 1; k < {{ blocked_domain[2] }} - 1; ++k) {
-                index_t idx = index(i, j, k);
+                for (index_t v = 0; v < {{ n }}; ++v) {
+                    index_t idx = index(i, j, k) + v * {{ vector_size }};
 
-                ccol1 = ccol0;
-                dcol1 = dcol0;
-                ustage2 = ustage1;
-                ustage1 = ustage0;
-                wcon1 = wcon0;
-                wcon_shift1 = wcon_shift0;
+                    ccol1[v] = ccol0[v];
+                    dcol1[v] = dcol0[v];
+                    ustage2[v] = ustage1[v];
+                    ustage1[v] = ustage0[v];
+                    wcon1[v] = wcon0[v];
+                    wcon_shift1[v] = wcon_shift0[v];
 
-                wcon0 = load(&wcon[idx + {{ blocked_strides[2] }}]);
-                vec_t wcon_shift0_hi = load(&wcon[idx + {{ blocked_strides[0] + blocked_strides[2] }}]);
-                wcon_shift0 = shuffle(wcon0, wcon_shift0_hi{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
+                    wcon0[v] = load(&wcon[idx + {{ blocked_strides[2] }}]);
+                    vec_t wcon_shift0_hi;
+                    if (v == {{ n - 1 }}) {
+                        wcon_shift0_hi = load(&wcon[index(i, j, k) + {{ blocked_strides[0] + blocked_strides[2] }}]);
+                    } else {
+                        wcon_shift0_hi = load(&wcon[idx + {{ vector_size + blocked_strides[2] }}]);
+                    }
+                    wcon_shift0[v] = shuffle(wcon0[v], wcon_shift0_hi{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
 
-                vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
-                vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0 + wcon0);
+                    vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1[v] + wcon1[v]);
+                    vec_t gcv = {{ ctype }}(0.25) * (wcon_shift0[v] + wcon0[v]);
 
-                vec_t as = gav * bet_m;
-                vec_t cs = gcv * bet_m;
+                    vec_t as = gav * bet_m;
+                    vec_t cs = gcv * bet_m;
 
-                vec_t acol = gav * bet_p;
-                ccol0 = gcv * bet_p;
-                vec_t bcol = dtr_stage - acol - ccol0;
+                    vec_t acol = gav * bet_p;
+                    ccol0[v] = gcv * bet_p;
+                    vec_t bcol = dtr_stage - acol - ccol0[v];
 
-                ustage0 = load(&ustage[idx + {{ blocked_strides[2] }}]);
-                vec_t correction_term = -as * (ustage2 - ustage1) - cs * (ustage0 - ustage1);
-                dcol0 = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
+                    ustage0[v] = load(&ustage[idx + {{ blocked_strides[2] }}]);
+                    vec_t correction_term = -as * (ustage2[v] - ustage1[v]) - cs * (ustage0[v] - ustage1[v]);
+                    dcol0[v] = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
 
-                vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
-                ccol0 = ccol0 * divided;
-                dcol0 = (dcol0 - dcol1 * acol) * divided;
+                    vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1[v] * acol);
+                    ccol0[v] = ccol0[v] * divided;
+                    dcol0[v] = (dcol0[v] - dcol1[v] * acol) * divided;
 
-                ccoll[k] = ccol0;
-                dcoll[k] = dcol0;
+                    ccoll[k][v] = ccol0[v];
+                    dcoll[k][v] = dcol0[v];
+                }
             }
             // k maximum
             {
                 index_t k = {{ blocked_domain[2] - 1 }};
-                index_t idx = index(i, j, k);
+                for (index_t v = 0; v < {{ n }}; ++v) {
+                    index_t idx = index(i, j, k) + v * {{ vector_size }};
 
-                ccol1 = ccol0;
-                dcol1 = dcol0;
-                ustage2 = ustage1;
-                ustage1 = ustage0;
-                wcon1 = wcon0;
-                wcon_shift1 = wcon_shift0;
+                    ccol1[v] = ccol0[v];
+                    dcol1[v] = dcol0[v];
+                    ustage2[v] = ustage1[v];
+                    ustage1[v] = ustage0[v];
+                    wcon1[v] = wcon0[v];
+                    wcon_shift1[v] = wcon_shift0[v];
 
-                vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1 + wcon1);
+                    vec_t gav = {{ ctype }}(-0.25) * (wcon_shift1[v] + wcon1[v]);
 
-                vec_t as = gav * bet_m;
+                    vec_t as = gav * bet_m;
 
-                vec_t acol = gav * bet_p;
-                vec_t bcol = dtr_stage - acol;
+                    vec_t acol = gav * bet_p;
+                    vec_t bcol = dtr_stage - acol;
 
-                vec_t correction_term = -as * (ustage2 - ustage1);
-                dcol0 = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
+                    vec_t correction_term = -as * (ustage2[v] - ustage1[v]);
+                    dcol0[v] = dtr_stage * load(&upos[idx]) + load(&utens[idx]) + load(&utensstage[idx]) + correction_term;
 
-                vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1 * acol);
-                dcol0 = (dcol0 - dcol1 * acol) * divided;
+                    vec_t divided = {{ ctype }}(1.0) / (bcol - ccol1[v] * acol);
+                    dcol0[v] = (dcol0[v] - dcol1[v] * acol) * divided;
 
-                datacoll = dcol0;
-                store(&utensstage[idx], dtr_stage * (datacoll - load(&upos[idx])));
+                    datacoll[v] = dcol0[v];
+                    store(&utensstage[idx], dtr_stage * (datacoll[v] - load(&upos[idx])));
+                }
             }
 
             for (index_t k = {{ blocked_domain[2] - 2 }}; k >= 0; --k) {
-                index_t idx = index(i, j, k);
+                for (index_t v = 0; v < {{ n }}; ++v) {
+                    index_t idx = index(i, j, k) + v * {{ vector_size }};
 
-                datacoll = dcoll[k] - ccoll[k] * datacoll;
-                store(&utensstage[idx], dtr_stage * (datacoll - load(&upos[idx])));
+                    datacoll[v] = dcoll[k][v] - ccoll[k][v] * datacoll[v];
+                    store(&utensstage[idx], dtr_stage * (datacoll[v] - load(&upos[idx])));
+                }
             }
         }
     }

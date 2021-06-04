@@ -43,9 +43,14 @@ from ..openmp import mixin
 
 class StencilMixin(mixin.StencilMixin):
     storage_block_size = Parameter('storage block width', 1)
+    vector_size = Parameter('vector size', 1)
 
     def setup(self):
         super().setup()
+
+        if self.storage_block_size % self.vector_size != 0:
+            raise ParameterError(
+                'storage block size must be divisible by vector size')
 
         if (self.halo[0] % self.storage_block_size != 0
                 or self.domain[0] % self.storage_block_size != 0):
@@ -123,22 +128,9 @@ class StencilMixin(mixin.StencilMixin):
             blocked_data = [stack.enter_context(self.blocked(d)) for d in data]
             return super().run_stencil(blocked_data)
 
-    def bit_indexing_mask(self):
-        masks = []
-        for axis in (0, 3):
-            stride = self.blocked_strides[axis]
-            layout = self.blocked_layout[axis]
-            try:
-                next_axis = self.blocked_layout.index(layout - 1)
-                next_stride = self.blocked_strides[next_axis]
-            except ValueError:
-                next_stride = 2**(self.dtype_size * 8)
-            masks.append((next_stride - 1) ^ (stride - 1))
-        return f'0x{masks[0] | masks[1]:0x}'
-
     def template_args(self):
         return dict(**super().template_args(),
                     storage_block_size=self.storage_block_size,
+                    vector_size=self.vector_size,
                     blocked_domain=self.blocked_domain,
-                    blocked_strides=self.blocked_strides,
-                    bit_indexing_mask=self.bit_indexing_mask())
+                    blocked_strides=self.blocked_strides)

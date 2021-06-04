@@ -36,75 +36,95 @@ SPDX-License-Identifier: BSD-3-Clause
 
 {% block kernel_invoke %}
 #pragma omp parallel for collapse(3)
-for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
-    for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
+for (index_t i = 0; i < {{ blocked_domain[0] }}; ++i) {
+    for (index_t j = 0; j < {{ blocked_domain[1] }}; ++j) {
         for (index_t k = 0; k < {{ blocked_domain[2] }}; ++k) {
             index_t idx = index(i, j, k);
-            vec_t inp_ij = load(&inp[idx]);
-            vec_t inp_imbj = load(&inp[idx - {{ blocked_strides[0] }}]);
-            vec_t inp_ipbj = load(&inp[idx + {{ blocked_strides[0] }}]);
-            vec_t inp_imbjm1 = load(&inp[idx - {{ blocked_strides[0] + blocked_strides[1] }}]);
-            vec_t inp_ipbjm1 = load(&inp[idx + {{ blocked_strides[0] - blocked_strides[1] }}]);
-            vec_t inp_imbjp1 = load(&inp[idx - {{ blocked_strides[0] - blocked_strides[1] }}]);
-            vec_t inp_ipbjp1 = load(&inp[idx + {{ blocked_strides[0] + blocked_strides[1] }}]);
-            vec_t inp_ijm2 = load(&inp[idx - {{ 2 * blocked_strides[1] }}]);
-            vec_t inp_ijm1 = load(&inp[idx - {{ blocked_strides[1] }}]);
-            vec_t inp_ijp1 = load(&inp[idx + {{ blocked_strides[1] }}]);
-            vec_t inp_ijp2 = load(&inp[idx + {{ 2 * blocked_strides[1] }}]);
-            vec_t coeff_ij = load(&coeff[idx]);
+            vec_t inp_imvj, inp_ij, inp_ipvj;
+            vec_t inp_imvjm1, inp_ijm1, inp_ipvjm1;
+            vec_t inp_imvjp1, inp_ijp1, inp_ipvjp1;
+            for (index_t v = 0; v < {{ blocked_domain[3] // vector_size }}; ++v) {
+                if (v == 0) {
+                    inp_ij = load(&inp[idx]);
+                    inp_imvj = load(&inp[idx - {{ blocked_strides[0] }} + {{ blocked_domain[3] - vector_size }}]);
+                    inp_ijm1 = load(&inp[idx - {{ blocked_strides[1] }}]);
+                    inp_imvjm1 = load(&inp[idx - {{ blocked_strides[0] + blocked_strides[1] }} + {{ blocked_domain[3] - vector_size }}]);
+                    inp_ijp1 = load(&inp[idx + {{ blocked_strides[1] }}]);
+                    inp_imvjp1 = load(&inp[idx - {{ blocked_strides[0] - blocked_strides[1] }} + {{ blocked_domain[3] - vector_size }}]);
+                } else {
+                    inp_imvj = inp_ij;
+                    inp_ij = inp_ipvj;
+                    inp_imvjm1 = inp_ijm1;
+                    inp_ijm1 = inp_ipvjm1;
+                    inp_imvjp1 = inp_ijp1;
+                    inp_ijp1 = inp_ipvjp1;
+                }
+                if (v == {{ blocked_domain[3] // vector_size - 1 }}) {
+                    inp_ipvj = load(&inp[idx + {{ blocked_strides[0] }}]);
+                    inp_ipvjm1 = load(&inp[idx + {{ blocked_strides[0] - blocked_strides[1] }}]);
+                    inp_ipvjp1 = load(&inp[idx + {{ blocked_strides[0] + blocked_strides[1] }}]);
+                } else {
+                    inp_ipvj = load(&inp[idx + (v + 1) * {{ vector_size }}]);
+                    inp_ipvjm1 = load(&inp[idx + (v + 1) * {{ vector_size }} - {{ blocked_strides[1] }}]);
+                    inp_ipvjp1 = load(&inp[idx + (v + 1) * {{ vector_size }} + {{ blocked_strides[1] }}]);
+                }
+                vec_t inp_ijm2 = load(&inp[idx + v * {{ vector_size }} - {{ 2 * blocked_strides[1] }}]);
+                vec_t inp_ijp2 = load(&inp[idx + v * {{ vector_size }} + {{ 2 * blocked_strides[1] }}]);
+                vec_t coeff_ij = load(&coeff[idx + v * {{ vector_size }}]);
 
-            vec_t inp_im1j = shuffle(inp_imbj, inp_ij{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
-            {%- if blocked_domain[3] == 1 -%}
-            vec_t inp_im2j = load(&inp[idx - {{ 2 * blocked_strides[0] }}]);
-            {%- else -%}
-            vec_t inp_im2j = shuffle(inp_imbj, inp_ij{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 2 }}{% endfor %});
-            {%- endif -%}
-            vec_t inp_ip1j = shuffle(inp_ij, inp_ipbj{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
-            {%- if blocked_domain[3] == 1 -%}
-            vec_t inp_ip2j = load(&inp[idx + {{ 2 * blocked_strides[0] }}]);
-            {%- else -%}
-            vec_t inp_ip2j = shuffle(inp_ij, inp_ipbj{% for m in range(vector_size) %}, {{ m + 2 }}{% endfor %});
-            {%- endif -%}
-            vec_t inp_im1jm1 = shuffle(inp_imbjm1, inp_ijm1{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
-            vec_t inp_im1jp1 = shuffle(inp_imbjp1, inp_ijp1{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
-            vec_t inp_ip1jm1 = shuffle(inp_ijm1, inp_ipbjm1{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
-            vec_t inp_ip1jp1 = shuffle(inp_ijp1, inp_ipbjp1{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
+                vec_t inp_im1j = shuffle(inp_imvj, inp_ij{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
+                {%- if blocked_domain[3] == 1 -%}
+                vec_t inp_im2j = load(&inp[idx - {{ 2 * blocked_strides[0] }}]);
+                {%- else -%}
+                vec_t inp_im2j = shuffle(inp_imvj, inp_ij{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 2 }}{% endfor %});
+                {%- endif -%}
+                vec_t inp_ip1j = shuffle(inp_ij, inp_ipvj{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
+                {%- if blocked_domain[3] == 1 -%}
+                vec_t inp_ip2j = load(&inp[idx + {{ 2 * blocked_strides[0] }}]);
+                {%- else -%}
+                vec_t inp_ip2j = shuffle(inp_ij, inp_ipvj{% for m in range(vector_size) %}, {{ m + 2 }}{% endfor %});
+                {%- endif -%}
+                vec_t inp_im1jm1 = shuffle(inp_imvjm1, inp_ijm1{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
+                vec_t inp_im1jp1 = shuffle(inp_imvjp1, inp_ijp1{% for m in range(vector_size, 2 * vector_size) %}, {{ m - 1 }}{% endfor %});
+                vec_t inp_ip1jm1 = shuffle(inp_ijm1, inp_ipvjm1{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
+                vec_t inp_ip1jp1 = shuffle(inp_ijp1, inp_ipvjp1{% for m in range(vector_size) %}, {{ m + 1 }}{% endfor %});
 
-            vec_t lap_ij = 4 * inp_ij - inp_im1j
-                                            - inp_ip1j
-                                            - inp_ijm1
-                                            - inp_ijp1;
-            vec_t lap_imj = 4 * inp_im1j - inp_im2j
-                                               - inp_ij
-                                               - inp_im1jm1
-                                               - inp_im1jp1;
-            vec_t lap_ipj = 4 * inp_ip1j - inp_ij
-                                               - inp_ip2j
-                                               - inp_ip1jm1
-                                               - inp_ip1jp1;
-            vec_t lap_ijm = 4 * inp_ijm1 - inp_im1jm1
-                                               - inp_ip1jm1
-                                               - inp_ijm2
-                                               - inp_ij;
-            vec_t lap_ijp = 4 * inp_ijp1 - inp_im1jp1
-                                               - inp_ip1jp1
-                                               - inp_ij
-                                               - inp_ijp2;
+                vec_t lap_ij = 4 * inp_ij - inp_im1j
+                                                - inp_ip1j
+                                                - inp_ijm1
+                                                - inp_ijp1;
+                vec_t lap_imj = 4 * inp_im1j - inp_im2j
+                                                   - inp_ij
+                                                   - inp_im1jm1
+                                                   - inp_im1jp1;
+                vec_t lap_ipj = 4 * inp_ip1j - inp_ij
+                                                   - inp_ip2j
+                                                   - inp_ip1jm1
+                                                   - inp_ip1jp1;
+                vec_t lap_ijm = 4 * inp_ijm1 - inp_im1jm1
+                                                   - inp_ip1jm1
+                                                   - inp_ijm2
+                                                   - inp_ij;
+                vec_t lap_ijp = 4 * inp_ijp1 - inp_im1jp1
+                                                   - inp_ip1jp1
+                                                   - inp_ij
+                                                   - inp_ijp2;
 
-            vec_t flx_ij = lap_ipj - lap_ij;
-            flx_ij = select(flx_ij * (inp_ip1j - inp_ij) > 0, 0, flx_ij);
+                vec_t flx_ij = lap_ipj - lap_ij;
+                flx_ij = select(flx_ij * (inp_ip1j - inp_ij) > 0, 0, flx_ij);
 
-            vec_t flx_imj = lap_ij - lap_imj;
-            flx_imj = select(flx_imj * (inp_ij - inp_im1j) > 0, 0, flx_imj);
+                vec_t flx_imj = lap_ij - lap_imj;
+                flx_imj = select(flx_imj * (inp_ij - inp_im1j) > 0, 0, flx_imj);
 
-            vec_t fly_ij = lap_ijp - lap_ij;
-            fly_ij = select(fly_ij * (inp_ijp1 - inp_ij) > 0, 0, fly_ij);
+                vec_t fly_ij = lap_ijp - lap_ij;
+                fly_ij = select(fly_ij * (inp_ijp1 - inp_ij) > 0, 0, fly_ij);
 
-            vec_t fly_ijm = lap_ij - lap_ijm;
-            fly_ijm = select(fly_ijm * (inp_ij - inp_ijm1) > 0, 0, fly_ijm);
+                vec_t fly_ijm = lap_ij - lap_ijm;
+                fly_ijm = select(fly_ijm * (inp_ij - inp_ijm1) > 0, 0, fly_ijm);
 
-            vec_t out_ij = inp_ij - coeff_ij * (flx_ij - flx_imj + fly_ij - fly_ijm);
-            storent(&out[idx], out_ij);
+                vec_t out_ij = inp_ij - coeff_ij * (flx_ij - flx_imj + fly_ij - fly_ijm);
+                storent(&out[idx + v * {{ vector_size }}], out_ij);
+            }
         }
     }
 }
