@@ -167,5 +167,5 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
             terms += ['inp_ijkm1', 'inp_ijkp1']
         code += (f'    storent(&out[idx + {o}], {len(terms)} * inp_ijk - (' +
                  ' + '.join(terms) + '));'
-                 f'}}\n')
+                 '}\n')
         return code
