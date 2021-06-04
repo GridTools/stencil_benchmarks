@@ -41,6 +41,6 @@ def return_time(func: Callable[..., None]) -> Callable[..., float]:
         start = time.perf_counter()
         func(*args, **kwargs)
         stop = time.perf_counter()
-        return stop - start
+        return dict(time=stop - start)
 
     return inner

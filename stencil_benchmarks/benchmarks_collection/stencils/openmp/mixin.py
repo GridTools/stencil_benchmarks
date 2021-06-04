@@ -50,6 +50,10 @@ class StencilMixin(Benchmark):
     streaming_stores = Parameter(
         'enable streaming/non-temporal store instructions '
         '(only supported by some implementations)', False)
+    perf_counter = Parameter(
+        'perf performance counter in the form type:config, where valid values '
+        'for type and config can be found in the man page of perf_event_open',
+        'none')
 
     def setup(self):
         super().setup()
@@ -95,22 +99,30 @@ class StencilMixin(Benchmark):
         pass
 
     def template_args(self):
+        if self.perf_counter == 'none':
+            perf_counter_type = perf_counter_config = None
+        else:
+            perf_counter_type, perf_counter_config = self.perf_counter.split(
+                ':')
         return dict(args=self.args,
                     ctype=compilation.dtype_cname(self.dtype),
                     strides=self.strides,
                     domain=self.domain,
                     alignment=self.alignment,
                     streaming_stores=self.streaming_stores,
-                    dry_runs=self.dry_runs)
+                    dry_runs=self.dry_runs,
+                    perf_counter_type=perf_counter_type,
+                    perf_counter_config=perf_counter_config)
 
     def data_ptr(self, data):
         return compilation.data_ptr(data, self.halo)
 
     def run_stencil(self, data):
         time = ctypes.c_double()
+        counter = ctypes.c_longlong()
         try:
-            self.compiled.kernel(ctypes.byref(time),
+            self.compiled.kernel(ctypes.byref(time), ctypes.byref(counter),
                                  *(self.data_ptr(array) for array in data))
         except compilation.ExecutionError as error:
             raise ExecutionError() from error
-        return time.value
+        return dict(time=time.value, counter=counter.value)

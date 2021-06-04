@@ -151,15 +151,16 @@ class Stencil(Benchmark):
         if self.verify:
             data_before = copy.deepcopy(self._data[data_index])
 
-        run_time = self.run_stencil(self._data[data_index])
+        result = self.run_stencil(self._data[data_index])
 
         if self.verify:
             self.verify_stencil(data_before, self._data[data_index])
 
         self._run += 1
-        assert run_time > 0
-        bandwidth = self.data_size / run_time / 1e9
-        return {'time': run_time, 'bandwidth': bandwidth}
+        assert 'time' in result and result['time'] > 0
+        assert 'bandwidth' not in result
+        result['bandwidth'] = self.data_size / result['time'] / 1e9
+        return result
 
 
 class BasicStencil(Stencil):

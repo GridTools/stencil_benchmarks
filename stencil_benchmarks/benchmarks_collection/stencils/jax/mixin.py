@@ -107,4 +107,4 @@ class StencilMixin(Benchmark):
         for dd, d in zip(device_data, data):
             dd.block_until_ready()
             d[...] = dd
-        return end - start
+        return dict(time=end - start)

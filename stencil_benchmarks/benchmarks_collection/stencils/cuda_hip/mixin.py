@@ -156,4 +156,4 @@ class StencilMixin(Benchmark):
             except compilation.ExecutionError as error:
                 raise ExecutionError() from error
 
-        return time.value
+        return dict(time=time.value)
