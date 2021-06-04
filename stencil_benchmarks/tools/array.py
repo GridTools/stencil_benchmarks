@@ -166,7 +166,10 @@ def alloc_array(shape: Tuple[int, ...],
                 np.array(strides) * np.array(index_to_align)) + offset
         aligned_pointer = (pointer_to_align + alignment -
                            1) // alignment * alignment
-        offset = aligned_pointer - pointer_to_align
+        offset += aligned_pointer - pointer_to_align
+        assert (ctypes.addressof(ctypes.c_char.from_buffer(buffer)) +
+                np.sum(np.array(strides) * np.array(index_to_align)) +
+                offset) % alignment == 0
     return np.ndarray(shape=shape,
                       dtype=dtype,
                       buffer=buffer,
