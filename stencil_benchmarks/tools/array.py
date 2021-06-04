@@ -32,6 +32,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import ctypes
 from typing import Any, Callable, Optional, Tuple, Union
+import warnings
 
 import numpy as np
 
@@ -144,7 +145,17 @@ def alloc_array(shape: Tuple[int, ...],
 
     if apply_offset:
         global _offset
-        offset = (_offset % l1_dcache_sets()) << _ilog2(l1_dcache_linesize())
+        cache_sets = l1_dcache_sets()
+        if not cache_sets:
+            warnings.warn(
+                'could not determine number of cache sets, assuming 64')
+            cache_sets = 64
+        cache_linesize = l1_dcache_linesize()
+        if not cache_linesize:
+            warnings.warn('could not determine cache line size, assuming 64B')
+            cache_linesize = 64
+        offset = (_offset % cache_sets) << _ilog2(
+            max(cache_linesize, alignment))
         _offset += 1
     else:
         offset = 0

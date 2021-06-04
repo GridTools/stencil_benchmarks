@@ -76,13 +76,14 @@ inline std::size_t get_meminfo(const char *pattern, std::size_t default_value) {
 
 inline std::size_t l1_dcache_linesize() {
   static const std::size_t value = get_sysinfo(
-      "/sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size", 64);
+      "/sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size",
+      sysconf(_SC_LEVEL1_DCACHE_LINESIZE));
   return value;
 }
 
 inline std::size_t l1_dcache_sets() {
   static const std::size_t value = get_sysinfo(
-      "/sys/devices/system/cpu/cpu0/cache/index0/number_of_sets", 64);
+      "/sys/devices/system/cpu/cpu0/cache/index0/number_of_sets", 0);
   return value;
 }
 
