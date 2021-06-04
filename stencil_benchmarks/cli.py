@@ -35,6 +35,7 @@ import gc
 import re
 import sys
 import types
+import warnings
 
 import click
 
@@ -144,30 +145,33 @@ def _cli_func(bmark):
     def func(ctx, **kwargs):
         unpacked_kwargs = list(cli_tools.unpack_ranges(**kwargs))
 
-        results = []
-        try:
-            with cli_tools.ProgressBar() as progress:
-                for kws in progress.report(unpacked_kwargs):
-                    bmark_instance = _instantiate(
-                        bmark, ctx.obj.skip_invalid_parameters, **kws)
-                    if bmark_instance is None:
-                        continue
-
-                    for _ in progress.report(range(ctx.obj.executions)):
-                        result = _run_instance(bmark_instance,
-                                               ctx.obj.skip_execution_failures)
-                        if result is None:
+        with warnings.catch_warnings(record=True) as catched_warnings:
+            results = []
+            try:
+                with cli_tools.ProgressBar() as progress:
+                    for kws in progress.report(unpacked_kwargs):
+                        bmark_instance = _instantiate(
+                            bmark, ctx.obj.skip_invalid_parameters, **kws)
+                        if bmark_instance is None:
                             continue
-                        instance_results, result_keys = result
-                        results += instance_results
 
-                    try:
-                        del bmark_instance
-                        gc.collect()
-                    except NameError:
-                        pass
-        except KeyboardInterrupt:
-            pass
+                        for _ in progress.report(range(ctx.obj.executions)):
+                            result = _run_instance(bmark_instance,
+                                                   ctx.obj.skip_execution_failures)
+                            if result is None:
+                                continue
+                            instance_results, result_keys = result
+                            results += instance_results
+
+                        try:
+                            del bmark_instance
+                            gc.collect()
+                        except NameError:
+                            pass
+            except KeyboardInterrupt:
+                pass
+            for warning in {str(w.message) for w in catched_warnings}:
+                print('WARNING:', warning)
 
         _process_results(results,
                          result_keys,

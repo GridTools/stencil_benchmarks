@@ -33,6 +33,7 @@
 from ast import literal_eval
 import gc
 import re
+import warnings
 
 import pandas as pd
 
@@ -79,14 +80,17 @@ def run_scaling_benchmark(configurations,
     if domain_range is None:
         domain_range = domains()
 
-    results = []
-    with cli.ProgressBar() as progress:
-        for domain in progress.report(domain_range):
-            for config in progress.report(configurations):
-                run = config(preprocess_args=preprocess_args, domain=domain)
-                results += [run() for _ in progress.report(range(executions))]
-                del run
-                gc.collect()
+    with warnings.catch_warnings(record=True) as catched_warnings:
+        results = []
+        with cli.ProgressBar() as progress:
+            for domain in progress.report(domain_range):
+                for config in progress.report(configurations):
+                    run = config(preprocess_args=preprocess_args, domain=domain)
+                    results += [run() for _ in progress.report(range(executions))]
+                    del run
+                    gc.collect()
+        for warning in {str(w.message) for w in catched_warnings}:
+            print('WARNING:', warning)
     return pd.DataFrame(results)
 
 
