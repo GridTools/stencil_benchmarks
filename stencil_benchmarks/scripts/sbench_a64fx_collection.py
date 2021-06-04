@@ -38,6 +38,9 @@ import numpy as np
 
 from stencil_benchmarks.benchmarks_collection.stencils.openmp import (
     basic, horizontal_diffusion as hdiff, vertical_advection as vadv)
+from stencil_benchmarks.benchmarks_collection.stencils.openmp_blocked import (
+    basic as basic_blocked, horizontal_diffusion as hdiff_blocked,
+    vertical_advection as vadv_blocked)
 from stencil_benchmarks.tools.multirun import (Configuration,
                                                run_scaling_benchmark,
                                                truncate_block_size_to_domain)
@@ -52,8 +55,10 @@ def main():
 def common_kwargs(options=None, **overrides):
     kwargs = dict(platform_preset='none',
                   alignment=alloc.l1_dcache_linesize(),
+                  offset_allocations=True,
                   verify=False,
-                  huge_pages=True)
+                  huge_pages='explicit',
+                  dry_runs=100)
     kwargs.update(overrides)
     for o in options:
         name, value = o.split('=', 1)
@@ -66,6 +71,9 @@ def common_kwargs(options=None, **overrides):
 def scale_domain(**kwargs):
     i, j, k = kwargs['domain']
     kwargs['domain'] = (i // 2, j // 2, k)
+    if 'storage_block_size' in kwargs:
+        kwargs['storage_block_size'] = min(kwargs['storage_block_size'],
+                                           kwargs['domain'][0])
     return truncate_block_size_to_domain(**kwargs)
 
 
@@ -75,6 +83,7 @@ def scale_domain(**kwargs):
 @click.option('--dtype', '-d', default='float32')
 @click.option('--option', '-o', multiple=True)
 def basic_bandwidth(output, executions, dtype, option):
+    vector_size = 64 // np.dtype(dtype).itemsize
     kwargs = common_kwargs(option,
                            dtype=dtype,
                            loop='3D-blocked',
@@ -83,6 +92,14 @@ def basic_bandwidth(output, executions, dtype, option):
 
     stream_kwargs = kwargs.copy()
     stream_kwargs.update(loop='1D', halo=(0, 0, 0))
+
+    blocked_kwargs = common_kwargs(option,
+                                   dtype=dtype,
+                                   alignment=64,
+                                   storage_block_size=vector_size,
+                                   vector_size=vector_size,
+                                   halo=(vector_size, 1, 1),
+                                   layout=(0, 1, 2))
 
     configurations = [
         Configuration(basic.Copy, name='stream', **stream_kwargs),
@@ -107,7 +124,40 @@ def basic_bandwidth(output, executions, dtype, option):
                       along_x=True,
                       along_y=True,
                       along_z=False,
-                      **kwargs)
+                      **kwargs),
+        Configuration(basic_blocked.Copy,
+                      name='copy-blocked',
+                      **blocked_kwargs),
+        Configuration(basic_blocked.OnesidedAverage,
+                      name='avg-i-blocked',
+                      axis=0,
+                      **blocked_kwargs),
+        Configuration(basic_blocked.OnesidedAverage,
+                      name='avg-j-blocked',
+                      axis=1,
+                      **blocked_kwargs),
+        Configuration(basic_blocked.OnesidedAverage,
+                      name='avg-k-blocked',
+                      axis=2,
+                      **blocked_kwargs),
+        Configuration(basic_blocked.SymmetricAverage,
+                      name='sym-avg-i-blocked',
+                      axis=0,
+                      **blocked_kwargs),
+        Configuration(basic_blocked.SymmetricAverage,
+                      name='sym-avg-j-blocked',
+                      axis=1,
+                      **blocked_kwargs),
+        Configuration(basic_blocked.SymmetricAverage,
+                      name='sym-avg-k-blocked',
+                      axis=2,
+                      **blocked_kwargs),
+        Configuration(basic_blocked.Laplacian,
+                      name='lap-ij-blocked',
+                      along_x=True,
+                      along_y=True,
+                      along_z=True,
+                      **blocked_kwargs),
     ]
     table = run_scaling_benchmark(configurations,
                                   executions,
@@ -125,12 +175,23 @@ def horizontal_diffusion_bandwidth(output, executions, dtype, option):
     kwargs = common_kwargs(option,
                            dtype=dtype,
                            alignment=64,
+                           halo=(3, 3, 0),
                            vector_size=vector_size)
+
+    blocked_kwargs = common_kwargs(option,
+                                   dtype=dtype,
+                                   halo=(4 * vector_size, 3, 0),
+                                   storage_block_size=4 * vector_size,
+                                   vector_size=vector_size,
+                                   layout=(0, 1, 2))
 
     configurations = [
         Configuration(hdiff.ClassicVec, **kwargs, block_size=(1024, 16, 1)),
         Configuration(hdiff.OnTheFlyVec, **kwargs, block_size=(1024, 8, 1)),
-        Configuration(hdiff.MinimumMem, **kwargs, block_size=(1024, 64, 1))
+        Configuration(hdiff.MinimumMem, **kwargs, block_size=(1024, 64, 1)),
+        Configuration(hdiff_blocked.OnTheFly,
+                      name='on-the-fly-blocked',
+                      **blocked_kwargs),
     ]
 
     table = run_scaling_benchmark(configurations,
@@ -148,8 +209,16 @@ def vertical_advection_bandwidth(output, executions, dtype, option):
     vector_size = 64 // np.dtype(dtype).itemsize
     kwargs = common_kwargs(option,
                            dtype=dtype,
+                           halo=(3, 3, 0),
                            layout=(2, 0, 1),
                            vector_size=vector_size)
+
+    blocked_kwargs = common_kwargs(option,
+                                   dtype=dtype,
+                                   halo=(4 * vector_size, 3, 0),
+                                   storage_block_size=4 * vector_size,
+                                   vector_size=vector_size,
+                                   layout=(0, 1, 2))
 
     configurations = [
         Configuration(vadv.KMiddleVec, **kwargs, block_size=(1024, 1)),
@@ -160,7 +229,8 @@ def vertical_advection_bandwidth(output, executions, dtype, option):
         Configuration(vadv.KInnermostBlockVec,
                       **kwargs,
                       block_size=(64, 1),
-                      prefetch_distance=2)
+                      prefetch_distance=2),
+        Configuration(vadv_blocked.Basic, name='blocked', **blocked_kwargs),
     ]
 
     table = run_scaling_benchmark(configurations,
