@@ -127,6 +127,9 @@ SPDX-License-Identifier: BSD-3-Clause
                   }
                   lap[i + {{ vector_size }}] = lap_ijp1;
                 }
+                /* nonsense data modification to avoid break in access stream and thus hardware prefetching failure */
+                const index_t index = (ib + imax) * {{ strides[0] }} + (jb + j) * {{ strides[1] }} + (kb + k) * {{ strides[2] }};
+                out[index] = inp[index + {{ 2 * strides[1] }}] + coeff[index];
               }
             }
         }
