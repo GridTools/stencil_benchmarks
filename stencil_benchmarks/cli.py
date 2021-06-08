@@ -156,8 +156,9 @@ def _cli_func(bmark):
                             continue
 
                         for _ in progress.report(range(ctx.obj.executions)):
-                            result = _run_instance(bmark_instance,
-                                                   ctx.obj.skip_execution_failures)
+                            result = _run_instance(
+                                bmark_instance,
+                                ctx.obj.skip_execution_failures)
                             if result is None:
                                 continue
                             instance_results, result_keys = result

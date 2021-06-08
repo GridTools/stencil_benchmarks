@@ -85,8 +85,11 @@ def run_scaling_benchmark(configurations,
         with cli.ProgressBar() as progress:
             for domain in progress.report(domain_range):
                 for config in progress.report(configurations):
-                    run = config(preprocess_args=preprocess_args, domain=domain)
-                    results += [run() for _ in progress.report(range(executions))]
+                    run = config(preprocess_args=preprocess_args,
+                                 domain=domain)
+                    results += [
+                        run() for _ in progress.report(range(executions))
+                    ]
                     del run
                     gc.collect()
         for warning in {str(w.message) for w in catched_warnings}:
