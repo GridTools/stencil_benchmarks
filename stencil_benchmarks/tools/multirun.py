@@ -101,6 +101,9 @@ def truncate_block_size_to_domain(**kwargs):
     if 'block_size' in kwargs and 'domain' in kwargs:
         kwargs['block_size'] = tuple(
             min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
+    if 'storage_block_size' in kwargs and 'domain' in kwargs:
+        kwargs['storage_block_size'] = min(kwargs['storage_block_size'],
+                                           kwargs['domain'][0])
     return kwargs
 
 

@@ -71,9 +71,6 @@ def common_kwargs(options=None, **overrides):
 def scale_domain(**kwargs):
     i, j, k = kwargs['domain']
     kwargs['domain'] = (i // 2, j // 2, k)
-    if 'storage_block_size' in kwargs:
-        kwargs['storage_block_size'] = min(kwargs['storage_block_size'],
-                                           kwargs['domain'][0])
     return truncate_block_size_to_domain(**kwargs)
 
 
