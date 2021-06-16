@@ -41,6 +41,9 @@ SPDX-License-Identifier: BSD-3-Clause
 
 #include <errno.h>
 #include <omp.h>
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
 
 {% if perf_counter_config %}
 #include <asm/unistd.h>
