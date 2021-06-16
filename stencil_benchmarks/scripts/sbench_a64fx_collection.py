@@ -92,10 +92,10 @@ def basic_bandwidth(output, executions, dtype, option):
 
     blocked_kwargs = common_kwargs(option,
                                    dtype=dtype,
-                                   alignment=64,
-                                   storage_block_size=vector_size,
+                                   alignment=256,
+                                   storage_block_size=4 * vector_size,
                                    vector_size=vector_size,
-                                   halo=(vector_size, 1, 1),
+                                   halo=(4 * vector_size, 1, 1),
                                    layout=(0, 1, 2))
 
     configurations = [
@@ -153,7 +153,7 @@ def basic_bandwidth(output, executions, dtype, option):
                       name='lap-ij-blocked',
                       along_x=True,
                       along_y=True,
-                      along_z=True,
+                      along_z=False,
                       **blocked_kwargs),
     ]
     table = run_scaling_benchmark(configurations,
