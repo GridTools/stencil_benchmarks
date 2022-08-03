@@ -63,7 +63,7 @@ class Original(Benchmark):
         code = template.render(template_file, **self.template_args())
         if self.print_kernels:
             print(
-                re.search(r'/\* Tuned kernels. \*/(.*)',
+                re.search(r'/\* [a-z ]*"tuned" versions of the kernels \*/(.*)',
                           cpphelpers.format_code(code),
                           re.MULTILINE | re.DOTALL).group(1))
 
