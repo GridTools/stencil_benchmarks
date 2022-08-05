@@ -212,7 +212,7 @@ def plot(csv, uniform, ylim, title, auto_group, group, select, filter,
             label = regex.sub(repl, label)
         plt.plot(x, y, label=label)
     if uniform:
-        plt.xticks(x, row.index)
+        plt.xticks(x, row.index, rotation=45)
 
     for i, ref in enumerate(reference):
         label, value = ref.split('=', 1)
@@ -238,7 +238,7 @@ def plot(csv, uniform, ylim, title, auto_group, group, select, filter,
              transform=plt.gcf().transFigure,
              ha='center',
              va='bottom')
-    plt.subplots_adjust(bottom=0.15)
+    plt.subplots_adjust(bottom=0.25)
     plt.tight_layout()
 
     if output:
