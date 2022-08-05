@@ -31,9 +31,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import functools
-import itertools
-import operator
 import os
 import re
 import textwrap
