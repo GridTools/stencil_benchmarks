@@ -132,7 +132,6 @@ def print_csv(csv, common, auto_group, group, unstack, select, filter,
 
 @main.command()
 @click.argument('csv', type=click.Path(exists=True))
-@click.option('--labels', '-l', help='CSV column to use as labels.')
 @click.option('--uniform/--non-uniform',
               help='Equidistant placement of x-axis ticks.')
 @click.option('--ylim', type=float, nargs=2, help='Y-axis limits.')
@@ -149,7 +148,7 @@ def print_csv(csv, common, auto_group, group, unstack, select, filter,
 @click.option('--filter', '-f', help='Filter values based on a condition.')
 @click.option('--aggregation',
               default='median',
-              help='Aggregation function to use in pivoting.')
+              help='Aggregation function to use.')
 @click.option('--reference',
               '-r',
               multiple=True,
@@ -162,10 +161,14 @@ def print_csv(csv, common, auto_group, group, unstack, select, filter,
 @click.option('--label-regex',
               multiple=True,
               help='Search and replace a pattern in the final labels, '
-              'input as /pattern/repl/ in Python regex syntax')
+              'input as /pattern/repl/ in Python regex syntax.')
 @click.option('--output', '-o', type=click.Path(), help='Output file.')
-def plot(csv, labels, uniform, ylim, title, auto_group, group, select, filter,
-         aggregation, reference, relative_to, ascii, label_regex, output):
+@click.option('--dpi',
+              default=300,
+              type=int,
+              help='Output DPI (dots per inch).')
+def plot(csv, uniform, ylim, title, auto_group, group, select, filter,
+         aggregation, reference, relative_to, ascii, label_regex, output, dpi):
     """Plot output of sbench.
 
     X is the data column name for the values used for the x-axis in the plot, Y
@@ -239,7 +242,7 @@ def plot(csv, labels, uniform, ylim, title, auto_group, group, select, filter,
     plt.tight_layout()
 
     if output:
-        plt.savefig(output)
+        plt.savefig(output, dpi=dpi)
     else:
         plt.show()
 
