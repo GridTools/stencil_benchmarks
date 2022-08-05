@@ -42,6 +42,8 @@ import click
 import numpy as np
 import pandas as pd
 
+pd.set_option('display.max_colwidth', None)
+
 
 @click.group()
 def main():
