@@ -470,9 +470,9 @@ When choosing `basic`, most backends provide implementations for the following s
 
 - Copy stencil: $out_{i, j, k} = in_{i, j, k}$. The most trivial stencil;
   similar to STREAM copy, but on a 3D domain.
-- One-sided average: $out_{i, j, k} = \frac{1}{2}(in_{i, j, k} + in_{i + 1, j,
+- One-sided average: $out_{i, j, k} = {1 \over 2}(in_{i, j, k} + in_{i + 1, j,
   k})$. Useful to find problems with large strides.
-- Symmetric average: $out_{i, j, k} = \frac{1}{2}(in_{i - 1, j, k} + in_{i + 1,
+- Symmetric average: $out_{i, j, k} = {1 \over 2}(in_{i - 1, j, k} + in_{i + 1,
   j, k})$.
 - Standard 7-point Laplacian.
 
