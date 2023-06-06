@@ -47,10 +47,10 @@ Before installing, make sure that you have the following dependencies ready:
 - Optionally, only if you want to run GPU benchmarks: a CUDA or HIP compiler
 
 Use the following command to directly install the code from the [GitHub
-repository](https://github.com/MeteoSwiss-APN/stencil_benchmarks):
+repository](https://github.com/GridTools/stencil_benchmarks):
 
 ```
-$ pip install git+https://github.com/MeteoSwiss-APN/stencil_benchmarks.git
+$ pip install git+https://github.com/GridTools/stencil_benchmarks.git
 ```
 
 To verify the installation and availability of the command line interface, run
@@ -337,7 +337,7 @@ $ sbench -o example.csv stream cuda-hip native --compiler nvcc --array-size [102
 
 Our example output is included in the repository and can be downloaded directly
 from
-[here](https://github.com/MeteoSwiss-APN/stencil_benchmarks/tree/master/readme_data/example.csv)
+[here](https://github.com/GridTools/stencil_benchmarks/tree/master/readme_data/example.csv)
 to follow this example analysis easily.
 
 Start by looking at the values which haven’t changed between all the runs. This
@@ -484,4 +484,4 @@ for these computations.
 
 If you have problems using the software provided in this repository, please
 open a [GitHub
-issue](https://github.com/MeteoSwiss-APN/stencil_benchmarks/issues).
+issue](https://github.com/GridTools/stencil_benchmarks/issues).
