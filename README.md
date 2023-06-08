@@ -120,9 +120,9 @@ triad   157804.2  0.001867  0.001521  0.002930    862
 add     155320.6  0.001798  0.001545  0.002721    862
 ```
 
-Those are results from a dual-socket Xeon Gold 6140. So, we get around 150 MB/s
+Those are results from a dual-socket Xeon Gold 6140. So, we get around 150 GB/s
 which is not bad – but according to Intel, the peak achievable bandwidth should
-be around 190 MB/s. What’s missing?
+be around 190 GB/s. What’s missing?
 
 #### 3. Make It Faster
 
@@ -173,7 +173,7 @@ The reason for this improvement are _non-temporal_ or _streaming_ store
 instructions. They avoid an unnecessary load of the output array data, which
 significantly reduces the required memory transfer.
 
-This is almost 190 MB/s now, but correctly setting the thread affinity and reducing the thread count (not using hyper-threading) helps a bit:
+This is almost 190 GB/s now, but correctly setting the thread affinity and reducing the thread count (not using hyper-threading) helps a bit:
 
 ```
 $ OMP_NUM_THREADS=36 OMP_PLACES='{0}:36' sbench stream mc-calpin native --array-size 100000000 --architecture x86-avx512
