@@ -51,7 +51,6 @@ common_kwargs = default_kwargs(backend='cuda',
                                gpu_architecture='sm_80',
                                verify=False,
                                dry_runs=1,
-                               gpu_timers=True,
                                alignment=128,
                                dtype='float32')
 
