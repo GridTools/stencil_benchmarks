@@ -191,10 +191,10 @@ def plot(csv, uniform, ylim, title, auto_group, group, select, filter,
 
     regexes = []
     for regex in label_regex:
-        splitter = label_regex[0]
-        if label_regex[-1] != splitter:
+        splitter = regex[0]
+        if regex[-1] != splitter:
             raise ValueError('expected input in the form /pattern/repl/')
-        pattern, repl = label_regex[1:-1].split(splitter, 1)
+        pattern, repl = regex[1:-1].split(splitter, 1)
         regexes.append((re.compile(pattern), repl))
 
     for index, row in df.iterrows():
