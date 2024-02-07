@@ -129,7 +129,7 @@ class GnuLibrary:
 
         with open("{}{}".format(filename, extension), 'w') as srcfile:
             srcfile.write(code)
-            # srcfile.flush()
+            srcfile.flush()
 
             with tempfile.NamedTemporaryFile(suffix='.so') as library:
                 print([compile_command[0], '-o', library.name, srcfile.name] + compile_command[1:])
