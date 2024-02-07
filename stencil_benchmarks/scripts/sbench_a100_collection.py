@@ -52,7 +52,8 @@ common_kwargs = default_kwargs(backend='cuda',
                                verify=False,
                                dry_runs=1,
                                alignment=128,
-                               dtype='float32')
+                               dtype='float32',
+                               print_code=True)
 
 
 @main.command()
