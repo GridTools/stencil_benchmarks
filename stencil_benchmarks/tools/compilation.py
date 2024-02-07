@@ -90,6 +90,7 @@ def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
 class GnuLibrary:
     def __init__(self,
                  code: str,
+                 filename: str,
                  compile_command: Optional[List[str]] = None,
                  extension: Optional[str] = None):
         """Compile and load a C/C++-library.
@@ -126,7 +127,7 @@ class GnuLibrary:
         else:
             compile_command += ['-shared', '-fPIC']
 
-        with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
+        with open("{}.{}".format(filename, extension)) as srcfile:
             srcfile.write(code.encode())
             srcfile.flush()
 
