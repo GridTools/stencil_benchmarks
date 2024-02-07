@@ -128,8 +128,8 @@ class GnuLibrary:
             compile_command += ['-shared', '-fPIC']
 
         with open("{}{}".format(filename, extension), 'w') as srcfile:
-            srcfile.write(code.encode())
-            srcfile.flush()
+            srcfile.write(code)
+            # srcfile.flush()
 
             with tempfile.NamedTemporaryFile(suffix='.so') as library:
                 result = subprocess.run(
