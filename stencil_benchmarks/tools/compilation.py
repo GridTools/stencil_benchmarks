@@ -132,6 +132,7 @@ class GnuLibrary:
             # srcfile.flush()
 
             with tempfile.NamedTemporaryFile(suffix='.so') as library:
+                print([compile_command[0], '-o', library.name, srcfile.name] + compile_command[1:])
                 result = subprocess.run(
                     [compile_command[0], '-o', library.name, srcfile.name] +
                     compile_command[1:],
