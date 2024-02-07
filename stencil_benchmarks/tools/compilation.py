@@ -127,7 +127,7 @@ class GnuLibrary:
         else:
             compile_command += ['-shared', '-fPIC']
 
-        with open("{}.{}".format(filename, extension)) as srcfile:
+        with open("{}{}".format(filename, extension), 'w') as srcfile:
             srcfile.write(code.encode())
             srcfile.flush()
 
