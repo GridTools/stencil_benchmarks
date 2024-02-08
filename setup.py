@@ -95,6 +95,8 @@ setuptools.setup(
             'sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main',
             'sbench-p100-collection=stencil_benchmarks.scripts'
             '.sbench_p100_collection:main',
+            'sbench-h100-collection=stencil_benchmarks.scripts'
+            '.sbench_h100_collection:main',
             'sbench-a100-collection=stencil_benchmarks.scripts'
             '.sbench_a100_collection:main',
             'sbench-v100-collection=stencil_benchmarks.scripts'
