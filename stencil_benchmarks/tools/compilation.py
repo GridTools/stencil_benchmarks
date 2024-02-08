@@ -90,7 +90,7 @@ def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
 class GnuLibrary:
     def __init__(self,
                  code: str,
-                 filename: str,
+                 filename: str = 'tmp',
                  compile_command: Optional[List[str]] = None,
                  extension: Optional[str] = None):
         """Compile and load a C/C++-library.
@@ -127,7 +127,11 @@ class GnuLibrary:
         else:
             compile_command += ['-shared', '-fPIC']
 
-        with open("{}{}".format(filename, extension), 'w') as srcfile:
+        output_dir = "benchmarks_source_code"
+        os.makedirs(output_dir, exist_ok=True)
+        file_path = os.path.join(output_dir, filename)
+
+        with open(file_path, 'w') as srcfile:
             srcfile.write(code)
             srcfile.flush()
 
