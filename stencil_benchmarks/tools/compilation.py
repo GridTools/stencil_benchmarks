@@ -129,7 +129,7 @@ class GnuLibrary:
 
         output_dir = "benchmarks_source_code"
         os.makedirs(output_dir, exist_ok=True)
-        file_path = os.path.join(output_dir, filename)
+        file_path = os.path.join(output_dir, "{}{}".format(filename, extension))
 
         with open(file_path, 'w') as srcfile:
             srcfile.write(code)
