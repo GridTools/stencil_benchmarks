@@ -48,11 +48,12 @@ def main():
 
 common_kwargs = default_kwargs(backend='cuda',
                                compiler='nvcc',
-                               gpu_architecture='sm_80',
+                               gpu_architecture='sm_60',
                                verify=False,
                                dry_runs=1,
                                alignment=128,
-                               dtype='float32')
+                               dtype='float32',
+                               print_code=True)
 
 
 @main.command()

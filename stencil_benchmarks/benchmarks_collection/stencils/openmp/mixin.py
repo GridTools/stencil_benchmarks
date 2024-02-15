@@ -69,7 +69,9 @@ class StencilMixin(Benchmark):
         if self.compiler.endswith('icpc'):
             os.environ['KMP_INIT_AT_FORK'] = '0'
 
-        self.compiled = compilation.GnuLibrary(code, self.compile_command())
+        filename = self.template_file().partition('.')[0]
+
+        self.compiled = compilation.GnuLibrary(code, filename, self.compile_command())
 
         if self.verify and self.dry_runs:
             warnings.warn(

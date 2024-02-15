@@ -90,6 +90,7 @@ def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
 class GnuLibrary:
     def __init__(self,
                  code: str,
+                 filename: str = 'tmp',
                  compile_command: Optional[List[str]] = None,
                  extension: Optional[str] = None):
         """Compile and load a C/C++-library.
@@ -122,12 +123,16 @@ class GnuLibrary:
             compile_command = ['gcc'] if extension.lower() == '.c' else ['g++']
 
         if compile_command[0].endswith('nvcc'):
-            compile_command += ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
+            compile_command += ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC', '--generate-line-info']
         else:
             compile_command += ['-shared', '-fPIC']
 
-        with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
-            srcfile.write(code.encode())
+        output_dir = "benchmarks_source_code"
+        os.makedirs(output_dir, exist_ok=True)
+        file_path = os.path.join(output_dir, "{}{}".format(filename, extension))
+
+        with open(file_path, 'w') as srcfile:
+            srcfile.write(code)
             srcfile.flush()
 
             with tempfile.NamedTemporaryFile(suffix='.so') as library:
