@@ -109,7 +109,7 @@ def horizontal_diffusion_bandwidth(output, executions, option):
     kwargs = common_kwargs(option)
 
     configurations = [
-        Configuration(hdiff.Classic, block_size=(32, 16, 1), **kwargs),
+        Configuration(hdiff.Classic, block_size=(32, 12, 1), **kwargs),
         Configuration(hdiff.OnTheFly,
                       block_size=(32, 16, 1),
                       loop='3D',
