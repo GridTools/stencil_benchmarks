@@ -109,7 +109,7 @@ def horizontal_diffusion_bandwidth(output, executions, option):
     kwargs = common_kwargs(option)
 
     configurations = [
-        Configuration(hdiff.Classic, block_size=(32, 16, 1), **kwargs),
+        Configuration(hdiff.Classic, block_size=(32, 12, 1), **kwargs),
         Configuration(hdiff.OnTheFly,
                       block_size=(32, 16, 1),
                       loop='3D',
@@ -148,7 +148,7 @@ def vertical_advection_bandwidth(output, executions, option):
 
     configurations = [
         Configuration(vadv.Classic,
-                      block_size=(512, 1),
+                      block_size=(128, 1),
                       unroll_factor=8,
                       **kwargs),
         Configuration(vadv.LocalMem,
@@ -160,7 +160,7 @@ def vertical_advection_bandwidth(output, executions, option):
                       unroll_factor=0,
                       **kwargs),
         Configuration(vadv.LocalMemMerged,
-                      block_size=(512, 1),
+                      block_size=(128, 1),
                       unroll_factor=2,
                       **kwargs)
     ]
