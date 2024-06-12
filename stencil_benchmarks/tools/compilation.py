@@ -127,12 +127,12 @@ class GnuLibrary:
         else:
             compile_command += ['-shared', '-fPIC']
 
-        output_dir = "benchmarks_source_code"
-        os.makedirs(output_dir, exist_ok=True)
-        file_path = os.path.join(output_dir, "{}{}".format(filename, extension))
+        import pathlib
+        output_dir = pathlib.Path("benchmarks_source_code")
+        output_dir.mkdir(exist_ok=True)
 
-        with open(file_path, 'w') as srcfile:
-            srcfile.write(code)
+        with tempfile.NamedTemporaryFile(prefix=filename + "_", suffix=extension, dir=output_dir, delete=False) as srcfile:
+            srcfile.write(code.encode())
             srcfile.flush()
 
             with tempfile.NamedTemporaryFile(suffix='.so') as library:
