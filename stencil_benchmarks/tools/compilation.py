@@ -34,6 +34,7 @@ import contextlib
 import ctypes
 import io
 import os
+import pathlib
 import subprocess
 import tempfile
 from typing import (Any, Callable, Iterator, List, Optional, TextIO, Tuple,
@@ -126,7 +127,10 @@ class GnuLibrary:
         else:
             compile_command += ['-shared', '-fPIC']
 
-        with tempfile.NamedTemporaryFile(suffix=extension) as srcfile:
+        output_dir = pathlib.Path("benchmarks_source_code")
+        output_dir.mkdir(exist_ok=True)
+
+        with tempfile.NamedTemporaryFile(suffix=extension, dir=output_dir, delete=False) as srcfile:
             srcfile.write(code.encode())
             srcfile.flush()
 
