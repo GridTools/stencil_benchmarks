@@ -31,8 +31,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import ctypes
-from typing import Any, Callable, Optional, Tuple, Union
 import warnings
+from typing import Any, Callable, Optional, Tuple, Union
 
 import numpy as np
 

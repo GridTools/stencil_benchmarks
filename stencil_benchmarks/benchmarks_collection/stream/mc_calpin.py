@@ -35,7 +35,7 @@ import re
 
 import numpy as np
 
-from ...benchmark import Benchmark, Parameter, ParameterError, ExecutionError
+from ...benchmark import Benchmark, ExecutionError, Parameter, ParameterError
 from ...tools import compilation, cpphelpers, template
 
 

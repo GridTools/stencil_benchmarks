@@ -30,6 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import mc_calpin, cuda_hip
+from . import cuda_hip, mc_calpin
 
 __all__ = ['mc_calpin', 'cuda_hip']

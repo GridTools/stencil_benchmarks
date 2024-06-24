@@ -32,9 +32,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 
-from ..base import (CopyStencil, OnesidedAverageStencil,
-                    SymmetricAverageStencil, LaplacianStencil)
 from ....tools import timing
+from ..base import (
+    CopyStencil,
+    LaplacianStencil,
+    OnesidedAverageStencil,
+    SymmetricAverageStencil,
+)
 
 
 class Copy1D(CopyStencil):

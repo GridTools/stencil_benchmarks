@@ -33,12 +33,19 @@
 
 import click
 
+from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import basic
 from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
-    basic, horizontal_diffusion as hdiff, vertical_advection as vadv)
-from stencil_benchmarks.tools.multirun import (Configuration,
-                                               run_scaling_benchmark,
-                                               truncate_block_size_to_domain,
-                                               default_kwargs)
+    horizontal_diffusion as hdiff,
+)
+from stencil_benchmarks.benchmarks_collection.stencils.cuda_hip import (
+    vertical_advection as vadv,
+)
+from stencil_benchmarks.tools.multirun import (
+    Configuration,
+    default_kwargs,
+    run_scaling_benchmark,
+    truncate_block_size_to_domain,
+)
 
 
 @click.group()

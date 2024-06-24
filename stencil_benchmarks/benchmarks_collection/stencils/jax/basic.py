@@ -33,8 +33,9 @@
 import numpy as np
 
 from stencil_benchmarks.benchmark import Parameter
-from .mixin import StencilMixin
+
 from .. import base
+from .mixin import StencilMixin
 
 
 class BasicStencilMixin(StencilMixin):
@@ -96,7 +97,8 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
                                choices=['pad', 'set', 'roll', 'convolve'])
 
     def stencil_definition(self):
-        from jax import numpy as jnp, scipy as jsp
+        from jax import numpy as jnp
+        from jax import scipy as jsp
 
         along_axes = (self.along_x, self.along_y, self.along_z)
 
