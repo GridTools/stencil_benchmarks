@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Install Optional Dependencies
         run: |
-          pip install numba jax jaxlib
+          pip install numba jax
       - name: Test
         run: |
           pytest
