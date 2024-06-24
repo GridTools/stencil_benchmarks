@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from .. import base
 from ....tools import timing
+from .. import base
 
 # pylint: disable=not-an-iterable
 

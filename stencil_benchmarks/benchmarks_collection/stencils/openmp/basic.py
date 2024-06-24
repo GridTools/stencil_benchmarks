@@ -66,7 +66,7 @@ class BasicStencilMixin(StencilMixin):
         body = re.sub(
             r'out\[index\] = ([^;]*)', r'storent(&out[index], \1)'
             if self.streaming_stores else r'store(&out[index], \1)', body,
-            re.MULTILINE | re.DOTALL)
+            flags=re.MULTILINE | re.DOTALL)
         return body
 
     def template_file(self):

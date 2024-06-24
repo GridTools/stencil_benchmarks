@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from .mixin import StencilMixin
 from .. import base
+from .mixin import StencilMixin
 
 
 class HdiffStencilMixin(StencilMixin):
@@ -84,7 +84,8 @@ class Basic(HdiffStencilMixin, base.HorizontalDiffusionStencil):
 
 class Vmapped(HdiffStencilMixin, base.HorizontalDiffusionStencil):
     def stencil_definition(self):
-        from jax import numpy as jnp, vmap
+        from jax import numpy as jnp
+        from jax import vmap
 
         def plane(inp, coeff):
             lap = 4 * inp[1:-1, 1:-1] - (inp[2:, 1:-1] + inp[:-2, 1:-1] +

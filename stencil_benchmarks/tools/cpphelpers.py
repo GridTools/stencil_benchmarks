@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-import warnings
 import subprocess
+import warnings
 
 
 def format_code(code: str, line_numbers: bool = True) -> str:

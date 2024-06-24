@@ -36,15 +36,28 @@ from ast import literal_eval
 import click
 import numpy as np
 
+from stencil_benchmarks.benchmarks_collection.stencils.openmp import basic
 from stencil_benchmarks.benchmarks_collection.stencils.openmp import (
-    basic, horizontal_diffusion as hdiff, vertical_advection as vadv)
+    horizontal_diffusion as hdiff,
+)
+from stencil_benchmarks.benchmarks_collection.stencils.openmp import (
+    vertical_advection as vadv,
+)
 from stencil_benchmarks.benchmarks_collection.stencils.openmp_blocked import (
-    basic as basic_blocked, horizontal_diffusion as hdiff_blocked,
-    vertical_advection as vadv_blocked)
-from stencil_benchmarks.tools.multirun import (Configuration,
-                                               run_scaling_benchmark,
-                                               truncate_block_size_to_domain)
+    basic as basic_blocked,
+)
+from stencil_benchmarks.benchmarks_collection.stencils.openmp_blocked import (
+    horizontal_diffusion as hdiff_blocked,
+)
+from stencil_benchmarks.benchmarks_collection.stencils.openmp_blocked import (
+    vertical_advection as vadv_blocked,
+)
 from stencil_benchmarks.tools import alloc
+from stencil_benchmarks.tools.multirun import (
+    Configuration,
+    run_scaling_benchmark,
+    truncate_block_size_to_domain,
+)
 
 
 @click.group()
