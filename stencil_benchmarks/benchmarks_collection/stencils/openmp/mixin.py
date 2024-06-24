@@ -36,7 +36,7 @@ import os
 import warnings
 
 from stencil_benchmarks.benchmark import Benchmark, ExecutionError, Parameter
-from stencil_benchmarks.tools import cpphelpers, compilation, template
+from stencil_benchmarks.tools import compilation, cpphelpers, template
 
 
 class StencilMixin(Benchmark):

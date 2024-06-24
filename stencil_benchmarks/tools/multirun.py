@@ -30,10 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from ast import literal_eval
 import gc
 import re
 import warnings
+from ast import literal_eval
 
 import pandas as pd
 

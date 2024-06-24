@@ -31,8 +31,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 from stencil_benchmarks.benchmark import Parameter, ParameterError
-from .mixin import StencilMixin
+
 from .. import base
+from .mixin import StencilMixin
 
 
 class VadvStencilMixin(StencilMixin):
@@ -56,7 +57,8 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
     loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
 
     def stencil_definition(self):
-        from jax import lax, numpy as jnp
+        from jax import lax
+        from jax import numpy as jnp
 
         dtr_stage = 3 / 20
         beta_v = 0
@@ -175,7 +177,7 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
             utensstage = utensstage.data
             if self.loop == 'jax':
                 _, utensstage = lax.fori_loop(
-                    -(self.domain[2] - 2), -(-1),
+                    -(self.domain[2] - 2), 1,
                     lambda nk, args: backward(-nk, args),
                     (datacol, utensstage))
             else:
@@ -191,7 +193,8 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
     loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
 
     def stencil_definition(self):
-        from jax import lax, numpy as jnp, vmap
+        from jax import lax, vmap
+        from jax import numpy as jnp
 
         dtr_stage = 3 / 20
         beta_v = 0
@@ -280,7 +283,7 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
 
             if self.loop == 'jax':
                 _, utensstage = lax.fori_loop(
-                    -(self.domain[2] - 2), -(-1),
+                    -(self.domain[2] - 2), 1,
                     lambda nk, args: backward(-nk, args),
                     (datacol, utensstage))
             else:

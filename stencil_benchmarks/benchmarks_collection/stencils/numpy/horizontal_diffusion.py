@@ -32,8 +32,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 
-from ..base import HorizontalDiffusionStencil
 from ....tools import timing
+from ..base import HorizontalDiffusionStencil
 
 
 class OnTheFly(HorizontalDiffusionStencil):

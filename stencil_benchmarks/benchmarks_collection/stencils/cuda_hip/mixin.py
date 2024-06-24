@@ -36,9 +36,14 @@ import ctypes
 import os
 import warnings
 
-from stencil_benchmarks.benchmark import (Benchmark, ExecutionError, Parameter,
-                                          ParameterError)
-from stencil_benchmarks.tools import array, cpphelpers, compilation, template
+from stencil_benchmarks.benchmark import (
+    Benchmark,
+    ExecutionError,
+    Parameter,
+    ParameterError,
+)
+from stencil_benchmarks.tools import array, compilation, cpphelpers, template
+
 from . import api
 
 

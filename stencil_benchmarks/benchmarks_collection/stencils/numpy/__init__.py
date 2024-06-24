@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import basic
-from . import horizontal_diffusion
+from . import basic, horizontal_diffusion
 
 __all__ = ['basic', 'horizontal_diffusion']

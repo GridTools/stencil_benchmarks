@@ -33,8 +33,8 @@
 from stencil_benchmarks.benchmark import Parameter
 from stencil_benchmarks.benchmarks_collection.stencils import base
 
-from .mixin import StencilMixin
 from .basic import BasicStencilMixin
+from .mixin import StencilMixin
 
 
 class HorizontalDiffusionMixin(StencilMixin):

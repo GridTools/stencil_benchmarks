@@ -171,8 +171,9 @@ def plot(csv, uniform, ylim, title, auto_group, group, select, filter,
     X is the data column name for the values used for the x-axis in the plot, Y
     is the column name for the y-axis.
     """
-    from matplotlib import pyplot as plt, ticker
     import cycler
+    from matplotlib import pyplot as plt
+    from matplotlib import ticker
     if output:
         plt.switch_backend('Agg')
     elif ascii:

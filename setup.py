@@ -32,13 +32,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import re
+
 import setuptools
 
 
 def read_file(*path):
     """Read file content."""
     package_path = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(package_path, *path), 'r') as text_file:
+    with open(os.path.join(package_path, *path)) as text_file:
         return text_file.read()
 
 

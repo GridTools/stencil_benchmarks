@@ -368,11 +368,11 @@ class VerticalAdvectionStencil(Stencil):
 
         if not self.all_components:
             (ustage, upos, utens, utensstage, wcon, ccol, dcol,
-             datacol) = [Wrapper(data) for data in data_before]
+             datacol) = (Wrapper(data) for data in data_before)
         else:
             (ustage, upos, utens, utensstage, vstage, vpos, vtens, vtensstage,
              wstage, wpos, wtens, wtensstage, wcon, ccol, dcol,
-             datacol) = [Wrapper(data) for data in data_before]
+             datacol) = (Wrapper(data) for data in data_before)
 
         dtr_stage = 3 / 20
         beta_v = 0

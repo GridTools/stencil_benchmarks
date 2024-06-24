@@ -37,9 +37,8 @@ import os
 import pathlib
 import subprocess
 import tempfile
-from typing import (Any, Callable, Iterator, List, Optional, TextIO, Tuple,
-                    Union)
 import warnings
+from typing import Any, Callable, Iterator, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 
@@ -83,8 +82,7 @@ def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
     stderr : TextIO
         TextIO to capture stderr.
     """
-    with _redirect_output(1, stdout):
-        with _redirect_output(2, stderr):
+    with _redirect_output(1, stdout), _redirect_output(2, stderr):
             yield
 
 
@@ -130,7 +128,9 @@ class GnuLibrary:
         output_dir = pathlib.Path("benchmarks_source_code")
         output_dir.mkdir(exist_ok=True)
 
-        with tempfile.NamedTemporaryFile(suffix=extension, dir=output_dir, delete=False) as srcfile:
+        with tempfile.NamedTemporaryFile(suffix=extension,
+                                         dir=output_dir,
+                                         delete=False) as srcfile:
             srcfile.write(code.encode())
             srcfile.flush()
 
@@ -138,8 +138,7 @@ class GnuLibrary:
                 result = subprocess.run(
                     [compile_command[0], '-o', library.name, srcfile.name] +
                     compile_command[1:],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE)
+                    capture_output=True)
                 if result.returncode != 0:
                     raise CompilationError(result.stderr.decode())
                 if result.stdout or result.stderr:

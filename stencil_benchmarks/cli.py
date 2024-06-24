@@ -40,7 +40,8 @@ import warnings
 import click
 
 from . import benchmark
-from .tools import cli as cli_tools, validation
+from .tools import cli as cli_tools
+from .tools import validation
 
 
 def _cli_command(bmark):

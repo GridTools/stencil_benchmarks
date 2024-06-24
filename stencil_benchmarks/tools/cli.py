@@ -37,8 +37,7 @@ import operator
 import re
 import sys
 import types
-from typing import (Any, Dict, Iterable, Iterator, List, NamedTuple, Optional,
-                    Tuple)
+from typing import Any, Dict, Iterable, Iterator, List, NamedTuple, Optional, Tuple
 
 import click
 
