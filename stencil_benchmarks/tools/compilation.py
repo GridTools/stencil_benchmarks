@@ -83,14 +83,16 @@ def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
         TextIO to capture stderr.
     """
     with _redirect_output(1, stdout), _redirect_output(2, stderr):
-            yield
+        yield
 
 
 class GnuLibrary:
-    def __init__(self,
-                 code: str,
-                 compile_command: Optional[List[str]] = None,
-                 extension: Optional[str] = None):
+    def __init__(
+        self,
+        code: str,
+        compile_command: Optional[List[str]] = None,
+        extension: Optional[str] = None,
+    ):
         """Compile and load a C/C++-library.
 
         Parameters
@@ -116,35 +118,38 @@ class GnuLibrary:
         'Hello world!'
         """
         if extension is None:
-            extension = '.cpp'
+            extension = ".cpp"
         if compile_command is None:
-            compile_command = ['gcc'] if extension.lower() == '.c' else ['g++']
+            compile_command = ["gcc"] if extension.lower() == ".c" else ["g++"]
 
-        if compile_command[0].endswith('nvcc'):
-            compile_command += ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
+        if compile_command[0].endswith("nvcc"):
+            compile_command += ["-Xcompiler", "-shared", "-Xcompiler", "-fPIC"]
         else:
-            compile_command += ['-shared', '-fPIC']
+            compile_command += ["-shared", "-fPIC"]
 
         output_dir = pathlib.Path("benchmarks_source_code")
         output_dir.mkdir(exist_ok=True)
 
-        with tempfile.NamedTemporaryFile(suffix=extension,
-                                         dir=output_dir,
-                                         delete=False) as srcfile:
+        with tempfile.NamedTemporaryFile(
+            suffix=extension, dir=output_dir, delete=False
+        ) as srcfile:
             srcfile.write(code.encode())
             srcfile.flush()
 
-            with tempfile.NamedTemporaryFile(suffix='.so') as library:
+            with tempfile.NamedTemporaryFile(suffix=".so") as library:
                 result = subprocess.run(
-                    [compile_command[0], '-o', library.name, srcfile.name] +
-                    compile_command[1:],
-                    capture_output=True)
+                    [compile_command[0], "-o", library.name, srcfile.name]
+                    + compile_command[1:],
+                    capture_output=True,
+                )
                 if result.returncode != 0:
                     raise CompilationError(result.stderr.decode())
                 if result.stdout or result.stderr:
-                    warnings.warn('unexpected compilation output: ' +
-                                  result.stdout.decode() +
-                                  result.stderr.decode())
+                    warnings.warn(
+                        "unexpected compilation output: "
+                        + result.stdout.decode()
+                        + result.stderr.decode()
+                    )
                 self._library = ctypes.cdll.LoadLibrary(library.name)
 
     def __getattr__(self, attr: str) -> Callable[[Any], str]:
@@ -182,8 +187,8 @@ class GnuLibrary:
                 raise ExecutionError(stderr)
             elif stderr:
                 warnings.warn(
-                    f'unexpected output in call to {attr}(…) to stderr:\n' +
-                    stderr)
+                    f"unexpected output in call to {attr}(…) to stderr:\n" + stderr
+                )
 
             return stdout
 
@@ -193,12 +198,12 @@ class GnuLibrary:
 
 def dtype_as_ctype(dtype: np.dtype):
     dtype = np.dtype(dtype)
-    if dtype.kind == 'f':
+    if dtype.kind == "f":
         if dtype.itemsize == 4:
             return ctypes.c_float
         if dtype.itemsize == 8:
             return ctypes.c_double
-    elif dtype.kind == 'i':
+    elif dtype.kind == "i":
         if dtype.itemsize == 1:
             return ctypes.c_int8
         if dtype.itemsize == 2:
@@ -207,7 +212,7 @@ def dtype_as_ctype(dtype: np.dtype):
             return ctypes.c_int32
         if dtype.itemsize == 8:
             return ctypes.c_int64
-    elif dtype.kind == 'u':
+    elif dtype.kind == "u":
         if dtype.itemsize == 1:
             return ctypes.c_uint8
         if dtype.itemsize == 2:
@@ -216,58 +221,58 @@ def dtype_as_ctype(dtype: np.dtype):
             return ctypes.c_uint32
         if dtype.itemsize == 8:
             return ctypes.c_uint64
-    raise NotImplementedError(f'Conversion of type {dtype} is not supported')
+    raise NotImplementedError(f"Conversion of type {dtype} is not supported")
 
 
 def ctype_cname(ctype) -> str:
     if ctype is ctypes.c_float:
-        return 'float'
+        return "float"
     if ctype is ctypes.c_double:
-        return 'double'
+        return "double"
 
     if ctype is ctypes.c_int8:
-        return 'std::int8_t'
+        return "std::int8_t"
     if ctype is ctypes.c_int16:
-        return 'std::int16_t'
+        return "std::int16_t"
     if ctype is ctypes.c_int32:
-        return 'std::int32_t'
+        return "std::int32_t"
     if ctype is ctypes.c_int64:
-        return 'std::int64_t'
+        return "std::int64_t"
 
     if ctype is ctypes.c_uint8:
-        return 'std::uint8_t'
+        return "std::uint8_t"
     if ctype is ctypes.c_uint16:
-        return 'std::uint16_t'
+        return "std::uint16_t"
     if ctype is ctypes.c_uint32:
-        return 'std::uint32_t'
+        return "std::uint32_t"
     if ctype is ctypes.c_uint64:
-        return 'std::uint64_t'
+        return "std::uint64_t"
 
-    raise NotImplementedError(f'Conversion of type {ctype} is not supported')
+    raise NotImplementedError(f"Conversion of type {ctype} is not supported")
 
 
 def dtype_cname(dtype: np.dtype) -> str:
     dtype = np.dtype(dtype)
-    if dtype.kind == 'f':
+    if dtype.kind == "f":
         if dtype.itemsize == 2:
-            return 'half'
+            return "half"
         if dtype.itemsize == 4:
-            return 'float'
+            return "float"
         if dtype.itemsize == 8:
-            return 'double'
+            return "double"
 
-    if dtype.kind == 'i':
-        return f'std::int{dtype.itemsize * 8}_t'
+    if dtype.kind == "i":
+        return f"std::int{dtype.itemsize * 8}_t"
 
-    if dtype.kind == 'u':
-        return f'std::uint{dtype.itemsize * 8}_t'
+    if dtype.kind == "u":
+        return f"std::uint{dtype.itemsize * 8}_t"
 
-    raise NotImplementedError(f'Conversion of type {dtype} is not supported')
+    raise NotImplementedError(f"Conversion of type {dtype} is not supported")
 
 
 def data_ptr(
-        array: np.ndarray,
-        offset: Union[int, Tuple[int, ...], None] = None) -> ctypes.c_void_p:
+    array: np.ndarray, offset: Union[int, Tuple[int, ...], None] = None
+) -> ctypes.c_void_p:
     if offset is None:
         offset = 0
     elif isinstance(offset, int):

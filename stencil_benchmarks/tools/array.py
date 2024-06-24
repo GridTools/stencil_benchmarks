@@ -50,13 +50,15 @@ def _ilog2(i):
     return log
 
 
-def alloc_array(shape: Tuple[int, ...],
-                dtype: Union[str, np.dtype],
-                layout: Tuple[int, ...],
-                alignment: int = 0,
-                index_to_align: Optional[Tuple[int, ...]] = None,
-                alloc: Optional[Callable[[int], Any]] = None,
-                apply_offset: bool = False) -> np.ndarray:
+def alloc_array(
+    shape: Tuple[int, ...],
+    dtype: Union[str, np.dtype],
+    layout: Tuple[int, ...],
+    alignment: int = 0,
+    index_to_align: Optional[Tuple[int, ...]] = None,
+    alloc: Optional[Callable[[int], Any]] = None,
+    apply_offset: bool = False,
+) -> np.ndarray:
     """Allocate aligned and padded numpy array.
 
     Parameters
@@ -122,15 +124,15 @@ def alloc_array(shape: Tuple[int, ...],
     dtype = np.dtype(dtype)
     layout = tuple(layout)
     alignment = int(alignment)
-    index_to_align = (0, ) * ndim if index_to_align is None else index_to_align
+    index_to_align = (0,) * ndim if index_to_align is None else index_to_align
     alloc = alloc_smallpages if alloc is None else alloc
 
     if tuple(sorted(layout)) != tuple(range(ndim)):
-        raise ValueError('invalid layout specification')
+        raise ValueError("invalid layout specification")
     if alignment < 0:
-        raise ValueError('alignment must be non-negative')
+        raise ValueError("alignment must be non-negative")
     if not ndim == len(shape) == len(layout) == len(index_to_align):
-        raise ValueError('dimension mismatch')
+        raise ValueError("dimension mismatch")
 
     strides = [0 for _ in range(ndim)]
 
@@ -140,41 +142,39 @@ def alloc_array(shape: Tuple[int, ...],
         strides[dimension] = strides_product
         strides_product *= shape[dimension]
         if layout_value == ndim - 1 and alignment:
-            strides_product = (strides_product + alignment -
-                               1) // alignment * alignment
+            strides_product = (strides_product + alignment - 1) // alignment * alignment
 
     if apply_offset:
         global _offset
         cache_sets = l1_dcache_sets()
         if not cache_sets:
-            warnings.warn(
-                'could not determine number of cache sets, assuming 64')
+            warnings.warn("could not determine number of cache sets, assuming 64")
             cache_sets = 64
         cache_linesize = l1_dcache_linesize()
         if not cache_linesize:
-            warnings.warn('could not determine cache line size, assuming 64B')
+            warnings.warn("could not determine cache line size, assuming 64B")
             cache_linesize = 64
-        offset = (_offset % cache_sets) << _ilog2(
-            max(cache_linesize, alignment))
+        offset = (_offset % cache_sets) << _ilog2(max(cache_linesize, alignment))
         _offset += 1
     else:
         offset = 0
     buffer = alloc(strides_product + alignment + offset)
     if alignment:
-        pointer_to_align = ctypes.addressof(
-            ctypes.c_char.from_buffer(buffer)) + np.sum(
-                np.array(strides) * np.array(index_to_align)) + offset
-        aligned_pointer = (pointer_to_align + alignment -
-                           1) // alignment * alignment
+        pointer_to_align = (
+            ctypes.addressof(ctypes.c_char.from_buffer(buffer))
+            + np.sum(np.array(strides) * np.array(index_to_align))
+            + offset
+        )
+        aligned_pointer = (pointer_to_align + alignment - 1) // alignment * alignment
         offset += aligned_pointer - pointer_to_align
-        assert (ctypes.addressof(ctypes.c_char.from_buffer(buffer)) +
-                np.sum(np.array(strides) * np.array(index_to_align)) +
-                offset) % alignment == 0
-    return np.ndarray(shape=shape,
-                      dtype=dtype,
-                      buffer=buffer,
-                      offset=offset,
-                      strides=strides)
+        assert (
+            ctypes.addressof(ctypes.c_char.from_buffer(buffer))
+            + np.sum(np.array(strides) * np.array(index_to_align))
+            + offset
+        ) % alignment == 0
+    return np.ndarray(
+        shape=shape, dtype=dtype, buffer=buffer, offset=offset, strides=strides
+    )
 
 
 def nbytes(data: np.ndarray) -> int:

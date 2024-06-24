@@ -38,10 +38,10 @@ from .mixin import StencilMixin
 
 
 class HorizontalDiffusionMixin(StencilMixin):
-    block_size = Parameter('block size', (8, 8, 1))
+    block_size = Parameter("block size", (8, 8, 1))
 
     def template_file(self):
-        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
+        return "horizontal_diffusion_" + type(self).__name__.lower() + ".j2"
 
     def template_args(self):
         return dict(**super().template_args(), block_size=self.block_size)
@@ -50,7 +50,7 @@ class HorizontalDiffusionMixin(StencilMixin):
 class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
     def stencil_body(self):
         stride_x, stride_y, _ = self.strides
-        return f'''const auto inp_ij = inp[index];
+        return f"""const auto inp_ij = inp[index];
                 const auto inp_im1j = inp[index - {stride_x}];
                 const auto inp_ip1j = inp[index + {stride_x}];
                 const auto inp_ijm1 = inp[index - {stride_y}];
@@ -99,11 +99,11 @@ class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
 
                 out[index] = inp_ij - coeff[index] * (flx_ij - flx_imj +
                                                       fly_ij - fly_ijm);
-                '''
+                """
 
 
 class OnTheFlyVec(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
-    vector_size = Parameter('vector size in number of elements', 8)
+    vector_size = Parameter("vector size in number of elements", 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
@@ -114,7 +114,7 @@ class Classic(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
 
 
 class ClassicVec(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
-    vector_size = Parameter('vector size in number of elements', 8)
+    vector_size = Parameter("vector size in number of elements", 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
@@ -125,14 +125,14 @@ class ReducedMem(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
 
 
 class MinimumMem(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
-    vector_size = Parameter('vector size in number of elements', 8)
+    vector_size = Parameter("vector size in number of elements", 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)
 
 
 class Rolling(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
-    vector_size = Parameter('vector size in number of elements', 8)
+    vector_size = Parameter("vector size in number of elements", 8)
 
     def template_args(self):
         return dict(**super().template_args(), vector_size=self.vector_size)

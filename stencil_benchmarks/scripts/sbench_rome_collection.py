@@ -66,186 +66,201 @@ def main():
 
 
 def common_kwargs(options=None, **overrides):
-    kwargs = dict(platform_preset='native',
-                  alignment=alloc.l1_dcache_linesize(),
-                  verify=False,
-                  offset_allocations=True,
-                  huge_pages='transparent',
-                  dry_runs=100)
+    kwargs = dict(
+        platform_preset="native",
+        alignment=alloc.l1_dcache_linesize(),
+        verify=False,
+        offset_allocations=True,
+        huge_pages="transparent",
+        dry_runs=100,
+    )
     kwargs.update(overrides)
     for o in options:
-        name, value = o.split('=', 1)
-        name = name.replace('-', '_')
+        name, value = o.split("=", 1)
+        name = name.replace("-", "_")
         value = literal_eval(value)
         kwargs[name] = value
     return kwargs
 
 
 @main.command()
-@click.argument('output', type=click.Path())
-@click.option('--executions', '-e', type=int, default=101)
-@click.option('--dtype', '-d', default='float32')
-@click.option('--option', '-o', multiple=True)
+@click.argument("output", type=click.Path())
+@click.option("--executions", "-e", type=int, default=101)
+@click.option("--dtype", "-d", default="float32")
+@click.option("--option", "-o", multiple=True)
 def basic_bandwidth(output, executions, dtype, option):
     vector_size = 32 // np.dtype(dtype).itemsize
-    kwargs = common_kwargs(option,
-                           dtype=dtype,
-                           vector_size=vector_size,
-                           loop='3D-blocked-vec',
-                           halo=(1, 1, 1),
-                           block_size=(1024, 16, 1),
-                           streaming_stores=True)
+    kwargs = common_kwargs(
+        option,
+        dtype=dtype,
+        vector_size=vector_size,
+        loop="3D-blocked-vec",
+        halo=(1, 1, 1),
+        block_size=(1024, 16, 1),
+        streaming_stores=True,
+    )
 
     stream_kwargs = kwargs.copy()
-    stream_kwargs.update(loop='1D-vec', halo=(0, 0, 0))
+    stream_kwargs.update(loop="1D-vec", halo=(0, 0, 0))
 
-    blocked_kwargs = common_kwargs(option,
-                                   dtype=dtype,
-                                   alignment=64,
-                                   storage_block_size=2 * vector_size,
-                                   vector_size=vector_size,
-                                   halo=(2 * vector_size, 1, 1),
-                                   layout=(0, 1, 2),
-                                   streaming_stores=True)
+    blocked_kwargs = common_kwargs(
+        option,
+        dtype=dtype,
+        alignment=64,
+        storage_block_size=2 * vector_size,
+        vector_size=vector_size,
+        halo=(2 * vector_size, 1, 1),
+        layout=(0, 1, 2),
+        streaming_stores=True,
+    )
 
     configurations = [
-        Configuration(basic.Copy, name='stream', **stream_kwargs),
-        Configuration(basic.Copy, name='copy', **kwargs),
-        Configuration(basic.OnesidedAverage, name='avg-i', axis=0, **kwargs),
-        Configuration(basic.OnesidedAverage, name='avg-j', axis=1, **kwargs),
-        Configuration(basic.OnesidedAverage, name='avg-k', axis=2, **kwargs),
-        Configuration(basic.SymmetricAverage,
-                      name='sym-avg-i',
-                      axis=0,
-                      **kwargs),
-        Configuration(basic.SymmetricAverage,
-                      name='sym-avg-j',
-                      axis=1,
-                      **kwargs),
-        Configuration(basic.SymmetricAverage,
-                      name='sym-avg-k',
-                      axis=2,
-                      **kwargs),
-        Configuration(basic.Laplacian,
-                      name='lap-ij',
-                      along_x=True,
-                      along_y=True,
-                      along_z=False,
-                      **kwargs),
-        Configuration(basic_blocked.Copy,
-                      name='copy-blocked',
-                      **blocked_kwargs),
-        Configuration(basic_blocked.OnesidedAverage,
-                      name='avg-i-blocked',
-                      axis=0,
-                      **blocked_kwargs),
-        Configuration(basic_blocked.OnesidedAverage,
-                      name='avg-j-blocked',
-                      axis=1,
-                      **blocked_kwargs),
-        Configuration(basic_blocked.OnesidedAverage,
-                      name='avg-k-blocked',
-                      axis=2,
-                      **blocked_kwargs),
-        Configuration(basic_blocked.SymmetricAverage,
-                      name='sym-avg-i-blocked',
-                      axis=0,
-                      **blocked_kwargs),
-        Configuration(basic_blocked.SymmetricAverage,
-                      name='sym-avg-j-blocked',
-                      axis=1,
-                      **blocked_kwargs),
-        Configuration(basic_blocked.SymmetricAverage,
-                      name='sym-avg-k-blocked',
-                      axis=2,
-                      **blocked_kwargs),
-        Configuration(basic_blocked.Laplacian,
-                      name='lap-ij-blocked',
-                      along_x=True,
-                      along_y=True,
-                      along_z=False,
-                      **blocked_kwargs),
+        Configuration(basic.Copy, name="stream", **stream_kwargs),
+        Configuration(basic.Copy, name="copy", **kwargs),
+        Configuration(basic.OnesidedAverage, name="avg-i", axis=0, **kwargs),
+        Configuration(basic.OnesidedAverage, name="avg-j", axis=1, **kwargs),
+        Configuration(basic.OnesidedAverage, name="avg-k", axis=2, **kwargs),
+        Configuration(basic.SymmetricAverage, name="sym-avg-i", axis=0, **kwargs),
+        Configuration(basic.SymmetricAverage, name="sym-avg-j", axis=1, **kwargs),
+        Configuration(basic.SymmetricAverage, name="sym-avg-k", axis=2, **kwargs),
+        Configuration(
+            basic.Laplacian,
+            name="lap-ij",
+            along_x=True,
+            along_y=True,
+            along_z=False,
+            **kwargs,
+        ),
+        Configuration(basic_blocked.Copy, name="copy-blocked", **blocked_kwargs),
+        Configuration(
+            basic_blocked.OnesidedAverage,
+            name="avg-i-blocked",
+            axis=0,
+            **blocked_kwargs,
+        ),
+        Configuration(
+            basic_blocked.OnesidedAverage,
+            name="avg-j-blocked",
+            axis=1,
+            **blocked_kwargs,
+        ),
+        Configuration(
+            basic_blocked.OnesidedAverage,
+            name="avg-k-blocked",
+            axis=2,
+            **blocked_kwargs,
+        ),
+        Configuration(
+            basic_blocked.SymmetricAverage,
+            name="sym-avg-i-blocked",
+            axis=0,
+            **blocked_kwargs,
+        ),
+        Configuration(
+            basic_blocked.SymmetricAverage,
+            name="sym-avg-j-blocked",
+            axis=1,
+            **blocked_kwargs,
+        ),
+        Configuration(
+            basic_blocked.SymmetricAverage,
+            name="sym-avg-k-blocked",
+            axis=2,
+            **blocked_kwargs,
+        ),
+        Configuration(
+            basic_blocked.Laplacian,
+            name="lap-ij-blocked",
+            along_x=True,
+            along_y=True,
+            along_z=False,
+            **blocked_kwargs,
+        ),
     ]
     table = run_scaling_benchmark(
-        configurations,
-        executions,
-        preprocess_args=truncate_block_size_to_domain)
+        configurations, executions, preprocess_args=truncate_block_size_to_domain
+    )
     table.to_csv(output)
 
 
 @main.command()
-@click.argument('output', type=click.Path())
-@click.option('--executions', '-e', type=int, default=101)
-@click.option('--dtype', '-d', default='float32')
-@click.option('--option', '-o', multiple=True)
+@click.argument("output", type=click.Path())
+@click.option("--executions", "-e", type=int, default=101)
+@click.option("--dtype", "-d", default="float32")
+@click.option("--option", "-o", multiple=True)
 def horizontal_diffusion_bandwidth(output, executions, dtype, option):
     vector_size = 32 // np.dtype(dtype).itemsize
-    kwargs = common_kwargs(option,
-                           dtype=dtype,
-                           vector_size=vector_size,
-                           streaming_stores=True,
-                           block_size=(1024, 16, 1))
+    kwargs = common_kwargs(
+        option,
+        dtype=dtype,
+        vector_size=vector_size,
+        streaming_stores=True,
+        block_size=(1024, 16, 1),
+    )
 
-    blocked_kwargs = common_kwargs(option,
-                                   dtype=dtype,
-                                   halo=(4 * vector_size, 3, 0),
-                                   storage_block_size=4 * vector_size,
-                                   vector_size=vector_size,
-                                   streaming_stores=True,
-                                   layout=(0, 1, 2))
+    blocked_kwargs = common_kwargs(
+        option,
+        dtype=dtype,
+        halo=(4 * vector_size, 3, 0),
+        storage_block_size=4 * vector_size,
+        vector_size=vector_size,
+        streaming_stores=True,
+        layout=(0, 1, 2),
+    )
 
     configurations = [
         Configuration(hdiff.ClassicVec, **kwargs),
         Configuration(hdiff.OnTheFlyVec, **kwargs),
         Configuration(hdiff.MinimumMem, **kwargs),
-        Configuration(hdiff_blocked.OnTheFly,
-                      name='on-the-fly-blocked',
-                      **blocked_kwargs),
+        Configuration(
+            hdiff_blocked.OnTheFly, name="on-the-fly-blocked", **blocked_kwargs
+        ),
     ]
 
     table = run_scaling_benchmark(
-        configurations,
-        executions,
-        preprocess_args=truncate_block_size_to_domain)
+        configurations, executions, preprocess_args=truncate_block_size_to_domain
+    )
     table.to_csv(output)
 
 
 @main.command()
-@click.argument('output', type=click.Path())
-@click.option('--executions', '-e', type=int, default=101)
-@click.option('--dtype', '-d', default='float32')
-@click.option('--option', '-o', multiple=True)
+@click.argument("output", type=click.Path())
+@click.option("--executions", "-e", type=int, default=101)
+@click.option("--dtype", "-d", default="float32")
+@click.option("--option", "-o", multiple=True)
 def vertical_advection_bandwidth(output, executions, dtype, option):
     vector_size = 32 // np.dtype(dtype).itemsize
     kwargs = common_kwargs(option, dtype=dtype, vector_size=vector_size)
 
-    blocked_kwargs = common_kwargs(option,
-                                   dtype=dtype,
-                                   halo=(2 * vector_size, 3, 0),
-                                   storage_block_size=2 * vector_size,
-                                   vector_size=vector_size,
-                                   layout=(0, 1, 2))
+    blocked_kwargs = common_kwargs(
+        option,
+        dtype=dtype,
+        halo=(2 * vector_size, 3, 0),
+        storage_block_size=2 * vector_size,
+        vector_size=vector_size,
+        layout=(0, 1, 2),
+    )
 
     configurations = [
-        Configuration(vadv.KMiddleVec,
-                      **kwargs,
-                      block_size=(128, 1),
-                      streaming_stores=True),
+        Configuration(
+            vadv.KMiddleVec, **kwargs, block_size=(128, 1), streaming_stores=True
+        ),
         Configuration(vadv.KInnermostVec, **kwargs, block_size=(64, 1)),
-        Configuration(vadv.KInnermostBlockVec,
-                      **kwargs,
-                      block_size=(16, 1),
-                      prefetch_distance=4,
-                      streaming_stores=True),
-        Configuration(vadv_blocked.Basic, name='blocked', **blocked_kwargs),
+        Configuration(
+            vadv.KInnermostBlockVec,
+            **kwargs,
+            block_size=(16, 1),
+            prefetch_distance=4,
+            streaming_stores=True,
+        ),
+        Configuration(vadv_blocked.Basic, name="blocked", **blocked_kwargs),
     ]
 
     table = run_scaling_benchmark(
-        configurations,
-        executions,
-        preprocess_args=truncate_block_size_to_domain)
+        configurations, executions, preprocess_args=truncate_block_size_to_domain
+    )
     table.to_csv(output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -32,4 +32,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from . import basic, horizontal_diffusion
 
-__all__ = ['basic', 'horizontal_diffusion']
+__all__ = ["basic", "horizontal_diffusion"]

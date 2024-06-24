@@ -32,4 +32,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from . import stencils, stream
 
-__all__ = ['stencils', 'stream']
+__all__ = ["stencils", "stream"]

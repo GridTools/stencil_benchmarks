@@ -43,60 +43,62 @@ from ...tools import alloc, array, parallel, validation
 
 
 class Stencil(Benchmark):
-    domain = Parameter('domain size', (128, 128, 80))
+    domain = Parameter("domain size", (128, 128, 80))
     data_sets = Parameter(
-        'number of data sets, if bigger than one, data sets are cycled before '
-        'each execution to start with cold cache', 1)
-    halo = Parameter('halo size', (3, 3, 3))
-    dtype = Parameter('data type in NumPy format, e.g. float32 or float64',
-                      'float64')
-    layout = Parameter('data layout, 2 means innermost dimension, 0 outermost',
-                       (2, 1, 0))
-    alignment = Parameter('data alignment in bytes', 0)
-    huge_pages = Parameter('use huge pages',
-                           'none',
-                           choices=['none', 'transparent', 'explicit'])
+        "number of data sets, if bigger than one, data sets are cycled before "
+        "each execution to start with cold cache",
+        1,
+    )
+    halo = Parameter("halo size", (3, 3, 3))
+    dtype = Parameter("data type in NumPy format, e.g. float32 or float64", "float64")
+    layout = Parameter(
+        "data layout, 2 means innermost dimension, 0 outermost", (2, 1, 0)
+    )
+    alignment = Parameter("data alignment in bytes", 0)
+    huge_pages = Parameter(
+        "use huge pages", "none", choices=["none", "transparent", "explicit"]
+    )
     offset_allocations = Parameter(
-        'offset allocated data by some bytes to minimize cache conflicts',
-        False)
-    verify = Parameter('enable verification', True)
+        "offset allocated data by some bytes to minimize cache conflicts", False
+    )
+    verify = Parameter("enable verification", True)
 
     def setup(self):
         super().setup()
         if any(h < 0 for h in self.halo):
-            raise ParameterError(f'negative halo size given ({self.halo}')
+            raise ParameterError(f"negative halo size given ({self.halo}")
         if tuple(sorted(self.layout)) != (0, 1, 2):
-            raise ParameterError(f'invalid layout specification {self.layout}')
+            raise ParameterError(f"invalid layout specification {self.layout}")
         if self.alignment < 0:
-            raise ParameterError(
-                f'negative alignment given ({self.alignment} bytes)')
+            raise ParameterError(f"negative alignment given ({self.alignment} bytes)")
         if self.alignment % self.dtype_size != 0:
             raise ParameterError(
-                f'alignment ({self.alignment} bytes) not divisible '
-                f'by dtype size ({self.dtype_size} bytes)')
+                f"alignment ({self.alignment} bytes) not divisible "
+                f"by dtype size ({self.dtype_size} bytes)"
+            )
 
-        stencil_data = collections.namedtuple('StencilData', self.args)
+        stencil_data = collections.namedtuple("StencilData", self.args)
         self._data = [
-            stencil_data._make(self.random_field()
-                               for _ in range(len(self.args)))
+            stencil_data._make(self.random_field() for _ in range(len(self.args)))
             for _ in range(self.data_sets)
         ]
         self._run = 0
 
     def alloc_field(self, domain_with_halo, layout, index_to_align):
         def allocate(nbytes):
-            if self.huge_pages == 'none':
+            if self.huge_pages == "none":
                 return alloc.alloc_smallpages(nbytes)
-            return alloc.alloc_hugepages(nbytes,
-                                         self.huge_pages == 'transparent')
+            return alloc.alloc_hugepages(nbytes, self.huge_pages == "transparent")
 
-        return array.alloc_array(domain_with_halo,
-                                 self.dtype,
-                                 layout,
-                                 self.alignment,
-                                 index_to_align=index_to_align,
-                                 alloc=allocate,
-                                 apply_offset=self.offset_allocations)
+        return array.alloc_array(
+            domain_with_halo,
+            self.dtype,
+            layout,
+            self.alignment,
+            index_to_align=index_to_align,
+            alloc=allocate,
+            apply_offset=self.offset_allocations,
+        )
 
     def empty_field(self):
         return self.alloc_field(self.domain_with_halo, self.layout, self.halo)
@@ -131,7 +133,8 @@ class Stencil(Benchmark):
             expand = [expand] * len(self.domain)
         return tuple(
             slice(h + s - e, h + d + s + e)
-            for d, h, s, e in zip(self.domain, self.halo, shift, expand))
+            for d, h, s, e in zip(self.domain, self.halo, shift, expand)
+        )
 
     @abc.abstractmethod
     def run_stencil(self, data):
@@ -157,16 +160,16 @@ class Stencil(Benchmark):
             self.verify_stencil(data_before, self._data[data_index])
 
         self._run += 1
-        assert 'time' in result and result['time'] > 0
-        assert 'bandwidth' not in result
-        result['bandwidth'] = self.data_size / result['time'] / 1e9
+        assert "time" in result and result["time"] > 0
+        assert "bandwidth" not in result
+        result["bandwidth"] = self.data_size / result["time"] / 1e9
         return result
 
 
 class BasicStencil(Stencil):
     @property
     def args(self):
-        return 'inp', 'out'
+        return "inp", "out"
 
 
 class EmptyStencil(BasicStencil):
@@ -176,56 +179,64 @@ class EmptyStencil(BasicStencil):
 
 class CopyStencil(BasicStencil):
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality('inp', data_before.inp, data_after.inp)
+        validation.check_equality("inp", data_before.inp, data_after.inp)
 
-        validation.check_equality('out', data_after.out[self.inner_slice()],
-                                  data_before.inp[self.inner_slice()])
+        validation.check_equality(
+            "out",
+            data_after.out[self.inner_slice()],
+            data_before.inp[self.inner_slice()],
+        )
 
 
 class OnesidedAverageStencil(BasicStencil):
-    axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])
+    axis = Parameter("axis along which to average", 0, choices=[0, 1, 2])
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality('inp', data_before.inp, data_after.inp)
+        validation.check_equality("inp", data_before.inp, data_after.inp)
 
         inp = data_before.inp
         out = data_after.out
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         validation.check_equality(
-            'out', out[self.inner_slice()],
-            (inp[self.inner_slice(shift)] + inp[self.inner_slice()]) / 2)
+            "out",
+            out[self.inner_slice()],
+            (inp[self.inner_slice(shift)] + inp[self.inner_slice()]) / 2,
+        )
 
 
 class SymmetricAverageStencil(BasicStencil):
-    axis = Parameter('axis along which to average', 0, choices=[0, 1, 2])
+    axis = Parameter("axis along which to average", 0, choices=[0, 1, 2])
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality('inp', data_before.inp, data_after.inp)
+        validation.check_equality("inp", data_before.inp, data_after.inp)
 
         inp = data_before.inp
         out = data_after.out
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
         validation.check_equality(
-            'out', out[self.inner_slice()],
-            (inp[self.inner_slice(shift)] + inp[self.inner_slice(-shift)]) / 2)
+            "out",
+            out[self.inner_slice()],
+            (inp[self.inner_slice(shift)] + inp[self.inner_slice(-shift)]) / 2,
+        )
 
 
 class LaplacianStencil(BasicStencil):
-    along_x = Parameter('include x-axis in Laplacian', True)
-    along_y = Parameter('include y-axis in Laplacian', True)
-    along_z = Parameter('include z-axis in Laplacian', False)
+    along_x = Parameter("include x-axis in Laplacian", True)
+    along_y = Parameter("include y-axis in Laplacian", True)
+    along_z = Parameter("include z-axis in Laplacian", False)
 
     def setup(self):
         super().setup()
         along_axes = (self.along_x, self.along_y, self.along_z)
         if any(h < 1 for h, a in zip(self.halo, along_axes) if a):
-            raise ParameterError(f'positive horizontal halo size required '
-                                 f'(given halo: {self.halo})')
+            raise ParameterError(
+                f"positive horizontal halo size required " f"(given halo: {self.halo})"
+            )
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality('inp', data_before.inp, data_after.inp)
+        validation.check_equality("inp", data_before.inp, data_after.inp)
 
         inp = data_before.inp
         out = data_after.out
@@ -235,10 +246,12 @@ class LaplacianStencil(BasicStencil):
             if apply_along_axis:
                 shift = np.zeros(3, dtype=int)
                 shift[axis] = 1
-                result += (2 * inp[self.inner_slice()] -
-                           inp[self.inner_slice(shift)] -
-                           inp[self.inner_slice(-shift)])
-        validation.check_equality('out', out[self.inner_slice()], result)
+                result += (
+                    2 * inp[self.inner_slice()]
+                    - inp[self.inner_slice(shift)]
+                    - inp[self.inner_slice(-shift)]
+                )
+        validation.check_equality("out", out[self.inner_slice()], result)
 
 
 class HorizontalDiffusionStencil(Stencil):
@@ -246,21 +259,23 @@ class HorizontalDiffusionStencil(Stencil):
         super().setup()
 
         if any(h < 2 for h in self.halo[:2]):
-            raise ParameterError(f'horizontal halo size must be at least 2 '
-                                 f'(given halo: {self.halo})')
+            raise ParameterError(
+                f"horizontal halo size must be at least 2 " f"(given halo: {self.halo})"
+            )
 
     @property
     def args(self):
-        return 'inp', 'coeff', 'out'
+        return "inp", "coeff", "out"
 
     @property
     def data_size(self):
-        return (2 * np.prod(self.domain) +
-                np.prod(np.array(self.domain) + 4)) * self.dtype_size
+        return (
+            2 * np.prod(self.domain) + np.prod(np.array(self.domain) + 4)
+        ) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
-        validation.check_equality('inp', data_before.inp, data_after.inp)
-        validation.check_equality('coeff', data_before.coeff, data_after.coeff)
+        validation.check_equality("inp", data_before.inp, data_after.inp)
+        validation.check_equality("coeff", data_before.coeff, data_after.coeff)
 
         inp = data_before.inp
         coeff = data_before.coeff
@@ -268,49 +283,55 @@ class HorizontalDiffusionStencil(Stencil):
 
         lap = np.zeros_like(inp)
         lap[1:-1, 1:-1, :] = 4 * inp[1:-1, 1:-1, :] - (
-            inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] + inp[1:-1, 2:, :] +
-            inp[1:-1, :-2, :])
+            inp[2:, 1:-1, :] + inp[:-2, 1:-1, :] + inp[1:-1, 2:, :] + inp[1:-1, :-2, :]
+        )
 
         flx = np.zeros_like(inp)
         flx[:-1, :, :] = lap[1:, :, :] - lap[:-1, :, :]
         flx[:-1, :, :] = np.where(
-            flx[:-1, :, :] * (inp[1:, :, :] - inp[:-1, :, :]) > 0, 0,
-            flx[:-1, :, :])
+            flx[:-1, :, :] * (inp[1:, :, :] - inp[:-1, :, :]) > 0, 0, flx[:-1, :, :]
+        )
 
         fly = np.zeros_like(inp)
         fly[:, :-1, :] = lap[:, 1:, :] - lap[:, :-1, :]
         fly[:, :-1, :] = np.where(
-            fly[:, :-1, :] * (inp[:, 1:, :] - inp[:, :-1, :]) > 0, 0,
-            fly[:, :-1, :])
+            fly[:, :-1, :] * (inp[:, 1:, :] - inp[:, :-1, :]) > 0, 0, fly[:, :-1, :]
+        )
 
         result = np.zeros_like(inp)
         result[1:-1, 1:-1, :] = inp[1:-1, 1:-1, :] - coeff[1:-1, 1:-1, :] * (
-            flx[1:-1, 1:-1, :] - flx[:-2, 1:-1, :] + fly[1:-1, 1:-1, :] -
-            fly[1:-1, :-2, :])
+            flx[1:-1, 1:-1, :]
+            - flx[:-2, 1:-1, :]
+            + fly[1:-1, 1:-1, :]
+            - fly[1:-1, :-2, :]
+        )
 
-        validation.check_equality('out', out[self.inner_slice()],
-                                  result[self.inner_slice()])
+        validation.check_equality(
+            "out", out[self.inner_slice()], result[self.inner_slice()]
+        )
 
 
 class VerticalAdvectionStencil(Stencil):
     all_components = Parameter(
-        'advect all velocity components (like in the COSMO dycore) '
-        'instead of the u component (like in the GridTools benchmark)', False)
+        "advect all velocity components (like in the COSMO dycore) "
+        "instead of the u component (like in the GridTools benchmark)",
+        False,
+    )
 
     def setup(self):
         super().setup()
 
-        if self.halo[0] < 1 or (self.all_components
-                                and any(h < 1 for h in self.halo)):
+        if self.halo[0] < 1 or (self.all_components and any(h < 1 for h in self.halo)):
             raise ParameterError(
-                f'positive halo size required (given halo: {self.halo})')
+                f"positive halo size required (given halo: {self.halo})"
+            )
 
     @property
     def args(self):
-        u = ('ustage', 'upos', 'utens', 'utensstage')
-        v = ('vstage', 'vpos', 'vtens', 'vtensstage')
-        w = ('wstage', 'wpos', 'wtens', 'wtensstage')
-        common = ('wcon', 'ccol', 'dcol', 'datacol')
+        u = ("ustage", "upos", "utens", "utensstage")
+        v = ("vstage", "vpos", "vtens", "vtensstage")
+        w = ("wstage", "wpos", "wtens", "wtensstage")
+        common = ("wcon", "ccol", "dcol", "datacol")
         if not self.all_components:
             return u + common
         return u + v + w + common
@@ -328,24 +349,17 @@ class VerticalAdvectionStencil(Stencil):
     def verify_stencil(self, data_before, data_after):
         # pylint: disable=unsubscriptable-object
 
-        validation.check_equality('ustage', data_before.ustage,
-                                  data_after.ustage)
-        validation.check_equality('upos', data_before.upos, data_after.upos)
-        validation.check_equality('utens', data_before.utens, data_after.utens)
+        validation.check_equality("ustage", data_before.ustage, data_after.ustage)
+        validation.check_equality("upos", data_before.upos, data_after.upos)
+        validation.check_equality("utens", data_before.utens, data_after.utens)
         if self.all_components:
-            validation.check_equality('vstage', data_before.vstage,
-                                      data_after.vstage)
-            validation.check_equality('vpos', data_before.vpos,
-                                      data_after.vpos)
-            validation.check_equality('vtens', data_before.vtens,
-                                      data_after.vtens)
-            validation.check_equality('wstage', data_before.wstage,
-                                      data_after.wstage)
-            validation.check_equality('wpos', data_before.wpos,
-                                      data_after.wpos)
-            validation.check_equality('wtens', data_before.wtens,
-                                      data_after.wtens)
-        validation.check_equality('wcon', data_before.wcon, data_after.wcon)
+            validation.check_equality("vstage", data_before.vstage, data_after.vstage)
+            validation.check_equality("vpos", data_before.vpos, data_after.vpos)
+            validation.check_equality("vtens", data_before.vtens, data_after.vtens)
+            validation.check_equality("wstage", data_before.wstage, data_after.wstage)
+            validation.check_equality("wpos", data_before.wpos, data_after.wpos)
+            validation.check_equality("wtens", data_before.wtens, data_after.wtens)
+        validation.check_equality("wcon", data_before.wcon, data_after.wcon)
 
         hi, hj, hk = self.halo
         domain = self.domain
@@ -359,20 +373,39 @@ class VerticalAdvectionStencil(Stencil):
                     i, j, k = index
                 else:
                     i, j, k = 0, 0, index
-                data_slice = (slice(hi + i, hi + domain[0] + i),
-                              slice(hj + j, hj + domain[1] + j), hk + k)
+                data_slice = (
+                    slice(hi + i, hi + domain[0] + i),
+                    slice(hj + j, hj + domain[1] + j),
+                    hk + k,
+                )
                 return self.data[data_slice]
 
             def __setitem__(self, index, value):
                 self.__getitem__(index)[:] = value
 
         if not self.all_components:
-            (ustage, upos, utens, utensstage, wcon, ccol, dcol,
-             datacol) = (Wrapper(data) for data in data_before)
+            (ustage, upos, utens, utensstage, wcon, ccol, dcol, datacol) = (
+                Wrapper(data) for data in data_before
+            )
         else:
-            (ustage, upos, utens, utensstage, vstage, vpos, vtens, vtensstage,
-             wstage, wpos, wtens, wtensstage, wcon, ccol, dcol,
-             datacol) = (Wrapper(data) for data in data_before)
+            (
+                ustage,
+                upos,
+                utens,
+                utensstage,
+                vstage,
+                vpos,
+                vtens,
+                vtensstage,
+                wstage,
+                wpos,
+                wtens,
+                wtensstage,
+                wcon,
+                ccol,
+                dcol,
+                datacol,
+            ) = (Wrapper(data) for data in data_before)
 
         dtr_stage = 3 / 20
         beta_v = 0
@@ -390,8 +423,7 @@ class VerticalAdvectionStencil(Stencil):
             bcol = dtr_stage - ccol[k]
 
             correction_term = -cs * (stage[k + 1] - stage[k])
-            dcol[k] = dtr_stage * pos[k] + tens[k] + tensstage[
-                k] + correction_term
+            dcol[k] = dtr_stage * pos[k] + tens[k] + tensstage[k] + correction_term
 
             ccol[k] /= bcol
             dcol[k] /= bcol
@@ -407,10 +439,10 @@ class VerticalAdvectionStencil(Stencil):
                 ccol[k] = gcv * bet_p
                 bcol = dtr_stage - acol - ccol[k]
 
-                correction_term = (-as_ * (stage[k - 1] - stage[k]) - cs *
-                                   (stage[k + 1] - stage[k]))
-                dcol[k] = (dtr_stage * pos[k] + tens[k] + tensstage[k] +
-                           correction_term)
+                correction_term = -as_ * (stage[k - 1] - stage[k]) - cs * (
+                    stage[k + 1] - stage[k]
+                )
+                dcol[k] = dtr_stage * pos[k] + tens[k] + tensstage[k] + correction_term
 
                 divided = 1.0 / (bcol - ccol[k - 1] * acol)
                 ccol[k] *= divided
@@ -425,11 +457,9 @@ class VerticalAdvectionStencil(Stencil):
             bcol = dtr_stage - acol
 
             correction_term = -as_ * (stage[k - 1] - stage[k])
-            dcol[k] = (dtr_stage * pos[k] + tens[k] + tensstage[k] +
-                       correction_term)
+            dcol[k] = dtr_stage * pos[k] + tens[k] + tensstage[k] + correction_term
 
-            dcol[k] = ((dcol[k] - dcol[k - 1] * acol) /
-                       (bcol - ccol[k - 1] * acol))
+            dcol[k] = (dcol[k] - dcol[k - 1] * acol) / (bcol - ccol[k - 1] * acol)
 
         def backward_sweep(pos, tensstage):
             k = domain[2] - 1
@@ -452,14 +482,20 @@ class VerticalAdvectionStencil(Stencil):
             forward_sweep(0, 0, wstage, wpos, wtens, wtensstage)
             backward_sweep(wpos, wtensstage)
 
-        validation.check_equality('utensstage',
-                                  data_after.utensstage[self.inner_slice()],
-                                  data_before.utensstage[self.inner_slice()])
+        validation.check_equality(
+            "utensstage",
+            data_after.utensstage[self.inner_slice()],
+            data_before.utensstage[self.inner_slice()],
+        )
 
         if self.all_components:
             validation.check_equality(
-                'vtensstage', data_after.vtensstage[self.inner_slice()],
-                data_before.vtensstage[self.inner_slice()])
+                "vtensstage",
+                data_after.vtensstage[self.inner_slice()],
+                data_before.vtensstage[self.inner_slice()],
+            )
             validation.check_equality(
-                'wtensstage', data_after.wtensstage[self.inner_slice()],
-                data_before.wtensstage[self.inner_slice()])
+                "wtensstage",
+                data_after.wtensstage[self.inner_slice()],
+                data_before.wtensstage[self.inner_slice()],
+            )

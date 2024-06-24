@@ -92,9 +92,9 @@ class SymmetricAverage(BasicStencilMixin, base.SymmetricAverageStencil):
 
 
 class Laplacian(BasicStencilMixin, base.LaplacianStencil):
-    implementation = Parameter('jax implementation to use',
-                               'set',
-                               choices=['pad', 'set', 'roll', 'convolve'])
+    implementation = Parameter(
+        "jax implementation to use", "set", choices=["pad", "set", "roll", "convolve"]
+    )
 
     def stencil_definition(self):
         from jax import numpy as jnp
@@ -102,7 +102,7 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
 
         along_axes = (self.along_x, self.along_y, self.along_z)
 
-        if self.implementation in ('pad', 'set'):
+        if self.implementation in ("pad", "set"):
             shifts = []
             for axis, apply_along_axis in enumerate(along_axes):
                 if apply_along_axis:
@@ -114,34 +114,39 @@ class Laplacian(BasicStencilMixin, base.LaplacianStencil):
                     shifts.append((left, center, right))
 
             def stencil(inp, out):
-                result = sum(2 * inp[center] - inp[left] - inp[right]
-                             for left, center, right in shifts)
-                if self.implementation == 'pad':
-                    return jnp.pad(result, self.halo, mode='empty')
+                result = sum(
+                    2 * inp[center] - inp[left] - inp[right]
+                    for left, center, right in shifts
+                )
+                if self.implementation == "pad":
+                    return jnp.pad(result, self.halo, mode="empty")
                 else:
                     return out.at[center].set(result)
-        elif self.implementation == 'roll':
-            axes = tuple(i for i, along_axis in enumerate(self.t(along_axes))
-                         if along_axis)
+        elif self.implementation == "roll":
+            axes = tuple(
+                i for i, along_axis in enumerate(self.t(along_axes)) if along_axis
+            )
 
             def stencil(inp, out):
                 return out.at[...].set(
-                    sum(2 * inp - jnp.roll(inp, 1, axis) -
-                        jnp.roll(inp, -1, axis) for axis in axes))
-        elif self.implementation == 'convolve':
+                    sum(
+                        2 * inp - jnp.roll(inp, 1, axis) - jnp.roll(inp, -1, axis)
+                        for axis in axes
+                    )
+                )
+        elif self.implementation == "convolve":
             window = np.zeros((3, 3, 3))
             for axis, apply_along_axis in enumerate(along_axes):
                 if apply_along_axis:
-                    slices = tuple(
-                        slice(None) if i == axis else 1 for i in range(3))
+                    slices = tuple(slice(None) if i == axis else 1 for i in range(3))
                     window[slices] += np.array([-1, 2, -1])
             slices = tuple(
                 slice(None) if apply_along_axis else slice(1, 2)
-                for apply_along_axis in along_axes)
+                for apply_along_axis in along_axes
+            )
             window = window.transpose(self.t((0, 1, 2)))[slices]
 
             def stencil(inp, out):
-                return out.at[...].set(
-                    jsp.signal.convolve(inp, window, mode='same'))
+                return out.at[...].set(jsp.signal.convolve(inp, window, mode="same"))
 
         return stencil

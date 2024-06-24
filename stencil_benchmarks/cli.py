@@ -45,8 +45,8 @@ from .tools import validation
 
 
 def _cli_command(bmark):
-    command_path = bmark.__module__.split('.')[2:]
-    command_name = re.sub('(?!^)([A-Z1-9]+)', r'-\1', bmark.__name__).lower()
+    command_path = bmark.__module__.split(".")[2:]
+    command_name = re.sub("(?!^)([A-Z1-9]+)", r"-\1", bmark.__name__).lower()
     return command_path + [command_name]
 
 
@@ -66,10 +66,10 @@ def _run_instance(bmark_instance, skip_execution_failures):
     except benchmark.ExecutionError as error:
         if skip_execution_failures:
             return
-        click.echo('\nexecution error: ' + ' '.join(error.args).strip())
+        click.echo("\nexecution error: " + " ".join(error.args).strip())
         sys.exit(1)
     except validation.ValidationError as error:
-        click.echo('\nvalidation error: ' + ' '.join(error.args).strip())
+        click.echo("\nvalidation error: " + " ".join(error.args).strip())
         sys.exit(2)
     assert results
 
@@ -85,7 +85,7 @@ def _run_instance(bmark_instance, skip_execution_failures):
 
 def _process_results(results, result_keys, output, report):
     if not results:
-        click.echo('no data collected')
+        click.echo("no data collected")
         sys.exit(1)
 
     import pandas as pd
@@ -101,43 +101,46 @@ def _process_results(results, result_keys, output, report):
     if any(nunique > 1):
         table.drop(nunique[nunique <= 1].index, axis=1, inplace=True)
 
-    if report == 'full':
+    if report == "full":
         click.echo(table.to_string())
     else:
         group_keys = list(set(table.columns) - result_keys)
         if group_keys:
             medians = table.groupby(group_keys).median()
-            if report == 'best-median':
-                best = medians['time'].idxmin()
+            if report == "best-median":
+                best = medians["time"].idxmin()
                 click.echo(medians.loc[[best]])
             else:
-                click.echo(medians.sort_values(by='time').to_string())
+                click.echo(medians.sort_values(by="time").to_string())
         else:
             click.echo(table.median().to_string())
 
 
 def _bmark_options(bmark):
     for name, param in bmark.parameters.items():
-        name = '--' + name.replace('_', '-')
-        description = (param.description[0].upper() + param.description[1:] +
-                       '.')
+        name = "--" + name.replace("_", "-")
+        description = param.description[0].upper() + param.description[1:] + "."
         if param.dtype is bool:
-            option = click.option(name + '/' + name.replace('--', '--no-'),
-                                  default=param.default,
-                                  help=description,
-                                  show_default=True)
+            option = click.option(
+                name + "/" + name.replace("--", "--no-"),
+                default=param.default,
+                help=description,
+                show_default=True,
+            )
         else:
             if param.dtype is str and param.choices:
                 dtype = click.Choice(param.choices)
             else:
                 dtype = param.dtype
-            option = click.option(name,
-                                  type=cli_tools.range_type(dtype),
-                                  nargs=param.nargs,
-                                  help=description,
-                                  required=param.default is None,
-                                  default=param.default,
-                                  show_default=param.default is not None)
+            option = click.option(
+                name,
+                type=cli_tools.range_type(dtype),
+                nargs=param.nargs,
+                help=description,
+                required=param.default is None,
+                default=param.default,
+                show_default=param.default is not None,
+            )
         yield option
 
 
@@ -152,14 +155,15 @@ def _cli_func(bmark):
                 with cli_tools.ProgressBar() as progress:
                     for kws in progress.report(unpacked_kwargs):
                         bmark_instance = _instantiate(
-                            bmark, ctx.obj.skip_invalid_parameters, **kws)
+                            bmark, ctx.obj.skip_invalid_parameters, **kws
+                        )
                         if bmark_instance is None:
                             continue
 
                         for _ in progress.report(range(ctx.obj.executions)):
                             result = _run_instance(
-                                bmark_instance,
-                                ctx.obj.skip_execution_failures)
+                                bmark_instance, ctx.obj.skip_execution_failures
+                            )
                             if result is None:
                                 continue
                             instance_results, result_keys = result
@@ -173,12 +177,11 @@ def _cli_func(bmark):
             except KeyboardInterrupt:
                 pass
             for warning in {str(w.message) for w in catched_warnings}:
-                print('WARNING:', warning)
+                print("WARNING:", warning)
 
-        _process_results(results,
-                         result_keys,
-                         output=ctx.obj.output,
-                         report=ctx.obj.report)
+        _process_results(
+            results, result_keys, output=ctx.obj.output, report=ctx.obj.report
+        )
 
     for option in _bmark_options(bmark):
         func = option(func)
@@ -186,17 +189,20 @@ def _cli_func(bmark):
 
 
 @click.group()
-@click.option('--executions', '-e', type=int, default=3)
-@click.option('--report',
-              '-r',
-              default='all-medians',
-              type=click.Choice(['best-median', 'all-medians', 'full']))
-@click.option('--skip-invalid-parameters', '-s', is_flag=True)
-@click.option('--skip-execution-failures', '-q', is_flag=True)
-@click.option('--output', '-o', type=click.Path())
+@click.option("--executions", "-e", type=int, default=3)
+@click.option(
+    "--report",
+    "-r",
+    default="all-medians",
+    type=click.Choice(["best-median", "all-medians", "full"]),
+)
+@click.option("--skip-invalid-parameters", "-s", is_flag=True)
+@click.option("--skip-execution-failures", "-q", is_flag=True)
+@click.option("--output", "-o", type=click.Path())
 @click.pass_context
-def _cli(ctx, executions, report, skip_invalid_parameters,
-         skip_execution_failures, output):
+def _cli(
+    ctx, executions, report, skip_invalid_parameters, skip_execution_failures, output
+):
     ctx.obj.executions = executions
     ctx.obj.report = report
     ctx.obj.skip_invalid_parameters = skip_invalid_parameters
@@ -221,8 +227,9 @@ def _build(commands):
         for subcommand, subcommand_subcommands in subcommands.items():
             if isinstance(subcommand_subcommands, dict):
                 build_click_hierarchy(
-                    group.group(name=subcommand.replace('_', '-'))(empty),
-                    subcommand_subcommands)
+                    group.group(name=subcommand.replace("_", "-"))(empty),
+                    subcommand_subcommands,
+                )
             else:
                 group.command(name=subcommand)(subcommand_subcommands)
 
@@ -232,8 +239,7 @@ def _build(commands):
 
 
 def main(*args, **kwargs):
-    commands = [(_cli_command(bmark), _cli_func(bmark))
-                for bmark in benchmark.REGISTRY]
+    commands = [(_cli_command(bmark), _cli_func(bmark)) for bmark in benchmark.REGISTRY]
     main_group = _build(commands)
 
     return main_group(*args, **kwargs, obj=types.SimpleNamespace())

@@ -37,4 +37,4 @@ from .mixin import StencilMixin
 
 class OnTheFly(StencilMixin, base.HorizontalDiffusionStencil):
     def template_file(self):
-        return 'horizontal_diffusion.j2'
+        return "horizontal_diffusion.j2"

@@ -49,46 +49,56 @@ class Runtime:
 
     def _check_call(self, funcname, argtypes, args):
         if self._call(funcname, argtypes, args) != 0:
-            raise RuntimeError(f'GPU runtime function {funcname} failed')
+            raise RuntimeError(f"GPU runtime function {funcname} failed")
 
     def malloc(self, nbytes):
         ptr = ctypes.c_void_p()
-        if self._call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
-                      [ctypes.byref(ptr), nbytes]) != 0:
+        if (
+            self._call(
+                "Malloc",
+                [ctypes.c_void_p, ctypes.c_size_t],
+                [ctypes.byref(ptr), nbytes],
+            )
+            != 0
+        ):
             gc.collect()
-            self._check_call('Malloc', [ctypes.c_void_p, ctypes.c_size_t],
-                             [ctypes.byref(ptr), nbytes])
+            self._check_call(
+                "Malloc",
+                [ctypes.c_void_p, ctypes.c_size_t],
+                [ctypes.byref(ptr), nbytes],
+            )
 
         ptr = ptr.value
         buffer = (ctypes.c_byte * nbytes).from_address(ptr)
 
         def free(p):
-            self._check_call('Free', [ctypes.c_void_p], [p])
+            self._check_call("Free", [ctypes.c_void_p], [p])
 
         weakref.finalize(buffer, free, ptr)
         return buffer
 
-    def memcpy(self, dst, src, nbytes, kind='Default'):
+    def memcpy(self, dst, src, nbytes, kind="Default"):
         kind = {
-            'HostToHost': 0,
-            'HostToDevice': 1,
-            'DeviceToHost': 2,
-            'DeviceToDevice': 3,
-            'Default': 4
+            "HostToHost": 0,
+            "HostToDevice": 1,
+            "DeviceToHost": 2,
+            "DeviceToDevice": 3,
+            "Default": 4,
         }[kind]
         self._check_call(
-            'Memcpy',
+            "Memcpy",
             [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int],
-            [dst, src, nbytes, kind])
+            [dst, src, nbytes, kind],
+        )
 
     def device_synchronize(self):
-        self._check_call('DeviceSynchronize', [], [])
+        self._check_call("DeviceSynchronize", [], [])
 
 
 @functools.lru_cache(maxsize=2)
 def runtime(name):
-    if name == 'hip':
-        return Runtime('hip', 'libamdhip64.so')
-    if name == 'cuda':
-        return Runtime('cuda', 'libcudart.so')
-    raise RuntimeError('Invalid GPU runtime name')
+    if name == "hip":
+        return Runtime("hip", "libamdhip64.so")
+    if name == "cuda":
+        return Runtime("cuda", "libcudart.so")
+    raise RuntimeError("Invalid GPU runtime name")

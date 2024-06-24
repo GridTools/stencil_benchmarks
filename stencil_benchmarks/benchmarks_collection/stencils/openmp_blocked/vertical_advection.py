@@ -41,11 +41,10 @@ class Basic(StencilMixin, base.VerticalAdvectionStencil):
         super().setup()
 
         if self.all_components:
-            raise ParameterError('Option --all-components is not supported')
+            raise ParameterError("Option --all-components is not supported")
 
     def template_file(self):
-        return 'vertical_advection.j2'
+        return "vertical_advection.j2"
 
     def template_args(self):
-        return dict(**super().template_args(),
-                    all_components=self.all_components)
+        return dict(**super().template_args(), all_components=self.all_components)

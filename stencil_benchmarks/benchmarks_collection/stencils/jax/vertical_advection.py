@@ -41,20 +41,28 @@ class VadvStencilMixin(StencilMixin):
         from jax import jit
 
         if self.all_components:
-            raise ParameterError('option --all-components is not supported')
+            raise ParameterError("option --all-components is not supported")
 
         if self.halo[2] < 1:
-            raise ParameterError('z-halo required')
+            raise ParameterError("z-halo required")
 
         jited = jit(self.stencil_definition(), donate_argnums=3)
         self.stencil = (
-            lambda ustage, upos, utens, utensstage, wcon, ccol, dcol, datacol:
-            (ustage, upos, utens, jited(ustage, upos, utens, utensstage, wcon),
-             wcon, ccol, dcol, datacol))
+            lambda ustage, upos, utens, utensstage, wcon, ccol, dcol, datacol: (
+                ustage,
+                upos,
+                utens,
+                jited(ustage, upos, utens, utensstage, wcon),
+                wcon,
+                ccol,
+                dcol,
+                datacol,
+            )
+        )
 
 
 class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
-    loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
+    loop = Parameter("loop implementation", "jax", choices=["jax", "python"])
 
     def stencil_definition(self):
         from jax import lax
@@ -73,8 +81,9 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 return self_.data[self.t((slice(None), slice(None), k))]
 
             def __setitem__(self_, k, value):
-                self_.data = self_.data.at[self.t(
-                    (slice(None), slice(None), k))].set(value)
+                self_.data = self_.data.at[self.t((slice(None), slice(None), k))].set(
+                    value
+                )
 
         center = self.s()
         staggered = self.s(hi_k=1)
@@ -99,8 +108,7 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
             bcol = dtr_stage - ccol_k
 
             correction_term = -cs * (ustage[k + 1] - ustage[k])
-            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
-                      correction_term)
+            dcol_k = dtr_stage * upos[k] + utens[k] + utensstage[k] + correction_term
 
             divided = 1.0 / bcol
             ccol_k = ccol_k * divided
@@ -125,9 +133,11 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 bcol = dtr_stage - acol - ccol_k
 
                 correction_term = -as_ * (ustage[k - 1] - ustage[k]) - cs * (
-                    ustage[k + 1] - ustage[k])
-                dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
-                          correction_term)
+                    ustage[k + 1] - ustage[k]
+                )
+                dcol_k = (
+                    dtr_stage * upos[k] + utens[k] + utensstage[k] + correction_term
+                )
 
                 divided = 1.0 / (bcol - ccol[k - 1] * acol)
                 ccol_k = ccol_k * divided
@@ -139,9 +149,8 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 return ccol.data, dcol.data
 
             ccol, dcol = ccol.data, dcol.data
-            if self.loop == 'jax':
-                ccol, dcol = lax.fori_loop(1, self.domain[2] - 1, forward,
-                                           (ccol, dcol))
+            if self.loop == "jax":
+                ccol, dcol = lax.fori_loop(1, self.domain[2] - 1, forward, (ccol, dcol))
             else:
                 for k in range(1, self.domain[2] - 1):
                     ccol, dcol = forward(k, (ccol, dcol))
@@ -158,8 +167,7 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
             bcol = dtr_stage - acol
 
             correction_term = -as_ * (ustage[k - 1] - ustage[k])
-            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
-                      correction_term)
+            dcol_k = dtr_stage * upos[k] + utens[k] + utensstage[k] + correction_term
 
             divided = 1.0 / (bcol - ccol[k - 1] * acol)
             dcol_k = (dcol_k - dcol[k - 1] * acol) * divided
@@ -175,11 +183,13 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 return datacol, utensstage.data
 
             utensstage = utensstage.data
-            if self.loop == 'jax':
+            if self.loop == "jax":
                 _, utensstage = lax.fori_loop(
-                    -(self.domain[2] - 2), 1,
+                    -(self.domain[2] - 2),
+                    1,
                     lambda nk, args: backward(-nk, args),
-                    (datacol, utensstage))
+                    (datacol, utensstage),
+                )
             else:
                 for k in range(self.domain[2] - 2, -1, -1):
                     datacol, utensstage = backward(k, (datacol, utensstage))
@@ -190,7 +200,7 @@ class PlaneLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
 
 
 class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
-    loop = Parameter('loop implementation', 'jax', choices=['jax', 'python'])
+    loop = Parameter("loop implementation", "jax", choices=["jax", "python"])
 
     def stencil_definition(self):
         from jax import lax, vmap
@@ -213,8 +223,7 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
             bcol = dtr_stage - ccol_k
 
             correction_term = -cs * (ustage[k + 1] - ustage[k])
-            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
-                      correction_term)
+            dcol_k = dtr_stage * upos[k] + utens[k] + utensstage[k] + correction_term
 
             divided = 1.0 / bcol
             ccol_k = ccol_k * divided
@@ -236,9 +245,11 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 bcol = dtr_stage - acol - ccol_k
 
                 correction_term = -as_ * (ustage[k - 1] - ustage[k]) - cs * (
-                    ustage[k + 1] - ustage[k])
-                dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
-                          correction_term)
+                    ustage[k + 1] - ustage[k]
+                )
+                dcol_k = (
+                    dtr_stage * upos[k] + utens[k] + utensstage[k] + correction_term
+                )
 
                 divided = 1.0 / (bcol - ccol[k - 1] * acol)
                 ccol_k = ccol_k * divided
@@ -248,9 +259,8 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
                 dcol = dcol.at[k].set(dcol_k)
                 return ccol, dcol
 
-            if self.loop == 'jax':
-                ccol, dcol = lax.fori_loop(1, self.domain[2] - 1, forward,
-                                           (ccol, dcol))
+            if self.loop == "jax":
+                ccol, dcol = lax.fori_loop(1, self.domain[2] - 1, forward, (ccol, dcol))
             else:
                 for k in range(1, self.domain[2] - 1):
                     ccol, dcol = forward(k, (ccol, dcol))
@@ -265,8 +275,7 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
             bcol = dtr_stage - acol
 
             correction_term = -as_ * (ustage[k - 1] - ustage[k])
-            dcol_k = (dtr_stage * upos[k] + utens[k] + utensstage[k] +
-                      correction_term)
+            dcol_k = dtr_stage * upos[k] + utens[k] + utensstage[k] + correction_term
 
             divided = 1.0 / (bcol - ccol[k - 1] * acol)
             dcol_k = (dcol_k - dcol[k - 1] * acol) * divided
@@ -277,15 +286,16 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
             def backward(k, args):
                 datacol, utensstage = args
                 datacol = dcol[k] - ccol[k] * datacol
-                utensstage = utensstage.at[k].set(dtr_stage *
-                                                  (datacol - upos[k]))
+                utensstage = utensstage.at[k].set(dtr_stage * (datacol - upos[k]))
                 return datacol, utensstage
 
-            if self.loop == 'jax':
+            if self.loop == "jax":
                 _, utensstage = lax.fori_loop(
-                    -(self.domain[2] - 2), 1,
+                    -(self.domain[2] - 2),
+                    1,
                     lambda nk, args: backward(-nk, args),
-                    (datacol, utensstage))
+                    (datacol, utensstage),
+                )
             else:
                 for k in range(self.domain[2] - 2, -1, -1):
                     datacol, utensstage = backward(k, (datacol, utensstage))
@@ -302,20 +312,26 @@ class ColumnLoop(VadvStencilMixin, base.VerticalAdvectionStencil):
         ishift = self.s(lo_i=1, hi_i=1, hi_k=1)
 
         def stencil(ustage, upos, utens, utensstage, wcon):
-            solver = vmap(vmap(solve_column,
-                               in_axes=inner_axis,
-                               out_axes=inner_axis),
-                          in_axes=outer_axis,
-                          out_axes=outer_axis)
-            result = solver(ustage[center], upos[center], utens[center],
-                            utensstage[center], wcon[staggered], wcon[ishift])
+            solver = vmap(
+                vmap(solve_column, in_axes=inner_axis, out_axes=inner_axis),
+                in_axes=outer_axis,
+                out_axes=outer_axis,
+            )
+            result = solver(
+                ustage[center],
+                upos[center],
+                utens[center],
+                utensstage[center],
+                wcon[staggered],
+                wcon[ishift],
+            )
             return utensstage.at[center].set(result)
 
         return stencil
 
 
 class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
-    unroll_factor = Parameter('unroll factor', 1)
+    unroll_factor = Parameter("unroll factor", 1)
 
     def stencil_definition(self):
         from jax import lax, vmap
@@ -328,9 +344,20 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
         def solve_column(ustage, upos, utens, utensstage, wcon, wcon_shift):
             def forward(carry, args):
                 def first_level(args):
-                    (wcon_k, wcon_kp1, wcon_shift_k, wcon_shift_kp1,
-                     ustage_km1, ustage_k, ustage_kp1, upos_k, utens_k,
-                     utensstage_k, ccol_km1, dcol_km1) = args
+                    (
+                        wcon_k,
+                        wcon_kp1,
+                        wcon_shift_k,
+                        wcon_shift_kp1,
+                        ustage_km1,
+                        ustage_k,
+                        ustage_kp1,
+                        upos_k,
+                        utens_k,
+                        utensstage_k,
+                        ccol_km1,
+                        dcol_km1,
+                    ) = args
 
                     gcv = (wcon_shift_kp1 + wcon_kp1) / 4
                     cs = gcv * bet_m
@@ -339,8 +366,9 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                     bcol = dtr_stage - ccol_k
 
                     correction_term = -cs * (ustage_kp1 - ustage_k)
-                    dcol_k = (dtr_stage * upos_k + utens_k + utensstage_k +
-                              correction_term)
+                    dcol_k = (
+                        dtr_stage * upos_k + utens_k + utensstage_k + correction_term
+                    )
 
                     divided = 1.0 / bcol
                     ccol_k = ccol_k * divided
@@ -349,9 +377,21 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                     return ccol_k, dcol_k
 
                 def other_levels(args):
-                    (k, wcon_k, wcon_kp1, wcon_shift_k, wcon_shift_kp1,
-                     ustage_km1, ustage_k, ustage_kp1, upos_k, utens_k,
-                     utensstage_k, ccol_km1, dcol_km1) = args
+                    (
+                        k,
+                        wcon_k,
+                        wcon_kp1,
+                        wcon_shift_k,
+                        wcon_shift_kp1,
+                        ustage_km1,
+                        ustage_k,
+                        ustage_kp1,
+                        upos_k,
+                        utens_k,
+                        utensstage_k,
+                        ccol_km1,
+                        dcol_km1,
+                    ) = args
 
                     gav = -(wcon_shift_k + wcon_k) / 4
                     gcv = (wcon_shift_kp1 + wcon_kp1) / 4
@@ -364,9 +404,11 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                     bcol = dtr_stage - acol - ccol_k
 
                     correction_term = -as_ * (ustage_km1 - ustage_k) - cs * (
-                        ustage_kp1 - ustage_k)
-                    dcol_k = (dtr_stage * upos_k + utens_k + utensstage_k +
-                              correction_term)
+                        ustage_kp1 - ustage_k
+                    )
+                    dcol_k = (
+                        dtr_stage * upos_k + utens_k + utensstage_k + correction_term
+                    )
 
                     divided = 1.0 / (bcol - ccol_km1 * acol)
                     ccol_k = ccol_k * divided
@@ -375,9 +417,20 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                     return ccol_k, dcol_k
 
                 def last_level(args):
-                    (wcon_k, wcon_kp1, wcon_shift_k, wcon_shift_kp1,
-                     ustage_km1, ustage_k, ustage_kp1, upos_k, utens_k,
-                     utensstage_k, ccol_km1, dcol_km1) = args
+                    (
+                        wcon_k,
+                        wcon_kp1,
+                        wcon_shift_k,
+                        wcon_shift_kp1,
+                        ustage_km1,
+                        ustage_k,
+                        ustage_kp1,
+                        upos_k,
+                        utens_k,
+                        utensstage_k,
+                        ccol_km1,
+                        dcol_km1,
+                    ) = args
 
                     gav = -(wcon_shift_k + wcon_k) / 4
 
@@ -387,8 +440,9 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                     bcol = dtr_stage - acol
 
                     correction_term = -as_ * (ustage_km1 - ustage_k)
-                    dcol_k = (dtr_stage * upos_k + utens_k + utensstage_k +
-                              correction_term)
+                    dcol_k = (
+                        dtr_stage * upos_k + utens_k + utensstage_k + correction_term
+                    )
 
                     divided = 1.0 / (bcol - ccol_km1 * acol)
                     dcol_k = (dcol_k - dcol_km1 * acol) * divided
@@ -399,26 +453,61 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                     k = args[0]
                     return lax.cond(k == 0, first_level, last_level, args[1:])
 
-                (k, wcon_k, wcon_shift_k, ustage_km1, ustage_k, ccol_km1,
-                 dcol_km1) = carry
-                (wcon_kp1, wcon_shift_kp1, ustage_kp1, upos_k, utens_k,
-                 utensstage_k) = args
+                (k, wcon_k, wcon_shift_k, ustage_km1, ustage_k, ccol_km1, dcol_km1) = (
+                    carry
+                )
+                (
+                    wcon_kp1,
+                    wcon_shift_kp1,
+                    ustage_kp1,
+                    upos_k,
+                    utens_k,
+                    utensstage_k,
+                ) = args
                 ccol_k, dcol_k = lax.cond(
                     lax.bitwise_or(k == 0, k == self.domain[2] - 1),
-                    first_or_last_level, other_levels,
-                    (k, wcon_k, wcon_kp1, wcon_shift_k, wcon_shift_kp1,
-                     ustage_km1, ustage_k, ustage_kp1, upos_k, utens_k,
-                     utensstage_k, ccol_km1, dcol_km1))
+                    first_or_last_level,
+                    other_levels,
+                    (
+                        k,
+                        wcon_k,
+                        wcon_kp1,
+                        wcon_shift_k,
+                        wcon_shift_kp1,
+                        ustage_km1,
+                        ustage_k,
+                        ustage_kp1,
+                        upos_k,
+                        utens_k,
+                        utensstage_k,
+                        ccol_km1,
+                        dcol_km1,
+                    ),
+                )
 
-                return (k + 1, wcon_kp1, wcon_shift_kp1, ustage_k, ustage_kp1,
-                        ccol_k, dcol_k), (ccol_k, dcol_k)
+                return (
+                    k + 1,
+                    wcon_kp1,
+                    wcon_shift_kp1,
+                    ustage_k,
+                    ustage_kp1,
+                    ccol_k,
+                    dcol_k,
+                ), (ccol_k, dcol_k)
 
             _, (ccol, dcol) = lax.scan(
                 forward,
                 (0, wcon[0], wcon_shift[0], ustage[0], ustage[0], 0.0, 0.0),
-                (wcon[1:], wcon_shift[1:], ustage[1:], upos[:-1], utens[:-1],
-                 utensstage[:-1]),
-                unroll=self.unroll_factor)
+                (
+                    wcon[1:],
+                    wcon_shift[1:],
+                    ustage[1:],
+                    upos[:-1],
+                    utens[:-1],
+                    utensstage[:-1],
+                ),
+                unroll=self.unroll_factor,
+            )
 
             def backward(carry, args):
                 def last_level(args):
@@ -434,14 +523,20 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
                 (last, datacol_kp1) = carry
                 (upos_k, ccol_k, dcol_k) = args
                 datacol_k, utensstage_k = lax.cond(
-                    last, last_level, other_levels,
-                    (upos_k, ccol_k, dcol_k, datacol_kp1))
+                    last,
+                    last_level,
+                    other_levels,
+                    (upos_k, ccol_k, dcol_k, datacol_kp1),
+                )
                 return (False, datacol_k), utensstage_k
 
-            _, utensstage = lax.scan(backward, (True, 0.0),
-                                     (upos[:-1], ccol, dcol),
-                                     reverse=True,
-                                     unroll=self.unroll_factor)
+            _, utensstage = lax.scan(
+                backward,
+                (True, 0.0),
+                (upos[:-1], ccol, dcol),
+                reverse=True,
+                unroll=self.unroll_factor,
+            )
             return utensstage
 
         i_axis, j_axis, k_axis = self.layout
@@ -453,13 +548,19 @@ class ColumnScan(VadvStencilMixin, base.VerticalAdvectionStencil):
         ishift = self.s(lo_i=1, hi_i=1, hi_k=1)
 
         def stencil(ustage, upos, utens, utensstage, wcon):
-            solver = vmap(vmap(solve_column,
-                               in_axes=inner_axis,
-                               out_axes=inner_axis),
-                          in_axes=outer_axis,
-                          out_axes=outer_axis)
-            result = solver(ustage[center], upos[center], utens[center],
-                            utensstage[center], wcon[center], wcon[ishift])
+            solver = vmap(
+                vmap(solve_column, in_axes=inner_axis, out_axes=inner_axis),
+                in_axes=outer_axis,
+                out_axes=outer_axis,
+            )
+            result = solver(
+                ustage[center],
+                upos[center],
+                utens[center],
+                utensstage[center],
+                wcon[center],
+                wcon[ishift],
+            )
             return utensstage.at[self.t(self.inner_slice())].set(result)
 
         return stencil

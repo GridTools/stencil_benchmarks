@@ -40,56 +40,63 @@ from stencil_benchmarks.tools import compilation, cpphelpers, template
 
 
 class StencilMixin(Benchmark):
-    compiler = Parameter('compiler path', 'g++')
-    compiler_flags = Parameter('compiler flags', '')
-    platform_preset = Parameter('preset flags for specific hardware platform',
-                                'native',
-                                choices=['none', 'native'])
-    print_code = Parameter('print generated code', False)
-    dry_runs = Parameter('dry-runs before the measurement', 0)
+    compiler = Parameter("compiler path", "g++")
+    compiler_flags = Parameter("compiler flags", "")
+    platform_preset = Parameter(
+        "preset flags for specific hardware platform",
+        "native",
+        choices=["none", "native"],
+    )
+    print_code = Parameter("print generated code", False)
+    dry_runs = Parameter("dry-runs before the measurement", 0)
     streaming_stores = Parameter(
-        'enable streaming/non-temporal store instructions '
-        '(only supported by some implementations)', False)
+        "enable streaming/non-temporal store instructions "
+        "(only supported by some implementations)",
+        False,
+    )
     perf_counter = Parameter(
-        'perf performance counter in the form type:config, where valid values '
-        'for type and config can be found in the man page of perf_event_open',
-        'none')
+        "perf performance counter in the form type:config, where valid values "
+        "for type and config can be found in the man page of perf_event_open",
+        "none",
+    )
 
     def setup(self):
         super().setup()
 
-        template_file = os.path.join(self.template_path(), 'templates',
-                                     self.template_file())
+        template_file = os.path.join(
+            self.template_path(), "templates", self.template_file()
+        )
         code = template.render(template_file, **self.template_args())
         code = cpphelpers.format_code(code, line_numbers=False)
 
         if self.print_code:
             print(cpphelpers.format_code(code, line_numbers=True))
 
-        if self.compiler.endswith('icpc'):
-            os.environ['KMP_INIT_AT_FORK'] = '0'
+        if self.compiler.endswith("icpc"):
+            os.environ["KMP_INIT_AT_FORK"] = "0"
 
         self.compiled = compilation.GnuLibrary(code, self.compile_command())
 
         if self.verify and self.dry_runs:
             warnings.warn(
-                'using --dry-runs together with verification might lead to '
-                'false negatives for stencils with read-write fields')
+                "using --dry-runs together with verification might lead to "
+                "false negatives for stencils with read-write fields"
+            )
 
     def template_path(self):
         return os.path.dirname(os.path.abspath(__file__))
 
     def compile_command(self):
         command = [self.compiler]
-        if self.platform_preset != 'none':
-            command += ['-std=c++11', '-Wall', '-DNDEBUG']
-            if self.compiler.endswith('icpc'):
-                command += ['-qopenmp', '-ffreestanding', '-O3']
+        if self.platform_preset != "none":
+            command += ["-std=c++11", "-Wall", "-DNDEBUG"]
+            if self.compiler.endswith("icpc"):
+                command += ["-qopenmp", "-ffreestanding", "-O3"]
             else:
-                command += ['-fopenmp', '-Ofast']
+                command += ["-fopenmp", "-Ofast"]
 
-            if self.platform_preset == 'native':
-                command += ['-march=native', '-mtune=native', '-Ofast']
+            if self.platform_preset == "native":
+                command += ["-march=native", "-mtune=native", "-Ofast"]
         if self.compiler_flags:
             command += self.compiler_flags.split()
         return command
@@ -99,20 +106,21 @@ class StencilMixin(Benchmark):
         pass
 
     def template_args(self):
-        if self.perf_counter == 'none':
+        if self.perf_counter == "none":
             perf_counter_type = perf_counter_config = None
         else:
-            perf_counter_type, perf_counter_config = self.perf_counter.split(
-                ':')
-        return dict(args=self.args,
-                    ctype=compilation.dtype_cname(self.dtype),
-                    strides=self.strides,
-                    domain=self.domain,
-                    alignment=self.alignment,
-                    streaming_stores=self.streaming_stores,
-                    dry_runs=self.dry_runs,
-                    perf_counter_type=perf_counter_type,
-                    perf_counter_config=perf_counter_config)
+            perf_counter_type, perf_counter_config = self.perf_counter.split(":")
+        return dict(
+            args=self.args,
+            ctype=compilation.dtype_cname(self.dtype),
+            strides=self.strides,
+            domain=self.domain,
+            alignment=self.alignment,
+            streaming_stores=self.streaming_stores,
+            dry_runs=self.dry_runs,
+            perf_counter_type=perf_counter_type,
+            perf_counter_config=perf_counter_config,
+        )
 
     def data_ptr(self, data):
         return compilation.data_ptr(data, self.halo)
@@ -121,8 +129,11 @@ class StencilMixin(Benchmark):
         time = ctypes.c_double()
         counter = ctypes.c_longlong()
         try:
-            self.compiled.kernel(ctypes.byref(time), ctypes.byref(counter),
-                                 *(self.data_ptr(array) for array in data))
+            self.compiled.kernel(
+                ctypes.byref(time),
+                ctypes.byref(counter),
+                *(self.data_ptr(array) for array in data),
+            )
         except compilation.ExecutionError as error:
             raise ExecutionError() from error
         return dict(time=time.value, counter=counter.value)
