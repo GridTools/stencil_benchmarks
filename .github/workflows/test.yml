@@ -1,6 +1,10 @@
 name: Test
 
-on: [push]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 env:
   JAX_ENABLE_X64: 1
@@ -11,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pyversion: ["3.7", "3.8", "3.9", "3.10"]
+        pyversion: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.pyversion }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.pyversion }}
       - name: Install
@@ -28,7 +32,7 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Install Optional Dependencies
         run: |
-          pip install numba jax jaxlib
+          pip install numba jax
       - name: Test
         run: |
           pytest
