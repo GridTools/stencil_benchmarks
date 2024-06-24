@@ -51,7 +51,7 @@ def long_description():
 def version():
     """Parse version info."""
     initfile_content = read_file("stencil_benchmarks", "__init__.py")
-    match = re.search(r"__version__ = [']([^']*)[']", initfile_content, re.M)
+    match = re.search(r'__version__ = ["]([^"]*)["]', initfile_content, re.M)
     if match:
         return match.group(1)
     raise RuntimeError("Unable to find version string")
