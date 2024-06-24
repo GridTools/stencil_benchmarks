@@ -120,7 +120,7 @@ class Stencil(Benchmark):
 
     @property
     def data_size(self):
-        return len(self.args) * np.product(self.domain) * self.dtype_size
+        return len(self.args) * np.prod(self.domain) * self.dtype_size
 
     def inner_slice(self, shift=None, expand=None):
         if shift is None:
@@ -255,8 +255,8 @@ class HorizontalDiffusionStencil(Stencil):
 
     @property
     def data_size(self):
-        return (2 * np.product(self.domain) +
-                np.product(np.array(self.domain) + 4)) * self.dtype_size
+        return (2 * np.prod(self.domain) +
+                np.prod(np.array(self.domain) + 4)) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality('inp', data_before.inp, data_after.inp)
@@ -323,7 +323,7 @@ class VerticalAdvectionStencil(Stencil):
         else:
             reads = 15  # including ccol + dcol, but not datacol
             writes = 5  # including ccol + dcol, but not datacol
-        return (reads + writes) * np.product(self.domain) * self.dtype_size
+        return (reads + writes) * np.prod(self.domain) * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         # pylint: disable=unsubscriptable-object

@@ -107,7 +107,7 @@ class StencilMixin(mixin.StencilMixin):
             data.strides[2],
             data.strides[0],
         )
-        assert data.size == np.product(self.blocked_domain_with_halo)
+        assert data.size == np.prod(self.blocked_domain_with_halo)
         blocked_view = np.lib.stride_tricks.as_strided(
             data, self.blocked_domain_with_halo, blocked_strides)
 
