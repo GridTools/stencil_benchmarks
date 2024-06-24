@@ -114,7 +114,8 @@ class StencilMixin(Benchmark):
                     dry_runs=self.dry_runs,
                     timers=self.timers,
                     strides=self.strides,
-                    index_type=self.index_type)
+                    index_type=self.index_type,
+                    implementation_name=self.template_file().partition('.')[0])
 
     @contextlib.contextmanager
     def on_device(self, data):

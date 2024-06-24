@@ -194,7 +194,7 @@ __forceinline__ __device__ void forward_sweep(const {{ index_type }} ishift,
 }
 
 
-__global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kernel(
+__global__ void __launch_bounds__({{ block_size[0] * block_size[1] }}) gpu_kernel_{{ implementation_name }}(
     const {{ ctype }} *__restrict__ ustage,
     const {{ ctype }} *__restrict__ upos,
     const {{ ctype }} *__restrict__ utens,

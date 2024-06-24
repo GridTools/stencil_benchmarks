@@ -123,7 +123,7 @@ class GnuLibrary:
             compile_command = ['gcc'] if extension.lower() == '.c' else ['g++']
 
         if compile_command[0].endswith('nvcc'):
-            compile_command += ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC']
+            compile_command += ['-Xcompiler', '-shared', '-Xcompiler', '-fPIC', '--generate-line-info']
         else:
             compile_command += ['-shared', '-fPIC']
 
