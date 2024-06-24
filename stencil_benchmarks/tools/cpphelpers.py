@@ -36,14 +36,15 @@ import warnings
 
 def format_code(code: str, line_numbers: bool = True) -> str:
     try:
-        code = subprocess.run('clang-format',
-                              input=code,
-                              encoding='ascii',
-                              stdout=subprocess.PIPE,
-                              check=True).stdout
+        code = subprocess.run(
+            "clang-format",
+            input=code,
+            encoding="ascii",
+            stdout=subprocess.PIPE,
+            check=True,
+        ).stdout
     except FileNotFoundError:
-        warnings.warn('C++ code not formatted: could not find clang-format')
+        warnings.warn("C++ code not formatted: could not find clang-format")
     if not line_numbers:
         return code
-    return ''.join(f'{num + 1:4} {line}\n'
-                   for num, line in enumerate(code.split('\n')))
+    return "".join(f"{num + 1:4} {line}\n" for num, line in enumerate(code.split("\n")))

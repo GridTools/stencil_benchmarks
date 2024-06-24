@@ -32,4 +32,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from . import basic
 
-__all__ = ['basic']
+__all__ = ["basic"]

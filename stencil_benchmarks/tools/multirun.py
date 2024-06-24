@@ -44,8 +44,7 @@ class Configuration:
     def __init__(self, ctor, name=None, **kwargs):
         self.ctor = ctor
         if name is None:
-            self.name = re.sub('(?!^)([A-Z1-9]+)', r'-\1',
-                               ctor.__name__).lower()
+            self.name = re.sub("(?!^)([A-Z1-9]+)", r"-\1", ctor.__name__).lower()
         else:
             self.name = name
         self.kwargs = kwargs
@@ -73,10 +72,9 @@ def domains(min_exp=5, max_exp=11, k=80):
         yield d, d, k
 
 
-def run_scaling_benchmark(configurations,
-                          executions,
-                          preprocess_args=None,
-                          domain_range=None):
+def run_scaling_benchmark(
+    configurations, executions, preprocess_args=None, domain_range=None
+):
     if domain_range is None:
         domain_range = domains()
 
@@ -85,25 +83,24 @@ def run_scaling_benchmark(configurations,
         with cli.ProgressBar() as progress:
             for domain in progress.report(domain_range):
                 for config in progress.report(configurations):
-                    run = config(preprocess_args=preprocess_args,
-                                 domain=domain)
-                    results += [
-                        run() for _ in progress.report(range(executions))
-                    ]
+                    run = config(preprocess_args=preprocess_args, domain=domain)
+                    results += [run() for _ in progress.report(range(executions))]
                     del run
                     gc.collect()
         for warning in {str(w.message) for w in catched_warnings}:
-            print('WARNING:', warning)
+            print("WARNING:", warning)
     return pd.DataFrame(results)
 
 
 def truncate_block_size_to_domain(**kwargs):
-    if 'block_size' in kwargs and 'domain' in kwargs:
-        kwargs['block_size'] = tuple(
-            min(b, d) for b, d in zip(kwargs['block_size'], kwargs['domain']))
-    if 'storage_block_size' in kwargs and 'domain' in kwargs:
-        kwargs['storage_block_size'] = min(kwargs['storage_block_size'],
-                                           kwargs['domain'][0])
+    if "block_size" in kwargs and "domain" in kwargs:
+        kwargs["block_size"] = tuple(
+            min(b, d) for b, d in zip(kwargs["block_size"], kwargs["domain"])
+        )
+    if "storage_block_size" in kwargs and "domain" in kwargs:
+        kwargs["storage_block_size"] = min(
+            kwargs["storage_block_size"], kwargs["domain"][0]
+        )
     return kwargs
 
 
@@ -112,8 +109,8 @@ def default_kwargs(**kwargs):
         kws = kwargs.copy()
         kws.update(overrides)
         for o in options:
-            name, value = o.split('=', 1)
-            name = name.replace('-', '_')
+            name, value = o.split("=", 1)
+            name = name.replace("-", "_")
             value = literal_eval(value)
             kws[name] = value
         return kws

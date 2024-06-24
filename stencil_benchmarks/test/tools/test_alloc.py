@@ -38,7 +38,7 @@ from stencil_benchmarks.tools import alloc
 class TestAllocSmallpages(unittest.TestCase):
     def test_alloc_smallpages(self):
         size = 10000
-        buffer = memoryview(alloc.alloc_smallpages(size * 4)).cast('i')
+        buffer = memoryview(alloc.alloc_smallpages(size * 4)).cast("i")
         for i in range(size):
             buffer[i] = 42 * i
 
@@ -49,7 +49,7 @@ class TestAllocSmallpages(unittest.TestCase):
 class TestAllocHugepages(unittest.TestCase):
     def test_alloc_hugepages(self):
         size = 10000
-        buffer = memoryview(alloc.alloc_hugepages(size * 4, True)).cast('i')
+        buffer = memoryview(alloc.alloc_hugepages(size * 4, True)).cast("i")
         for i in range(size):
             buffer[i] = 42 * i
 

@@ -32,4 +32,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from . import cuda_hip, mc_calpin
 
-__all__ = ['mc_calpin', 'cuda_hip']
+__all__ = ["mc_calpin", "cuda_hip"]

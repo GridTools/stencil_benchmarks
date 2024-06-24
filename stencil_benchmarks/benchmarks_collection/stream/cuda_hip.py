@@ -39,48 +39,46 @@ from ...tools import compilation, cpphelpers, template
 
 
 class Native(Benchmark):
-    array_size = Parameter('number of elements in arrays', 10000000)
-    ntimes = Parameter('number of runs', 10)
-    block_size = Parameter('threads per block', 1024)
-    dtype = Parameter('data type in NumPy format, e.g. float32 or float64',
-                      'float64')
-    compiler = Parameter('compiler path', dtype=str, nargs=1)
-    compiler_flags = Parameter('compiler flags', '')
-    axis = Parameter('compute grid dimension to use',
-                     'x',
-                     choices=['x', 'y', 'z'])
-    vector_size = Parameter('vector size', 1)
+    array_size = Parameter("number of elements in arrays", 10000000)
+    ntimes = Parameter("number of runs", 10)
+    block_size = Parameter("threads per block", 1024)
+    dtype = Parameter("data type in NumPy format, e.g. float32 or float64", "float64")
+    compiler = Parameter("compiler path", dtype=str, nargs=1)
+    compiler_flags = Parameter("compiler flags", "")
+    axis = Parameter("compute grid dimension to use", "x", choices=["x", "y", "z"])
+    vector_size = Parameter("vector size", 1)
     explicit_vectorization = Parameter(
-        'use float2, float3, float4 types, '
-        'otherwise just add a loop and let the compiler vectorize', True)
-    unroll_factor = Parameter(
-        'loop unroll factor (in addition to vectorization)', 1)
-    launch_bounds = Parameter('specify launch bounds', True)
-    index_type = Parameter('index data type', 'std::size_t')
-    streaming_stores = Parameter('use streaming store instructions', False)
-    streaming_loads = Parameter('use streaming load instructions', False)
-    print_code = Parameter('print code', False)
-    verify = Parameter('verify results', True)
+        "use float2, float3, float4 types, "
+        "otherwise just add a loop and let the compiler vectorize",
+        True,
+    )
+    unroll_factor = Parameter("loop unroll factor (in addition to vectorization)", 1)
+    launch_bounds = Parameter("specify launch bounds", True)
+    index_type = Parameter("index data type", "std::size_t")
+    streaming_stores = Parameter("use streaming store instructions", False)
+    streaming_loads = Parameter("use streaming load instructions", False)
+    print_code = Parameter("print code", False)
+    verify = Parameter("verify results", True)
 
     def setup(self):
         super().setup()
 
-        elements_per_block = (self.block_size * self.vector_size *
-                              self.unroll_factor)
+        elements_per_block = self.block_size * self.vector_size * self.unroll_factor
         if self.array_size % elements_per_block:
-            warnings.warn(
-                'adapting array size to match block and vector sizes')
-        self.array_size = ((self.array_size + elements_per_block - 1) //
-                           elements_per_block) * elements_per_block
+            warnings.warn("adapting array size to match block and vector sizes")
+        self.array_size = (
+            (self.array_size + elements_per_block - 1) // elements_per_block
+        ) * elements_per_block
 
         template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), 'cuda_hip.j2')
+            os.path.dirname(os.path.abspath(__file__)), "cuda_hip.j2"
+        )
         code = template.render(template_file, **self.template_args())
         if self.print_code:
             print(cpphelpers.format_code(code))
-        self.compiled = compilation.GnuLibrary(code,
-                                               self.compile_command(),
-                                               extension='.cu')
+        self.compiled = compilation.GnuLibrary(
+            code, self.compile_command(), extension=".cu"
+        )
 
     def compile_command(self):
         command = [self.compiler]
@@ -89,19 +87,21 @@ class Native(Benchmark):
         return command
 
     def template_args(self):
-        return dict(array_size=self.array_size,
-                    axis=self.axis,
-                    block_size=self.block_size,
-                    ctype=compilation.dtype_cname(self.dtype),
-                    ntimes=self.ntimes,
-                    vector_size=self.vector_size,
-                    explicit_vectorization=self.explicit_vectorization,
-                    unroll_factor=self.unroll_factor,
-                    launch_bounds=self.launch_bounds,
-                    index_type=self.index_type,
-                    streaming_loads=self.streaming_loads,
-                    streaming_stores=self.streaming_stores,
-                    verify=self.verify)
+        return dict(
+            array_size=self.array_size,
+            axis=self.axis,
+            block_size=self.block_size,
+            ctype=compilation.dtype_cname(self.dtype),
+            ntimes=self.ntimes,
+            vector_size=self.vector_size,
+            explicit_vectorization=self.explicit_vectorization,
+            unroll_factor=self.unroll_factor,
+            launch_bounds=self.launch_bounds,
+            index_type=self.index_type,
+            streaming_loads=self.streaming_loads,
+            streaming_stores=self.streaming_stores,
+            verify=self.verify,
+        )
 
     def run(self):
         try:
@@ -109,17 +109,21 @@ class Native(Benchmark):
         except compilation.ExecutionError as error:
             raise ExecutionError(*error.args) from error
 
-        regex = re.compile(r'(Copy|Scale|Add|Triad): +'
-                           r'([0-9.]+) +([0-9.]+) +'
-                           r'([0-9.]+) +([0-9.]+)')
+        regex = re.compile(
+            r"(Copy|Scale|Add|Triad): +"
+            r"([0-9.]+) +([0-9.]+) +"
+            r"([0-9.]+) +([0-9.]+)"
+        )
         results = []
         for match in regex.finditer(output):
-            results.append({
-                'name': match.group(1).lower(),
-                'bandwidth': float(match.group(2)),
-                'avg-time': float(match.group(3)),
-                'time': float(match.group(4)),
-                'max-time': float(match.group(5))
-            })
+            results.append(
+                {
+                    "name": match.group(1).lower(),
+                    "bandwidth": float(match.group(2)),
+                    "avg-time": float(match.group(3)),
+                    "time": float(match.group(4)),
+                    "max-time": float(match.group(5)),
+                }
+            )
 
         return results

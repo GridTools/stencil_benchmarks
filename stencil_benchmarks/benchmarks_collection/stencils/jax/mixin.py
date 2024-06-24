@@ -38,24 +38,24 @@ from stencil_benchmarks.benchmark import Benchmark, Parameter
 
 
 class StencilMixin(Benchmark):
-    dry_runs = Parameter('stencil dry-runs before the measurement', 0)
-    print_jaxpr = Parameter('print resulting jaxpr', False)
+    dry_runs = Parameter("stencil dry-runs before the measurement", 0)
+    print_jaxpr = Parameter("print resulting jaxpr", False)
 
     def setup(self):
         super().setup()
 
         if self.verify and self.dry_runs:
             warnings.warn(
-                'using --dry-runs together with verification might lead to '
-                'false negatives for stencils with read-write fields')
+                "using --dry-runs together with verification might lead to "
+                "false negatives for stencils with read-write fields"
+            )
 
         self.setup_stencil()
 
         self._printed = False
 
     @abc.abstractmethod
-    def setup_stencil(self):
-        ...
+    def setup_stencil(self): ...
 
     def t(self, s):
         assert isinstance(s, tuple)
@@ -70,11 +70,13 @@ class StencilMixin(Benchmark):
         return self.t(
             tuple(
                 axis_slice(lo, hi, h)
-                for lo, hi, h in zip((lo_i, lo_j, lo_k), (hi_i, hi_j,
-                                                          hi_k), self.halo)))
+                for lo, hi, h in zip((lo_i, lo_j, lo_k), (hi_i, hi_j, hi_k), self.halo)
+            )
+        )
 
     def to_device(self, array):
         from jax import numpy as npy
+
         transposed = array.transpose(self.t((0, 1, 2)))
         return npy.array(transposed, dtype=array.dtype)
 

@@ -58,8 +58,9 @@ class OnesidedAverage(OnesidedAverageStencil):
     def run_stencil(self, data):
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
-        data.out[self.inner_slice()] = (data.inp[self.inner_slice(shift)] +
-                                        data.inp[self.inner_slice()]) / 2
+        data.out[self.inner_slice()] = (
+            data.inp[self.inner_slice(shift)] + data.inp[self.inner_slice()]
+        ) / 2
 
 
 class SymmetricAverage(SymmetricAverageStencil):
@@ -67,8 +68,9 @@ class SymmetricAverage(SymmetricAverageStencil):
     def run_stencil(self, data):
         shift = np.zeros(3, dtype=int)
         shift[self.axis] = 1
-        data.out[self.inner_slice()] = (data.inp[self.inner_slice(shift)] +
-                                        data.inp[self.inner_slice(-shift)]) / 2
+        data.out[self.inner_slice()] = (
+            data.inp[self.inner_slice(shift)] + data.inp[self.inner_slice(-shift)]
+        ) / 2
 
 
 class Laplacian(LaplacianStencil):
@@ -81,7 +83,5 @@ class Laplacian(LaplacianStencil):
             if apply_along_axis:
                 shift = np.zeros(3, dtype=int)
                 shift[axis] = 1
-                data.out[self.inner_slice()] -= data.inp[self.inner_slice(
-                    shift)]
-                data.out[self.inner_slice()] -= data.inp[self.inner_slice(
-                    -shift)]
+                data.out[self.inner_slice()] -= data.inp[self.inner_slice(shift)]
+                data.out[self.inner_slice()] -= data.inp[self.inner_slice(-shift)]

@@ -38,10 +38,10 @@ from .mixin import StencilMixin
 
 
 class HorizontalDiffusionMixin(StencilMixin):
-    block_size = Parameter('block size', (32, 8, 1))
+    block_size = Parameter("block size", (32, 8, 1))
 
     def template_file(self):
-        return 'horizontal_diffusion_' + type(self).__name__.lower() + '.j2'
+        return "horizontal_diffusion_" + type(self).__name__.lower() + ".j2"
 
     def template_args(self):
         return dict(**super().template_args(), block_size=self.block_size)
@@ -50,7 +50,7 @@ class HorizontalDiffusionMixin(StencilMixin):
 class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
     def stencil_body(self):
         stride_x, stride_y, _ = self.strides
-        return f'''const auto inp_ij = inp[index];
+        return f"""const auto inp_ij = inp[index];
                 const auto inp_im1j = inp[index - {stride_x}];
                 const auto inp_ip1j = inp[index + {stride_x}];
                 const auto inp_ijm1 = inp[index - {stride_y}];
@@ -93,11 +93,10 @@ class OnTheFly(BasicStencilMixin, base.HorizontalDiffusionStencil):
 
                 out[index] = inp_ij - coeff[index] * (flx_ij - flx_imj +
                                         fly_ij - fly_ijm);
-                '''
+                """
 
 
-class OnTheFlyIncache(HorizontalDiffusionMixin,
-                      base.HorizontalDiffusionStencil):
+class OnTheFlyIncache(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
@@ -105,13 +104,11 @@ class Classic(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanSharedMem(HorizontalDiffusionMixin,
-                     base.HorizontalDiffusionStencil):
+class JScanSharedMem(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanOtfIncache(HorizontalDiffusionMixin,
-                      base.HorizontalDiffusionStencil):
+class JScanOtfIncache(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
@@ -119,8 +116,7 @@ class JScanOtf(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanShuffleIncache(HorizontalDiffusionMixin,
-                          base.HorizontalDiffusionStencil):
+class JScanShuffleIncache(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
@@ -128,6 +124,5 @@ class JScanShuffle(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass
 
 
-class JScanShuffleSystolic(HorizontalDiffusionMixin,
-                           base.HorizontalDiffusionStencil):
+class JScanShuffleSystolic(HorizontalDiffusionMixin, base.HorizontalDiffusionStencil):
     pass

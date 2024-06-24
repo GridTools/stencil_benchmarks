@@ -45,16 +45,16 @@ def read_file(*path):
 
 def long_description():
     """Read long description from README.md."""
-    return read_file('README.md')
+    return read_file("README.md")
 
 
 def version():
     """Parse version info."""
-    initfile_content = read_file('stencil_benchmarks', '__init__.py')
+    initfile_content = read_file("stencil_benchmarks", "__init__.py")
     match = re.search(r"__version__ = [']([^']*)[']", initfile_content, re.M)
     if match:
         return match.group(1)
-    raise RuntimeError('Unable to find version string')
+    raise RuntimeError("Unable to find version string")
 
 
 class pybind11_include:
@@ -63,57 +63,58 @@ class pybind11_include:
 
     def __str__(self):
         import pybind11
+
         return pybind11.get_include(self.user)
 
 
 def pybind11_extension(m):
     return setuptools.Extension(
-        m, [m.replace('.', '/') + '.cpp'],
-        include_dirs=[pybind11_include(False),
-                      pybind11_include(True)],
-        language='c++')
+        m,
+        [m.replace(".", "/") + ".cpp"],
+        include_dirs=[pybind11_include(False), pybind11_include(True)],
+        language="c++",
+    )
 
 
 ext_modules = [
-    pybind11_extension('stencil_benchmarks.tools.alloc'),
-    pybind11_extension('stencil_benchmarks.tools.parallel')
+    pybind11_extension("stencil_benchmarks.tools.alloc"),
+    pybind11_extension("stencil_benchmarks.tools.parallel"),
 ]
 
 setuptools.setup(
-    name='stencil_benchmarks',
+    name="stencil_benchmarks",
     version=version(),
-    author='Felix Thaler',
-    author_email='thaler@cscs.ch',
-    description='Stencil code benchmarks.',
+    author="Felix Thaler",
+    author_email="thaler@cscs.ch",
+    description="Stencil code benchmarks.",
     long_description=long_description(),
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
-    package_data={'': ['*.j2', '*.pyi']},
+    package_data={"": ["*.j2", "*.pyi"]},
     ext_modules=ext_modules,
     entry_points={
-        'console_scripts': [
-            'sbench=stencil_benchmarks.scripts.sbench:main',
-            'sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main',
-            'sbench-h100-collection=stencil_benchmarks.scripts'
-            '.sbench_h100_collection:main',
-            'sbench-a100-collection=stencil_benchmarks.scripts'
-            '.sbench_a100_collection:main',
-            'sbench-v100-collection=stencil_benchmarks.scripts'
-            '.sbench_v100_collection:main',
-            'sbench-p100-collection=stencil_benchmarks.scripts'
-            '.sbench_p100_collection:main',
-            'sbench-mi50-collection=stencil_benchmarks.scripts'
-            '.sbench_mi50_collection:main',
-            'sbench-mi100-collection=stencil_benchmarks.scripts'
-            '.sbench_mi100_collection:main',
-            'sbench-a64fx-collection=stencil_benchmarks.scripts'
-            '.sbench_a64fx_collection:main',
-            'sbench-rome-collection=stencil_benchmarks.scripts'
-            '.sbench_rome_collection:main'
+        "console_scripts": [
+            "sbench=stencil_benchmarks.scripts.sbench:main",
+            "sbench-analyze=stencil_benchmarks.scripts.sbench_analyze:main",
+            "sbench-h100-collection=stencil_benchmarks.scripts"
+            ".sbench_h100_collection:main",
+            "sbench-a100-collection=stencil_benchmarks.scripts"
+            ".sbench_a100_collection:main",
+            "sbench-v100-collection=stencil_benchmarks.scripts"
+            ".sbench_v100_collection:main",
+            "sbench-p100-collection=stencil_benchmarks.scripts"
+            ".sbench_p100_collection:main",
+            "sbench-mi50-collection=stencil_benchmarks.scripts"
+            ".sbench_mi50_collection:main",
+            "sbench-mi100-collection=stencil_benchmarks.scripts"
+            ".sbench_mi100_collection:main",
+            "sbench-a64fx-collection=stencil_benchmarks.scripts"
+            ".sbench_a64fx_collection:main",
+            "sbench-rome-collection=stencil_benchmarks.scripts"
+            ".sbench_rome_collection:main",
         ]
     },
-    install_requires=[
-        'click', 'numpy', 'pandas', 'jinja2', 'matplotlib', 'pybind11'
-    ],
-    setup_requires=['pybind11'],
-    zip_safe=False)
+    install_requires=["click", "numpy", "pandas", "jinja2", "matplotlib", "pybind11"],
+    setup_requires=["pybind11"],
+    zip_safe=False,
+)

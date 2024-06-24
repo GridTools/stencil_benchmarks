@@ -77,8 +77,11 @@ class Laplacian(base.LaplacianStencil):
                     for j in range(hj, domain[1] + hj):
                         for i in range(hi, domain[0] + hi):
                             out[i, j, k] = 4 * inp[i, j, k] - (
-                                inp[i - 1, j, k] + inp[i + 1, j, k] +
-                                inp[i, j - 1, k] + inp[i, j + 1, k])
+                                inp[i - 1, j, k]
+                                + inp[i + 1, j, k]
+                                + inp[i, j - 1, k]
+                                + inp[i, j + 1, k]
+                            )
         elif along == (True, True, True):
 
             @numba.njit(parallel=True)
@@ -87,9 +90,13 @@ class Laplacian(base.LaplacianStencil):
                     for j in range(hj, domain[1] + hj):
                         for i in range(hi, domain[0] + hi):
                             out[i, j, k] = 6 * inp[i, j, k] - (
-                                inp[i - 1, j, k] + inp[i + 1, j, k] +
-                                inp[i, j - 1, k] + inp[i, j + 1, k] +
-                                inp[i, j, k - 1] + inp[i, j, k + 1])
+                                inp[i - 1, j, k]
+                                + inp[i + 1, j, k]
+                                + inp[i, j - 1, k]
+                                + inp[i, j + 1, k]
+                                + inp[i, j, k - 1]
+                                + inp[i, j, k + 1]
+                            )
         else:
             raise NotImplementedError()
 

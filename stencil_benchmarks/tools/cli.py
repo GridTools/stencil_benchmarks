@@ -44,9 +44,11 @@ import click
 from .. import __version__
 
 
-def colorize(string: str,
-             rgb: Optional[Tuple[float, float, float]] = None,
-             hsv: Optional[Tuple[float, float, float]] = None) -> str:
+def colorize(
+    string: str,
+    rgb: Optional[Tuple[float, float, float]] = None,
+    hsv: Optional[Tuple[float, float, float]] = None,
+) -> str:
     """Add truecolor terminal color code to `string`.
 
     Either RGB or HSV values must be given.
@@ -82,10 +84,10 @@ def colorize(string: str,
         rgb = f(5), f(3), f(1)
 
     if not rgb:
-        raise ValueError('missing color specification')
+        raise ValueError("missing color specification")
 
     r, g, b = (int(255 * x) for x in rgb)
-    return f'\x1b[38;2;{r};{g};{b}m{string}\x1b[0m'
+    return f"\x1b[38;2;{r};{g};{b}m{string}\x1b[0m"
 
 
 class ProgressBar:
@@ -95,6 +97,7 @@ class ProgressBar:
     --------
     >>> p = ProgressBar()
     """
+
     def __init__(self):
         self._progress = []
 
@@ -124,8 +127,7 @@ class ProgressBar:
         """
         iterable = list(iterable)
         index = len(self._progress)
-        self._progress.append(
-            types.SimpleNamespace(current=0, max=len(iterable)))
+        self._progress.append(types.SimpleNamespace(current=0, max=len(iterable)))
         self._print()
         try:
             for i in iterable:
@@ -171,16 +173,15 @@ class ProgressBar:
         otherwise prints a newline.
         """
         if exc_type is None:
-            click.echo('\r' + ' ' * 110 + '\r', nl=False)
+            click.echo("\r" + " " * 110 + "\r", nl=False)
         else:
             click.echo()
         return False
 
     def _print(self) -> None:
         percent = round(self.progress)
-        bar = colorize('█' * percent + '-' * (100 - percent),
-                       hsv=(percent / 300, 1, 1))
-        click.echo('\r|' + bar + f'| {percent:3}%', nl=False)
+        bar = colorize("█" * percent + "-" * (100 - percent), hsv=(percent / 300, 1, 1))
+        click.echo("\r|" + bar + f"| {percent:3}%", nl=False)
         sys.stdout.flush()
 
 
@@ -216,52 +217,53 @@ class ArgRange(NamedTuple):
         ValueError: missing value definition for argument range "foo"
         """
         assert all(self.name == other.name for other in others)
-        all_ranges = (self, ) + others
+        all_ranges = (self,) + others
         values = set(r.values for r in all_ranges if r.values)
         if not values:
             raise ValueError(
-                f'missing value definition for argument range "{self.name}"')
+                f'missing value definition for argument range "{self.name}"'
+            )
         if len(values) > 1:
-            raise ValueError(
-                f'multiple definitions for argument range "{self.name}"')
+            raise ValueError(f'multiple definitions for argument range "{self.name}"')
         return next(iter(values))
 
 
 class _MaybeRange(click.ParamType):
     """Click ParamType for parameters that accept ranges."""
 
-    name = 'maybe range'
+    name = "maybe range"
 
     def __init__(self, base_type):
         self.base_type = base_type
         self._anonymous_range_count = 0
 
     def _parse_comma_range(self, value, param, ctx):
-        return tuple(
-            self.base_type.convert(v, param, ctx) for v in value.split(','))
+        return tuple(self.base_type.convert(v, param, ctx) for v in value.split(","))
 
     def _parse_range(self, value, param, ctx):
         match = re.match(
-            r'^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)'
-            r'(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$', value)
+            r"^(?P<start>[+-]?\d+)-(?P<stop>[+-]?\d+)"
+            r"(:(?P<op>[*/+-])(?P<step>[+-]?\d+))?$",
+            value,
+        )
 
         if not match:
             self.fail(f'could not parse range "{value}"')
 
-        start = self.base_type.convert(match.group('start'), param, ctx)
-        stop = self.base_type.convert(match.group('stop'), param, ctx)
+        start = self.base_type.convert(match.group("start"), param, ctx)
+        stop = self.base_type.convert(match.group("stop"), param, ctx)
 
         range_op = operator.add
         valid_ops = {
-            '+': operator.add,
-            '-': operator.sub,
-            '*': operator.mul,
-            '/': operator.truediv
+            "+": operator.add,
+            "-": operator.sub,
+            "*": operator.mul,
+            "/": operator.truediv,
         }
-        if match.group('op'):
-            range_op = valid_ops[match.group('op')]
-        if match.group('step'):
-            step = self.base_type.convert(match.group('step'), param, ctx)
+        if match.group("op"):
+            range_op = valid_ops[match.group("op")]
+        if match.group("step"):
+            step = self.base_type.convert(match.group("step"), param, ctx)
         else:
             step = 1
         result = []
@@ -272,17 +274,21 @@ class _MaybeRange(click.ParamType):
         return tuple(result)
 
     def convert(self, value, param, ctx):
-        if isinstance(value, str) and len(
-                value) >= 2 and value[0] == '[' and value[-1] == ']':
+        if (
+            isinstance(value, str)
+            and len(value) >= 2
+            and value[0] == "["
+            and value[-1] == "]"
+        ):
             value = value[1:-1]
             try:
-                name, value = value.split('=')
+                name, value = value.split("=")
             except ValueError:
-                name = f'{id(self)}_{self._anonymous_range_count}'
+                name = f"{id(self)}_{self._anonymous_range_count}"
                 self._anonymous_range_count += 1
 
             if value:
-                if ',' in value:
+                if "," in value:
                     values = self._parse_comma_range(value, param, ctx)
                 else:
                     values = self._parse_range(value, param, ctx)
@@ -297,13 +303,13 @@ class _MaybeRange(click.ParamType):
         base_var = self.base_type.get_metavar(param)
         if not base_var:
             base_var = self.base_type.name
-        return f'{base_var} [or {base_var} range]'
+        return f"{base_var} [or {base_var} range]"
 
 
 _RANGE_TYPES = {
     int: _MaybeRange(click.INT),
     float: _MaybeRange(click.FLOAT),
-    str: _MaybeRange(click.STRING)
+    str: _MaybeRange(click.STRING),
 }
 
 
@@ -399,15 +405,15 @@ def unpack_ranges(**kwargs: Dict[str, Any]) -> List[Dict[str, Any]]:
     [{'a': 1, 'b': 1}, {'a': 2, 'b': 2}]
     """
     ranges = _extract_ranges(kwargs.values())
-    range_name = operator.attrgetter('name')
-    grouped_ranges = itertools.groupby(sorted(ranges, key=range_name),
-                                       key=range_name)
+    range_name = operator.attrgetter("name")
+    grouped_ranges = itertools.groupby(sorted(ranges, key=range_name), key=range_name)
 
     range_map = {k: ArgRange.unique_values(*v) for k, v in grouped_ranges}
 
-    return [{k: _map_ranges(v, value_dict)
-             for k, v in kwargs.items()}
-            for value_dict in _values_from_range_map(range_map)]
+    return [
+        {k: _map_ranges(v, value_dict) for k, v in kwargs.items()}
+        for value_dict in _values_from_range_map(range_map)
+    ]
 
 
 def range_args(**kwargs: Dict[str, Any]) -> Iterator[str]:
@@ -431,14 +437,17 @@ def range_args(**kwargs: Dict[str, Any]) -> Iterator[str]:
     ['b']
     """
     for arg, value in kwargs.items():
-        if isinstance(value, ArgRange) or isinstance(value, tuple) and any(
-                isinstance(v, ArgRange) for v in value):
+        if (
+            isinstance(value, ArgRange)
+            or isinstance(value, tuple)
+            and any(isinstance(v, ArgRange) for v in value)
+        ):
             yield arg
 
 
-def pretty_parameters(bmark,
-                      include_version: bool = True,
-                      include_name: bool = True) -> Dict[str, Any]:
+def pretty_parameters(
+    bmark, include_version: bool = True, include_name: bool = True
+) -> Dict[str, Any]:
     """Get pretty formatted dict of benchmark parameters.
 
     Parameters
@@ -469,15 +478,16 @@ def pretty_parameters(bmark,
     """
     parameters = dict()
     for name, value in bmark.parameters.items():
-        name = name.replace('_', '-')
+        name = name.replace("_", "-")
         if isinstance(value, tuple):
             for i, v in enumerate(value):
-                parameters[f'{name}-{i}'] = v
+                parameters[f"{name}-{i}"] = v
         else:
             parameters[name] = value
     if include_version:
-        parameters['sbench-version'] = __version__
+        parameters["sbench-version"] = __version__
     if include_name:
-        parameters['benchmark-name'] = (type(bmark).__module__ + '.' +
-                                        type(bmark).__name__)
+        parameters["benchmark-name"] = (
+            type(bmark).__module__ + "." + type(bmark).__name__
+        )
     return parameters

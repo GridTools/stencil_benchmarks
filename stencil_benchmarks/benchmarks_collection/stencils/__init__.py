@@ -32,4 +32,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from . import cuda_hip, jax, numba_cpu, numpy, openmp, openmp_blocked
 
-__all__ = ['cuda_hip', 'jax', 'numba_cpu', 'numpy', 'openmp', 'openmp_blocked']
+__all__ = ["cuda_hip", "jax", "numba_cpu", "numpy", "openmp", "openmp_blocked"]

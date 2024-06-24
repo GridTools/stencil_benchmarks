@@ -40,7 +40,7 @@ class TestAllBenchmarks(unittest.TestCase):
     def test_all(self):
         untested = []
         for bmark in benchmark.REGISTRY:
-            bmark_name = bmark.__module__ + '.' + bmark.__name__
+            bmark_name = bmark.__module__ + "." + bmark.__name__
             with self.subTest(benchmark=bmark_name):
                 try:
                     bmark_instance = bmark()
@@ -50,5 +50,6 @@ class TestAllBenchmarks(unittest.TestCase):
                 bmark_instance.run()
 
         if untested:
-            warnings.warn('The following benchmarks were not tested:\n' +
-                          '\n'.join(untested))
+            warnings.warn(
+                "The following benchmarks were not tested:\n" + "\n".join(untested)
+            )
