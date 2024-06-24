@@ -103,7 +103,7 @@ def check_equality(name, result, expected):
     failure = ~np.isclose(result, expected, **_tolerances(result.dtype))
     if not np.any(failure):
         return
-    if result.ndim != 3 or np.product(result.shape) > 1000:
+    if result.ndim != 3 or np.prod(result.shape) > 1000:
         report = _report_failures_large(result, expected, failure)
     else:
         report = _report_failures_small(result, expected, failure)

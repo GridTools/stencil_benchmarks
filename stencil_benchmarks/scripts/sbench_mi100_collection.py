@@ -51,7 +51,6 @@ common_kwargs = default_kwargs(backend='hip',
                                gpu_architecture='gfx908',
                                verify=False,
                                dry_runs=100,
-                               gpu_timers=True,
                                alignment=512,
                                dtype='float32')
 

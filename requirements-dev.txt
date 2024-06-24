@@ -1,5 +1,4 @@
-yapf
 pytest
-flake8<5 # https://github.com/tholo/pytest-flake8/issues/87
-pytest-flake8
+ruff
+pytest-ruff
 pytest-subtests
