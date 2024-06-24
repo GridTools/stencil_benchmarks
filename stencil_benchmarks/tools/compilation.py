@@ -34,6 +34,7 @@ import contextlib
 import ctypes
 import io
 import os
+import pathlib
 import subprocess
 import tempfile
 from typing import (Any, Callable, Iterator, List, Optional, TextIO, Tuple,
@@ -90,7 +91,6 @@ def _capture_output(stdout: TextIO, stderr: TextIO) -> Iterator[None]:
 class GnuLibrary:
     def __init__(self,
                  code: str,
-                 filename: str = 'tmp',
                  compile_command: Optional[List[str]] = None,
                  extension: Optional[str] = None):
         """Compile and load a C/C++-library.
@@ -127,11 +127,10 @@ class GnuLibrary:
         else:
             compile_command += ['-shared', '-fPIC']
 
-        import pathlib
         output_dir = pathlib.Path("benchmarks_source_code")
         output_dir.mkdir(exist_ok=True)
 
-        with tempfile.NamedTemporaryFile(prefix=filename + "_", suffix=extension, dir=output_dir, delete=False) as srcfile:
+        with tempfile.NamedTemporaryFile(suffix=extension, dir=output_dir, delete=False) as srcfile:
             srcfile.write(code.encode())
             srcfile.flush()
 

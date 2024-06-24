@@ -74,10 +74,8 @@ class StencilMixin(Benchmark):
         self.compiler_flags = (self.default_compiler_flags() + ' ' +
                                self.compiler_flags).strip()
 
-        filename = self.template_file().partition('.')[0]
-
         try:
-            self.compiled = compilation.GnuLibrary(code, filename, [self.compiler] +
+            self.compiled = compilation.GnuLibrary(code, [self.compiler] +
                                                    self.compiler_flags.split())
         except compilation.CompilationError as error:
             raise ParameterError(*error.args) from error

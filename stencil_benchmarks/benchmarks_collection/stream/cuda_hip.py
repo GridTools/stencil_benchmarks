@@ -78,9 +78,7 @@ class Native(Benchmark):
         code = template.render(template_file, **self.template_args())
         if self.print_code:
             print(cpphelpers.format_code(code))
-        filename = 'cuda_hip'
         self.compiled = compilation.GnuLibrary(code,
-                                               filename,
                                                self.compile_command(),
                                                extension='.cu')
 

@@ -67,9 +67,8 @@ class Original(Benchmark):
                     r'/\* [a-z ]*"tuned" versions of the kernels \*/(.*)',
                     cpphelpers.format_code(code),
                     re.MULTILINE | re.DOTALL).group(1))
-        filename = self.template_file().partition('.')[0]
+
         self.compiled = compilation.GnuLibrary(code,
-                                               filename,
                                                self.compile_command(),
                                                extension='.c')
 
