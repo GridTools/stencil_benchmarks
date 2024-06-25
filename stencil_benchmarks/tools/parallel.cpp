@@ -34,6 +34,7 @@
 #include <functional>
 #include <random>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 #include <pybind11/pybind11.h>
@@ -41,6 +42,12 @@
 namespace py = pybind11;
 
 namespace {
+template <class T>
+using distribution_t = std::conditional_t<
+    std::is_same_v<T, bool>, std::bernoulli_distribution,
+    std::conditional_t<std::is_integral_v<T>, std::uniform_int_distribution<T>,
+                       std::uniform_real_distribution<T>>>;
+
 template <class T> void random_fill(T *first, T *last) {
   py::gil_scoped_release release;
   std::vector<std::thread> threads;
@@ -48,8 +55,7 @@ template <class T> void random_fill(T *first, T *last) {
   for (std::size_t i = 0; i < nthreads; ++i) {
     threads.emplace_back([=]() {
       std::random_device seed;
-      auto rand = std::bind(std::uniform_real_distribution<T>(),
-                            std::minstd_rand(seed()));
+      auto rand = std::bind(distribution_t<T>(), std::minstd_rand(seed()));
 
       std::size_t n = std::distance(first, last);
       T *thread_first = first + i * n / nthreads;
@@ -72,11 +78,17 @@ PYBIND11_MODULE(parallel, m) {
       last += (info.shape[dim] - 1) * info.strides[dim];
 
     if (info.format == py::format_descriptor<float>::format()) {
-      random_fill<float>(reinterpret_cast<float *>(first),
-                         reinterpret_cast<float *>(last));
+      random_fill(reinterpret_cast<float *>(first),
+                  reinterpret_cast<float *>(last));
     } else if (info.format == py::format_descriptor<double>::format()) {
-      random_fill<double>(reinterpret_cast<double *>(first),
-                          reinterpret_cast<double *>(last));
+      random_fill(reinterpret_cast<double *>(first),
+                  reinterpret_cast<double *>(last));
+    } else if (info.format == py::format_descriptor<bool>::format()) {
+      random_fill(reinterpret_cast<bool *>(first),
+                  reinterpret_cast<bool *>(last));
+    } else if (info.format == py::format_descriptor<int>::format()) {
+      random_fill(reinterpret_cast<int *>(first),
+                  reinterpret_cast<int *>(last));
     } else {
       throw std::runtime_error("data type not supported");
     }
