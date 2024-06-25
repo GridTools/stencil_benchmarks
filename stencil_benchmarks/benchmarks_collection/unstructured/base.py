@@ -84,12 +84,12 @@ class Unstructured(Benchmark):
         self._e2v_table = self.e2v_table()
 
         stencil_data = collections.namedtuple(
-            "StencilData", self.vertex_args + self.edge_args
+            "StencilData", (name for name, _, _ in self.args)
         )
         self._data = [
-            stencil_data(
-                *(self.random_vertex_field() for _ in self.vertex_args),
-                *(self.random_edge_field() for _ in self.edge_args),
+            stencil_data._make(
+                self.random_field(self.blocked_shape(shape), dtype)
+                for _, shape, dtype in self.args
             )
             for _ in range(self.data_sets)
         ]
@@ -110,19 +110,16 @@ class Unstructured(Benchmark):
             apply_offset=self.offset_allocations,
         )
 
-    def empty_vertex_field(self):
-        return self.alloc_field(self.vertex_data_shape, self.layout, self.dtype)
+    def empty_field(self, shape, dtype):
+        layout = list(self.layout[: len(shape)])
+        for removed in reversed(sorted(self.layout[len(shape) :])):
+            for d in range(len(layout)):
+                if layout[d] >= removed:
+                    layout[d] -= 1
+        return self.alloc_field(shape, layout, dtype)
 
-    def empty_edge_field(self):
-        return self.alloc_field(self.edge_data_shape, self.layout, self.dtype)
-
-    def random_vertex_field(self):
-        data = self.empty_vertex_field()
-        parallel.random_fill(data)
-        return data
-
-    def random_edge_field(self):
-        data = self.empty_edge_field()
+    def random_field(self, shape, dtype):
+        data = self.empty_field(shape, dtype)
         parallel.random_fill(data)
         return data
 
@@ -213,31 +210,14 @@ class Unstructured(Benchmark):
         return self._e2v_table.shape[0]
 
     @property
-    def vertex_data_shape(self):
-        return (
-            self.nproma,
-            (self.nvertices + self.nproma - 1) // self.nproma,
-            self.domain[2],
-        )
+    def nlevels(self):
+        return self.domain[2]
 
-    @property
-    def edge_data_shape(self):
-        return (
-            self.nproma,
-            (self.nedges + self.nproma - 1) // self.nproma,
-            self.domain[2],
-        )
+    def blocked_shape(self, shape):
+        return (self.nproma, (shape[0] + self.nproma - 1) // self.nproma) + shape[1:]
 
     def strides(self, data):
         return tuple(s // data.dtype.itemsize for s in data.strides)
-
-    @property
-    def data_size(self):
-        return (
-            (len(self.vertex_args) * self.nvertices + len(self.edge_args) * self.nedges)
-            * self.domain[2]
-            * self.dtype_size
-        )
 
     @abc.abstractmethod
     def run_stencil(self, data):
@@ -248,11 +228,7 @@ class Unstructured(Benchmark):
         pass
 
     @abc.abstractproperty
-    def vertex_args(self):
-        pass
-
-    @abc.abstractproperty
-    def edge_args(self):
+    def args(self):
         pass
 
     def run(self):
@@ -275,26 +251,33 @@ class Unstructured(Benchmark):
 
 class UnstructuredCopy(Unstructured):
     @property
-    def vertex_args(self):
-        return "inp", "out"
+    def args(self):
+        shape = self.nvertices, self.nlevels
+        return ("inp", shape, self.dtype), ("out", shape, self.dtype)
 
     @property
-    def edge_args(self):
-        return ()
+    def data_size(self):
+        return 2 * self.nvertices * self.nlevels * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality("inp", data_before.inp, data_after.inp)
-        validation.check_equality("out", data_after.out, data_before.inp)
+        inp = self.remove_nproma(data_before.inp)[: self.nvertices, :]
+        out = self.remove_nproma(data_after.out)[: self.nvertices, :]
+        validation.check_equality("out", out, inp)
 
 
 class EdgeSum(Unstructured):
     @property
-    def vertex_args(self):
-        return ("out",)
+    def args(self):
+        return ("inp", (self.nedges, self.nlevels), self.dtype), (
+            "out",
+            (self.nvertices, self.nlevels),
+            self.dtype,
+        )
 
     @property
-    def edge_args(self):
-        return ("inp",)
+    def data_size(self):
+        return (self.nvertices + self.nedges) * self.nlevels * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality("inp", data_before.inp, data_after.inp)

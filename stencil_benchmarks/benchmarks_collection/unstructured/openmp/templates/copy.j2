@@ -48,7 +48,7 @@ SPDX-License-Identifier: BSD-3-Clause
             #endif
 {%- endif %}
             for (index_t ii = 0; ii < {{ nproma }}; ++ii) {
-                index_t index = ii * {{ vertex_strides[0] }} + io * {{ vertex_strides[1] }} + k * {{ vertex_strides[2] }};
+                index_t index = ii * {{ strides.out[0] }} + io * {{ strides.out[1] }} + k * {{ strides.out[2] }};
                 out[index] = inp[index];
             }
         }
