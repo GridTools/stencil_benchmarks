@@ -41,6 +41,7 @@ class Copy(UnstructuredMixin, base.UnstructuredCopy):
     def template_file(self):
         return "copy.j2"
 
-    @property
-    def data_size(self):
-        return np.prod(self.domain)
+
+class EdgeSum(UnstructuredMixin, base.EdgeSum):
+    def template_file(self):
+        return "edge_sum.j2"

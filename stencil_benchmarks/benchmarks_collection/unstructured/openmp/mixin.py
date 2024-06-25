@@ -112,13 +112,22 @@ class UnstructuredMixin(Benchmark):
         else:
             perf_counter_type, perf_counter_config = self.perf_counter.split(":")
         return dict(
-            args=self.args,
+            args=self.vertex_args + self.edge_args,
             ctype=compilation.dtype_cname(self.dtype),
             nbtype=compilation.dtype_cname(self.neighbor_table_dtype),
-            strides=self.strides,
+            vertex_strides=self.strides(self._data[0][0]) if self.vertex_args else None,
+            edge_strides=self.strides(self._data[0][len(self.vertex_args)])
+            if self.edge_args
+            else None,
             nproma=self.nproma,
-            nvertices=self.domain[0] * self.domain[1],
+            nvertices=self.nvertices,
+            nedges=self.nedges,
             nlevels=self.domain[2],
+            v2e_strides=self.strides(self._v2e_table),
+            e2v_strides=self.strides(self._e2v_table),
+            v2e_max_neighbors=self._v2e_table.shape[1],
+            e2v_max_neighbors=self._e2v_table.shape[1],
+            skip_values=self.skip_values,
             alignment=self.alignment,
             streaming_stores=self.streaming_stores,
             vector_size=self.vector_size,

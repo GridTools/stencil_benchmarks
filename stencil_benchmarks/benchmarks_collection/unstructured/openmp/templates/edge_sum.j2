@@ -48,8 +48,25 @@ SPDX-License-Identifier: BSD-3-Clause
             #endif
 {%- endif %}
             for (index_t ii = 0; ii < {{ nproma }}; ++ii) {
-                index_t index = ii * {{ vertex_strides[0] }} + io * {{ vertex_strides[1] }} + k * {{ vertex_strides[2] }};
-                out[index] = inp[index];
+                index_t const vertex = ii + {{ nproma }} * io;
+                if (vertex < {{ nvertices }})
+                {
+                    index_t index = ii * {{ vertex_strides[0] }} + io * {{ vertex_strides[1] }} + k * {{ vertex_strides[2] }};
+                    {{ ctype }} sum = 0;
+{%- for nb in range(v2e_max_neighbors) %}
+                    {
+                        index_t neighbor_edge = v2e[vertex * {{ v2e_strides[0] }} + {{ nb }} * {{ v2e_strides[1] }}];
+{%- if skip_values %}
+                        if (neighbor_edge != -1)
+{%- endif %}
+                        {
+                            index_t neighbor_index = neighbor_edge % {{ nproma }} * {{ edge_strides[0] }} + neighbor_edge / {{ nproma }} * {{ edge_strides[1] }} + k * {{ edge_strides[2] }};
+                            sum += inp[neighbor_index];
+                        }
+                    }
+{%- endfor %}
+                    out[index] = sum;
+                }
             }
         }
     }

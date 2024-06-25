@@ -80,15 +80,20 @@ class Unstructured(Benchmark):
                 f"by dtype size ({self.dtype_size} bytes)"
             )
 
-        stencil_data = collections.namedtuple("StencilData", self.args)
+        self._v2e_table = self.v2e_table()
+        self._e2v_table = self.e2v_table()
+
+        stencil_data = collections.namedtuple(
+            "StencilData", self.vertex_args + self.edge_args
+        )
         self._data = [
-            stencil_data._make(self.random_field() for _ in range(len(self.args)))
+            stencil_data(
+                *(self.random_vertex_field() for _ in self.vertex_args),
+                *(self.random_edge_field() for _ in self.edge_args),
+            )
             for _ in range(self.data_sets)
         ]
         self._run = 0
-
-        self._v2e_table = self.v2e_table()
-        self._e2v_table = self.e2v_table()
 
     def _allocate(self, nbytes):
         if self.huge_pages == "none":
@@ -105,17 +110,29 @@ class Unstructured(Benchmark):
             apply_offset=self.offset_allocations,
         )
 
-    def empty_field(self):
-        return self.alloc_field(self.data_shape, self.layout, self.dtype)
+    def empty_vertex_field(self):
+        return self.alloc_field(self.vertex_data_shape, self.layout, self.dtype)
 
-    def random_field(self):
-        data = self.empty_field()
+    def empty_edge_field(self):
+        return self.alloc_field(self.edge_data_shape, self.layout, self.dtype)
+
+    def random_vertex_field(self):
+        data = self.empty_vertex_field()
+        parallel.random_fill(data)
+        return data
+
+    def random_edge_field(self):
+        data = self.empty_edge_field()
         parallel.random_fill(data)
         return data
 
     @property
     def dtype_size(self):
         return np.dtype(self.dtype).itemsize
+
+    @property
+    def neighbor_table_dtype_size(self):
+        return np.dtype(self.neighbor_table_dtype).itemsize
 
     def v2e_table(self):
         nx, ny, _ = self.domain
@@ -151,6 +168,9 @@ class Unstructured(Benchmark):
 
         return data
 
+    def remove_nproma(self, data):
+        return np.concatenate([data[:, i, :] for i in range(data.shape[1])], axis=0)
+
     def e2v_table(self):
         nx, ny, _ = self.domain
         if self.skip_values:
@@ -185,16 +205,39 @@ class Unstructured(Benchmark):
         return data
 
     @property
-    def data_shape(self):
+    def nvertices(self):
+        return self._v2e_table.shape[0]
+
+    @property
+    def nedges(self):
+        return self._e2v_table.shape[0]
+
+    @property
+    def vertex_data_shape(self):
         return (
             self.nproma,
-            (self.domain[0] * self.domain[1]) // self.nproma,
+            (self.nvertices + self.nproma - 1) // self.nproma,
             self.domain[2],
         )
 
     @property
-    def strides(self):
-        return tuple(s // self.dtype_size for s in self._data[0][0].strides)
+    def edge_data_shape(self):
+        return (
+            self.nproma,
+            (self.nedges + self.nproma - 1) // self.nproma,
+            self.domain[2],
+        )
+
+    def strides(self, data):
+        return tuple(s // data.dtype.itemsize for s in data.strides)
+
+    @property
+    def data_size(self):
+        return (
+            (len(self.vertex_args) * self.nvertices + len(self.edge_args) * self.nedges)
+            * self.domain[2]
+            * self.dtype_size
+        )
 
     @abc.abstractmethod
     def run_stencil(self, data):
@@ -205,7 +248,11 @@ class Unstructured(Benchmark):
         pass
 
     @abc.abstractproperty
-    def args(self):
+    def vertex_args(self):
+        pass
+
+    @abc.abstractproperty
+    def edge_args(self):
         pass
 
     def run(self):
@@ -228,9 +275,40 @@ class Unstructured(Benchmark):
 
 class UnstructuredCopy(Unstructured):
     @property
-    def args(self):
+    def vertex_args(self):
         return "inp", "out"
+
+    @property
+    def edge_args(self):
+        return ()
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality("inp", data_before.inp, data_after.inp)
         validation.check_equality("out", data_after.out, data_before.inp)
+
+
+class EdgeSum(Unstructured):
+    @property
+    def vertex_args(self):
+        return ("out",)
+
+    @property
+    def edge_args(self):
+        return ("inp",)
+
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality("inp", data_before.inp, data_after.inp)
+        out = self.remove_nproma(data_after.out)[: self.nvertices, :]
+        inp = self.remove_nproma(data_before.inp)[: self.nedges, :]
+        validation.check_equality(
+            "out",
+            out,
+            np.sum(
+                np.where(
+                    (self._v2e_table != -1)[:, :, np.newaxis],
+                    inp[self._v2e_table, :],
+                    0,
+                ),
+                axis=1,
+            ),
+        )
