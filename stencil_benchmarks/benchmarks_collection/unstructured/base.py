@@ -166,7 +166,7 @@ class Unstructured(Benchmark):
         return data
 
     def remove_nproma(self, data):
-        return np.concatenate([data[:, i, :] for i in range(data.shape[1])], axis=0)
+        return np.concatenate([data[:, i, ...] for i in range(data.shape[1])], axis=0)
 
     def e2v_table(self):
         nx, ny, _ = self.domain
@@ -248,16 +248,18 @@ class Unstructured(Benchmark):
         result["bandwidth"] = self.data_size / result["time"] / 1e9
         return result
 
+    @property
+    def data_size(self):
+        return sum(
+            np.prod(shape) * np.dtype(dtype).itemsize for _, shape, dtype in self.args
+        )
+
 
 class UnstructuredCopy(Unstructured):
     @property
     def args(self):
         shape = self.nvertices, self.nlevels
         return ("inp", shape, self.dtype), ("out", shape, self.dtype)
-
-    @property
-    def data_size(self):
-        return 2 * self.nvertices * self.nlevels * self.dtype_size
 
     def verify_stencil(self, data_before, data_after):
         validation.check_equality("inp", data_before.inp, data_after.inp)
@@ -275,10 +277,6 @@ class EdgeSum(Unstructured):
             self.dtype,
         )
 
-    @property
-    def data_size(self):
-        return (self.nvertices + self.nedges) * self.nlevels * self.dtype_size
-
     def verify_stencil(self, data_before, data_after):
         validation.check_equality("inp", data_before.inp, data_after.inp)
         out = self.remove_nproma(data_after.out)[: self.nvertices, :]
@@ -295,3 +293,59 @@ class EdgeSum(Unstructured):
                 axis=1,
             ),
         )
+
+
+class Nabla(Unstructured):
+    @property
+    def args(self):
+        vshape = self.nvertices, self.nlevels
+        eshape = self.nedges, self.nlevels
+        return (
+            ("pp", vshape, self.dtype),
+            ("vol", (self.nvertices,), self.dtype),
+            ("out0", vshape, self.dtype),
+            ("out1", vshape, self.dtype),
+            ("zavg0", eshape, self.dtype),
+            ("zavg1", eshape, self.dtype),
+            ("s0", eshape, self.dtype),
+            ("s1", eshape, self.dtype),
+            ("sign", (self.nedges,), self.dtype),
+        )
+
+    def verify_stencil(self, data_before, data_after):
+        validation.check_equality("pp", data_before.pp, data_after.pp)
+        validation.check_equality("vol", data_before.vol, data_after.vol)
+        validation.check_equality("s0", data_before.s0, data_after.s0)
+        validation.check_equality("s1", data_before.s1, data_after.s1)
+        validation.check_equality("sign", data_before.sign, data_after.sign)
+        pp = self.remove_nproma(data_before.pp)[: self.nvertices, :]
+        s0 = self.remove_nproma(data_before.s0)[: self.nedges, :]
+        s1 = self.remove_nproma(data_before.s1)[: self.nedges, :]
+        sign = self.remove_nproma(data_before.sign)[: self.nedges]
+        vol = self.remove_nproma(data_before.vol)[: self.nvertices]
+
+        pp_sum = np.sum(pp[self._e2v_table, :], axis=1)
+        zavg0 = pp_sum / 2 * s0
+        zavg1 = pp_sum / 2 * s1
+
+        zavg0_sum = np.sum(
+            np.where(
+                (self._v2e_table != -1)[:, :, np.newaxis],
+                zavg0[self._v2e_table, :] * sign[self._v2e_table][:, :, np.newaxis],
+                0,
+            ),
+            axis=1,
+        )
+        zavg1_sum = np.sum(
+            np.where(
+                (self._v2e_table != -1)[:, :, np.newaxis],
+                zavg1[self._v2e_table, :] * sign[self._v2e_table][:, :, np.newaxis],
+                0,
+            ),
+            axis=1,
+        )
+
+        out0 = self.remove_nproma(data_after.out0)[: self.nvertices, :]
+        out1 = self.remove_nproma(data_after.out1)[: self.nvertices, :]
+        validation.check_equality("out0", out0, zavg0_sum / vol[:, np.newaxis])
+        validation.check_equality("out1", out1, zavg1_sum / vol[:, np.newaxis])
