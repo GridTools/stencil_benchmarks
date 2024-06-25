@@ -1,0 +1,255 @@
+{#
+Stencil Benchmarks
+
+Copyright (c) 2017-2021, ETH Zurich and MeteoSwiss
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+SPDX-License-Identifier: BSD-3-Clause
+#}
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+
+#include <errno.h>
+#include <omp.h>
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
+
+{% if perf_counter_config %}
+#include <asm/unistd.h>
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+class perf_counter {
+  int m_fd;
+
+  int perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu,
+                      int group_fd, unsigned long flags) {
+    return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
+  }
+
+public:
+  perf_counter(std::uint64_t config = {{ perf_counter_config }},
+               std::uint32_t type = {{ perf_counter_type }}) {
+    perf_event_attr pe;
+    std::memset(&pe, 0, sizeof(pe));
+    pe.type = type;
+    pe.size = sizeof(pe);
+    pe.config = config;
+    pe.disabled = 1;
+    pe.exclude_kernel = 1;
+    pe.exclude_hv = 1;
+    m_fd = perf_event_open(&pe, 0, -1, -1, 0);
+    if (m_fd == -1)
+      throw std::runtime_error("creating performance counter failed");
+  }
+
+  perf_counter(perf_counter const &) = delete;
+  perf_counter &operator=(perf_counter const &) = delete;
+  ~perf_counter() { close(m_fd); }
+
+  void start() const {
+    ioctl(m_fd, PERF_EVENT_IOC_RESET, 0);
+    ioctl(m_fd, PERF_EVENT_IOC_ENABLE, 0);
+  }
+
+  long long stop() const {
+    ioctl(m_fd, PERF_EVENT_IOC_DISABLE, 0);
+    long long count;
+    if (read(m_fd, &count, sizeof(count)) != sizeof(count))
+      throw std::runtime_error("reading performance counter failed");
+    return count;
+  }
+};
+{% endif %}
+
+{%- if ctype == 'float' %}
+using index_t = std::int32_t;
+{%- elif ctype == 'double' %}
+using index_t = std::int64_t;
+{%- endif %}
+
+{%- if vector_size is defined %}
+  using vec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }}))));
+  using ivec_t = index_t __attribute__((vector_size({{ vector_size }} * sizeof(index_t))));
+
+  __attribute__((always_inline)) inline vec_t loadu(const {{ ctype }}* ptr) {
+#ifdef __clang__
+    ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
+    vec_t v;
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      v[i] = ptr[i];
+    return v;
+#else
+  using uvec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+  return *(uvec_t*)ptr;
+#endif
+  }
+
+  __attribute__((always_inline)) inline void storeu({{ ctype }}* ptr, vec_t v) {
+#ifdef __clang__
+    ptr = ({{ ctype }}*)__builtin_assume_aligned(ptr, sizeof({{ ctype }}));
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      ptr[i] = v[i];
+#else
+    using uvec_t = {{ ctype }} __attribute__((vector_size({{ vector_size }} * sizeof({{ ctype }})), aligned(sizeof({{ ctype }}))));
+    *(uvec_t*)ptr = v;
+#endif
+  }
+
+  {%- if alignment is defined and alignment > 0 and
+         ((ctype == 'float' and alignment % (4 * vector_size) == 0) or
+          (ctype == 'double' and alignment % (8 * vector_size) == 0)) %}
+    __attribute__((always_inline)) inline vec_t load(const {{ ctype }}* ptr) {
+      return *(vec_t*)ptr;
+    }
+
+    __attribute__((always_inline)) inline void store({{ ctype }}* ptr, vec_t v) {
+      *(vec_t*)ptr = v;
+    }
+
+    __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) {
+      {%- if streaming_stores  and (ctype == 'float' or ctype == 'double') %}
+        {%- if ctype == 'float' %}
+          #if defined(__SSE__) && {{ vector_size }} == 4
+            _mm_stream_ps(ptr, v);
+          #elif defined(__AVX__) && {{ vector_size }} == 8
+            _mm256_stream_ps(ptr, v);
+          #elif defined(__AVX512F__) && {{ vector_size }} == 16
+            _mm512_stream_ps(ptr, v);
+          #elif defined(__clang__)
+            __builtin_nontemporal_store(v, (vec_t*)ptr);
+          #else
+            store(ptr, v);
+          #endif
+        {%- else %}
+          #if defined(__SSE__) && {{ vector_size }} == 2
+            _mm_stream_pd(ptr, v);
+          #elif defined(__AVX__) && {{ vector_size }} == 4
+            _mm256_stream_pd(ptr, v);
+          #elif defined(__AVX512F__) && {{ vector_size }} == 8
+            _mm512_stream_pd(ptr, v);
+          #elif defined(__clang__)
+            __builtin_nontemporal_store(v, (vec_t*)ptr);
+          #else
+            store(ptr, v);
+          #endif
+        {%- endif %}
+      {%- else %}
+        #ifdef __clang__
+          __builtin_nontemporal_store(v, (vec_t*)ptr);
+        #else
+          store(ptr, v);
+        #endif
+      {%- endif %}
+    }
+  {%- else %}
+    __attribute__((always_inline)) inline vec_t load(const {{ ctype }}* ptr) { return loadu(ptr); }
+    __attribute__((always_inline)) inline void store({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+    __attribute__((always_inline)) inline void storent({{ ctype }}* ptr, vec_t v) { storeu(ptr, v); }
+  {%- endif %}
+
+#ifdef __clang__
+  __attribute__((always_inline)) inline vec_t select(ivec_t condition, vec_t v1, vec_t v2) {
+    vec_t v;
+    for (int i = 0; i < {{ vector_size }}; ++i)
+      v[i] = condition[i] ? v1[i] : v2[i];
+    return v;
+  }
+#else
+  #define select(condition, v1, v2) ((condition) ? (v1) : (v2))
+#endif
+
+#ifdef __clang__
+  #define shuffle(v1, v2, ...) __builtin_shufflevector(v1, v2, __VA_ARGS__)
+#else
+  #define shuffle(v1, v2, ...) __builtin_shuffle(v1, v2, (ivec_t){__VA_ARGS__})
+#endif
+{%- endif %}
+
+{% block pre_kernel %}
+{% endblock pre_kernel %}
+
+void kernel_impl(
+    {{ nbtype }} const* __restrict__ v2e,
+    {{ nbtype }} const* __restrict__ e2v,
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    {% block kernel_invoke %}
+    {% endblock kernel_invoke %}
+}
+
+{% block kernel %}
+extern "C" int kernel(
+    double* time,
+    long long* counter,
+    {{ nbtype }} const* __restrict__ v2e,
+    {{ nbtype }} const* __restrict__ e2v,
+    {%- for arg in args %}
+        {{ ctype }} * __restrict__ {{ arg }}{{ "," if not loop.last }}
+    {%- endfor %}
+) {
+    {% block kernel_prepare %}
+    {% endblock kernel_prepare %}
+
+    for (int dry_run = 0; dry_run < {{ dry_runs }}; ++dry_run) {
+        kernel_impl(v2e, e2v, {{ args | join(", ") }});
+    }
+
+    {% if perf_counter_config %}
+    perf_counter pc;
+    {% endif %}
+
+    using clock = std::chrono::high_resolution_clock;
+    auto start = clock::now();
+
+    {% if perf_counter_config %}
+    pc.start();
+    {% endif %}
+
+    kernel_impl(v2e, e2v, {{ args | join(", ") }});
+
+    {% if perf_counter_config %}
+    *counter = pc.stop();
+    {% else %}
+    *counter = 0;
+    {% endif %}
+
+    auto stop = clock::now();
+    *time = std::chrono::duration<double>(stop - start).count();
+    return 0;
+}
+{% endblock kernel %}

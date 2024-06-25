@@ -30,6 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import stencils, stream, unstructured
+import numpy as np
 
-__all__ = ["stencils", "stream", "unstructured"]
+from stencil_benchmarks.benchmarks_collection.unstructured import base
+
+from .mixin import UnstructuredMixin
+
+
+class Copy(UnstructuredMixin, base.CopyStencil):
+    def template_file(self):
+        return "copy.j2"
+
+    @property
+    def data_size(self):
+        return np.prod(self.domain)
