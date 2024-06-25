@@ -226,7 +226,7 @@ class Unstructured(Benchmark):
         return result
 
 
-class CopyStencil(Unstructured):
+class UnstructuredCopy(Unstructured):
     @property
     def args(self):
         return "inp", "out"

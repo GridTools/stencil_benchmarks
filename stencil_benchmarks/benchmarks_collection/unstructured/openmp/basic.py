@@ -37,7 +37,7 @@ from stencil_benchmarks.benchmarks_collection.unstructured import base
 from .mixin import UnstructuredMixin
 
 
-class Copy(UnstructuredMixin, base.CopyStencil):
+class Copy(UnstructuredMixin, base.UnstructuredCopy):
     def template_file(self):
         return "copy.j2"
 
