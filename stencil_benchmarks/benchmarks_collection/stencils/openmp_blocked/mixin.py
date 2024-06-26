@@ -31,7 +31,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import contextlib
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -60,7 +60,7 @@ class StencilMixin(mixin.StencilMixin):
             )
 
     def template_path(self):
-        return os.path.dirname(os.path.abspath(__file__))
+        return Path(__file__).parent.resolve()
 
     @property
     def blocked_domain(self):

@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-import os
 import re
 import warnings
+from pathlib import Path
 
 from ...benchmark import Benchmark, ExecutionError, Parameter
 from ...tools import compilation, cpphelpers, template
@@ -70,9 +70,7 @@ class Native(Benchmark):
             (self.array_size + elements_per_block - 1) // elements_per_block
         ) * elements_per_block
 
-        template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "cuda_hip.j2"
-        )
+        template_file = Path(__file__).parent.resolve() / "cuda_hip.j2"
         code = template.render(template_file, **self.template_args())
         if self.print_code:
             print(cpphelpers.format_code(code))

@@ -31,9 +31,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import os
 import re
 import textwrap
+from pathlib import Path
 
 import click
 import numpy as np
@@ -84,7 +84,7 @@ def arrange(df, query, groups, aggregation, unstack, select, sort):
 
 
 @main.command(name="print")
-@click.argument("csv", type=click.Path(exists=True))
+@click.argument("csv", type=click.Path(exists=True, path_type=Path))
 @click.option(
     "--common/--non-common",
     "-c",
@@ -134,7 +134,7 @@ def print_csv(
 
 
 @main.command()
-@click.argument("csv", type=click.Path(exists=True))
+@click.argument("csv", type=click.Path(exists=True, path_type=Path))
 @click.option("--uniform/--non-uniform", help="Equidistant placement of x-axis ticks.")
 @click.option("--ylim", type=float, nargs=2, help="Y-axis limits.")
 @click.option("--title", "-t", help="Plot title.")
@@ -166,7 +166,7 @@ def print_csv(
     help="Search and replace a pattern in the final labels, "
     "input as /pattern/repl/ in Python regex syntax.",
 )
-@click.option("--output", "-o", type=click.Path(), help="Output file.")
+@click.option("--output", "-o", type=click.Path(path_type=Path), help="Output file.")
 @click.option("--dpi", default=300, type=int, help="Output DPI (dots per inch).")
 def plot(
     csv,
@@ -186,9 +186,6 @@ def plot(
     dpi,
 ):
     """Plot output of sbench.
-
-    X is the data column name for the values used for the x-axis in the plot, Y
-    is the column name for the y-axis.
     """
     import cycler
     from matplotlib import pyplot as plt
@@ -247,7 +244,7 @@ def plot(
     if relative_to:
         plt.gca().yaxis.set_major_formatter(ticker.PercentFormatter(1.0))
     if not title:
-        title = os.path.split(csv)[-1]
+        title = csv.name
     plt.title(title)
     subtitle = ", ".join(f"{k}: {v}" for k, v in common.items())
     plt.text(
@@ -269,7 +266,7 @@ def plot(
 
 
 @main.command()
-@click.argument("csv", type=click.Path(exists=True), nargs=-1)
+@click.argument("csv", type=click.Path(exists=True, path_type=Path), nargs=-1)
 @click.argument("output", type=click.File(mode="w"))
 def merge(csv, output):
     """Merge multiple CSV files produces by sbench."""

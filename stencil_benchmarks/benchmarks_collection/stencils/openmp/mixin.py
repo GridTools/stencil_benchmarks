@@ -34,6 +34,7 @@ import abc
 import ctypes
 import os
 import warnings
+from pathlib import Path
 
 from stencil_benchmarks.benchmark import Benchmark, ExecutionError, Parameter
 from stencil_benchmarks.tools import compilation, cpphelpers, template
@@ -63,9 +64,7 @@ class StencilMixin(Benchmark):
     def setup(self):
         super().setup()
 
-        template_file = os.path.join(
-            self.template_path(), "templates", self.template_file()
-        )
+        template_file = self.template_path() / "templates" / self.template_file()
         code = template.render(template_file, **self.template_args())
         code = cpphelpers.format_code(code, line_numbers=False)
 
@@ -84,7 +83,7 @@ class StencilMixin(Benchmark):
             )
 
     def template_path(self):
-        return os.path.dirname(os.path.abspath(__file__))
+        return Path(__file__).parent.resolve()
 
     def compile_command(self):
         command = [self.compiler]

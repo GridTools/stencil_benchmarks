@@ -33,8 +33,8 @@
 import abc
 import contextlib
 import ctypes
-import os
 import warnings
+from pathlib import Path
 
 from stencil_benchmarks.benchmark import (
     Benchmark,
@@ -63,10 +63,8 @@ class StencilMixin(Benchmark):
         if self.backend == "cuda" and self.timers == "hip-ext":
             raise ParameterError("hip-ext timers are not compatible with CUDA")
 
-        template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "templates",
-            self.template_file(),
+        template_file = (
+            Path(__file__).parent.resolve() / "templates" / self.template_file()
         )
         code = template.render(template_file, **self.template_args())
         code = cpphelpers.format_code(code, line_numbers=False)

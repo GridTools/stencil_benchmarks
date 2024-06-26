@@ -32,6 +32,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import re
+from pathlib import Path
 
 import numpy as np
 
@@ -59,9 +60,7 @@ class Original(Benchmark):
         if self.compiler.endswith("icpc"):
             os.environ["KMP_INIT_AT_FORK"] = "0"
 
-        template_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), self.template_file()
-        )
+        template_file = Path(__file__).parent.resolve() / self.template_file()
         code = template.render(template_file, **self.template_args())
         if self.print_kernels:
             print(

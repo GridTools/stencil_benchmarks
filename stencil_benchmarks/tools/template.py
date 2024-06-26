@@ -30,14 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-import os
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Union
 
 import jinja2
 
 
-def render(template_file: str, **kwargs: Dict[str, Any]) -> str:
-    template_path, template_file = os.path.split(template_file)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_path))
-    template = env.get_template(template_file)
+def render(template_file: Union[str, Path], **kwargs: Dict[str, Any]) -> str:
+    template_file = Path(template_file)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_file.parent))
+    template = env.get_template(template_file.name)
     return template.render(**kwargs)
