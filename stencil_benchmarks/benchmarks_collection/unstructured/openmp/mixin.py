@@ -34,6 +34,7 @@ import abc
 import ctypes
 import os
 import warnings
+from pathlib import Path
 
 from stencil_benchmarks.benchmark import Benchmark, ExecutionError, Parameter
 from stencil_benchmarks.tools import compilation, cpphelpers, template
@@ -64,8 +65,8 @@ class UnstructuredMixin(Benchmark):
     def setup(self):
         super().setup()
 
-        template_file = os.path.join(
-            self.template_path(), "templates", self.template_file()
+        template_file = (
+            Path(__file__).parent.resolve() / "templates" / self.template_file()
         )
         code = template.render(template_file, **self.template_args())
         code = cpphelpers.format_code(code, line_numbers=False)
@@ -83,9 +84,6 @@ class UnstructuredMixin(Benchmark):
                 "using --dry-runs together with verification might lead to "
                 "false negatives for stencils with read-write fields"
             )
-
-    def template_path(self):
-        return os.path.dirname(os.path.abspath(__file__))
 
     def compile_command(self):
         command = [self.compiler]
