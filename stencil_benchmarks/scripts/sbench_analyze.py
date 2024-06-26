@@ -185,8 +185,7 @@ def plot(
     output,
     dpi,
 ):
-    """Plot output of sbench.
-    """
+    """Plot output of sbench."""
     import cycler
     from matplotlib import pyplot as plt
     from matplotlib import ticker
@@ -215,20 +214,28 @@ def plot(
         pattern, repl = regex[1:-1].split(splitter, 1)
         regexes.append((re.compile(pattern), repl))
 
-    for index, row in df.iterrows():
+    def plot_data(index, row):
         x = np.arange(len(row.index)) if uniform else row.index
         y = row.values / relative_to if relative_to else row.values
-        if isinstance(index, tuple):
-            label = ", ".join(
-                f"{name}={value}" for name, value in zip(df.index.names, index)
-            )
-        else:
-            label = str(index)
+        label = (
+            ", ".join(f"{name}={value}" for name, value in zip(df.index.names, index))
+            if isinstance(index, tuple)
+            else str(index)
+        )
         for regex, repl in regexes:
             label = regex.sub(repl, label)
         plt.plot(x, y, label=label)
-    if uniform:
-        plt.xticks(x, row.index, rotation=45)
+        if uniform:
+            plt.xticks(x, row.index, rotation=45)
+
+    if isinstance(df, pd.Series):
+        plot_data(df.index, df)
+        plt.xlabel(df.index.name)
+    else:
+        for index, row in df.iterrows():
+            plot_data(index, row)
+        plt.xlabel(df.columns.name)
+        plt.legend()
 
     for i, ref in enumerate(reference):
         label, value = ref.split("=", 1)
@@ -236,8 +243,6 @@ def plot(
         dashes = (5 * (i + 1) + 3 * i, 3)
         plt.axhline(value, color="k", ls=(0, dashes), label=label)
 
-    plt.legend()
-    plt.xlabel(df.columns.name)
     plt.ylabel(select)
     if ylim:
         plt.ylim(ylim)
