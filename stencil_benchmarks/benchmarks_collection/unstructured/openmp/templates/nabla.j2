@@ -1,0 +1,103 @@
+{#
+Stencil Benchmarks
+
+Copyright (c) 2017-2021, ETH Zurich and MeteoSwiss
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+SPDX-License-Identifier: BSD-3-Clause
+#}
+{% extends "base.j2" %}
+
+{% block kernel_invoke %}
+    #pragma omp parallel for collapse(2)
+    for (index_t eo = 0; eo < {{ (nedges + nproma - 1) // nproma }}; ++eo)
+    {
+        for (index_t k = 0; k < {{ nlevels }}; ++k)
+        {
+            #pragma omp simd {% if vector_size > 1 %}simdlen({{ vector_size }}){%- endif %}
+            for (index_t ei = 0; ei < {{ nproma }}; ++ei) {
+                index_t const edge = ei + {{ nproma }} * eo;
+                if (edge < {{ nedges }})
+                {
+                    index_t index = ei * {{ strides.zavg0[0] }} + eo * {{ strides.zavg0[1] }} + k * {{ strides.zavg0[2] }};
+                    index_t const edge_0 = e2v[edge * {{ strides.e2v[0] }} + 0 * {{ strides.e2v[1] }}];
+                    index_t const edge_1 = e2v[edge * {{ strides.e2v[0] }} + 1 * {{ strides.e2v[1] }}];
+
+                    index_t const pp_index_0 = edge_0 % {{ nproma }} * {{ strides.pp[0] }} + edge_0 / {{ nproma }} * {{ strides.pp[1] }} + k * {{ strides.pp[2] }};
+                    index_t const pp_index_1 = edge_1 % {{ nproma }} * {{ strides.pp[0] }} + edge_1 / {{ nproma }} * {{ strides.pp[1] }} + k * {{ strides.pp[2] }};
+
+                    {{ ctype }} sum = pp[pp_index_0] + pp[pp_index_1];
+
+                    zavg0[index] = sum / 2 * s0[index];
+                    zavg1[index] = sum / 2 * s1[index];
+                }
+            }
+        }
+    }
+
+    #pragma omp parallel for collapse(2)
+    for (index_t vo = 0; vo < {{ (nvertices + nproma - 1) // nproma }}; ++vo)
+    {
+        for (index_t k = 0; k < {{ nlevels }}; ++k)
+        {
+
+            #pragma omp simd {% if vector_size > 1 %}simdlen({{ vector_size }}){%- endif %}
+{%- if streaming_stores %}
+            #ifdef __INTEL_COMPILER
+            #pragma vector nontemporal
+            #endif
+{%- endif %}
+            for (index_t vi = 0; vi < {{ nproma }}; ++vi) {
+                index_t const vertex = vi + {{ nproma }} * vo;
+                if (vertex < {{ nvertices }})
+                {
+                    {{ ctype }} sum0 = 0, sum1 = 0;
+{%- for nb in range(v2e_max_neighbors) %}
+                    {
+                        index_t neighbor_edge = v2e[vertex * {{ strides.v2e[0] }} + {{ nb }} * {{ strides.v2e[1] }}];
+{%- if skip_values %}
+                        if (neighbor_edge != -1)
+{%- endif %}
+                        {
+                            index_t zavg_index = neighbor_edge % {{ nproma }} * {{ strides.zavg0[0] }} + neighbor_edge / {{ nproma }} * {{ strides.zavg0[1] }} + k * {{ strides.zavg0[2] }};
+                            index_t sign_index = neighbor_edge % {{ nproma }} * {{ strides.sign[0] }} + neighbor_edge / {{ nproma }} * {{ strides.sign[1] }};
+                            sum0 += zavg0[zavg_index] * sign[sign_index];
+                            sum1 += zavg1[zavg_index] * sign[sign_index];
+                        }
+                    }
+{%- endfor %}
+                    index_t out_index = vi * {{ strides.out0[0] }} + vo * {{ strides.out0[1] }} + k * {{ strides.out0[2] }};
+                    index_t vol_index = vi * {{ strides.vol[0] }} + vo * {{ strides.vol[1] }};
+                    out0[out_index] = sum0 / vol[vol_index];
+                    out1[out_index] = sum1 / vol[vol_index];
+                }
+            }
+        }
+    }
+{% endblock kernel_invoke %}

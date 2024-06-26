@@ -30,6 +30,3 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import stencils, stream, unstructured
-
-__all__ = ["stencils", "stream", "unstructured"]

@@ -30,6 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from . import stencils, stream, unstructured
 
-__all__ = ["stencils", "stream", "unstructured"]
+from stencil_benchmarks.benchmarks_collection.unstructured import base
+
+from .mixin import UnstructuredMixin
+
+
+class Copy(UnstructuredMixin, base.UnstructuredCopy):
+    def template_file(self):
+        return "copy.j2"
+
+
+class EdgeSum(UnstructuredMixin, base.EdgeSum):
+    def template_file(self):
+        return "edge_sum.j2"
+
+
+class Nabla(UnstructuredMixin, base.Nabla):
+    def template_file(self):
+        return "nabla.j2"

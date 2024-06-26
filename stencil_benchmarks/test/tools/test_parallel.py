@@ -47,9 +47,10 @@ class TestRandomFill(unittest.TestCase):
                 self.assertTrue(np.all(x < 1))
 
     def test_3d(self):
-        for dtype in ("float32", "float64"):
+        for dtype in ("float32", "float64", "int32", "bool"):
             with self.subTest(dtype=dtype):
                 x = np.full((10, 10, 10), -1.0, dtype=dtype)
                 parallel.random_fill(x)
                 self.assertTrue(np.all(x >= 0))
-                self.assertTrue(np.all(x < 1))
+                if dtype.startswith("float"):
+                    self.assertTrue(np.all(x < 1))
