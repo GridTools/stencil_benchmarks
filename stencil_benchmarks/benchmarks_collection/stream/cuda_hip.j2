@@ -112,6 +112,8 @@ void {{ name }}({{ varargs | join(', ') }}) {
 {%- macro load(access) %}
 {%- if streaming_loads -%}
     __builtin_nontemporal_load(&{{ access }})
+{%- elif load_cache_modifier -%}
+    __ld{{ load_cache_modifier }}(&{{ access }})
 {%- else -%}
     {{ access }}
 {%- endif -%}
@@ -120,6 +122,8 @@ void {{ name }}({{ varargs | join(', ') }}) {
 {%- macro store(access, value) %}
 {%- if streaming_stores -%}
     __builtin_nontemporal_store({{ value }}, &{{ access }})
+{%- elif store_cache_modifier -%}
+    __st{{ store_cache_modifier }}(&{{ access }}, {{ value }})
 {%- else -%}
     {{ access }} = {{ value }}
 {%- endif -%}
