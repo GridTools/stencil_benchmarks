@@ -34,7 +34,7 @@ import re
 import warnings
 from pathlib import Path
 
-from ...benchmark import Benchmark, ExecutionError, Parameter
+from ...benchmark import Benchmark, ExecutionError, Parameter, ParameterError
 from ...tools import compilation, cpphelpers, template
 
 
@@ -57,11 +57,26 @@ class Native(Benchmark):
     index_type = Parameter("index data type", "std::size_t")
     streaming_stores = Parameter("use streaming store instructions", False)
     streaming_loads = Parameter("use streaming load instructions", False)
+    store_cache_modifier = Parameter(
+        "PTX cache modifier for stores", "", choices=["", "wb", "cg", "cs", "wt"]
+    )
+    load_cache_modifier = Parameter(
+        "PTX cache modifier for loads", "", choices=["", "cg", "ca", "cs", "lu", "cv"]
+    )
     print_code = Parameter("print code", False)
     verify = Parameter("verify results", True)
 
     def setup(self):
         super().setup()
+
+        if self.streaming_loads and self.load_cache_modifier:
+            raise ParameterError(
+                "streaming loads can not be combined with load cache modifier"
+            )
+        if self.streaming_stores and self.store_cache_modifier:
+            raise ParameterError(
+                "streaming stores can not be combined with store cache modifier"
+            )
 
         elements_per_block = self.block_size * self.vector_size * self.unroll_factor
         if self.array_size % elements_per_block:
@@ -98,6 +113,8 @@ class Native(Benchmark):
             index_type=self.index_type,
             streaming_loads=self.streaming_loads,
             streaming_stores=self.streaming_stores,
+            store_cache_modifier=self.store_cache_modifier,
+            load_cache_modifier=self.load_cache_modifier,
             verify=self.verify,
         )
 
